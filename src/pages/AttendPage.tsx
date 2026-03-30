@@ -111,6 +111,12 @@ export default function AttendPage() {
     }
   }
 
+  const validStatuses = ['pass', 'fail', 'delay']
+  const allDone =
+    validStatuses.includes(attendance?.word_status as string) &&
+    validStatuses.includes(attendance?.oral_status as string) &&
+    validStatuses.includes(attendance?.homework as string)
+
   async function handleCheckOut() {
     if (!attendance) return
     const { data } = await supabase
@@ -223,9 +229,19 @@ export default function AttendPage() {
                 등원: {new Date(attendance.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
+            {!allDone && (
+              <p className="text-xs text-orange-500 bg-orange-50 rounded-xl py-2 px-3 mb-3">
+                조교 선생님의 확인이 완료되면 하원 버튼이 활성화됩니다.
+              </p>
+            )}
             <button
               onClick={handleCheckOut}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 rounded-xl transition-colors text-base mb-3"
+              disabled={!allDone}
+              className={`w-full font-semibold py-3.5 rounded-xl transition-colors text-base mb-3 ${
+                allDone
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
             >
               하원할게요
             </button>
