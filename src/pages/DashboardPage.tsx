@@ -99,6 +99,7 @@ export default function DashboardPage() {
   }
 
   async function handleMission(id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) {
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
     await supabase
       .from('attendances')
       .update({ [field]: value })
@@ -135,14 +136,22 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
             <div className="text-xs text-gray-400">오늘 총 출석</div>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <span className="text-xs text-gray-500 font-medium">{currentUser}</span>
+          <div className="flex items-center gap-2">
             <button
-              onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
-              className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 transition-colors"
+              onClick={() => navigate('/admin')}
+              className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-2.5 py-1 transition-colors"
             >
-              로그아웃
+              관리자 페이지
             </button>
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-xs text-gray-500 font-medium">{currentUser}</span>
+              <button
+                onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
+                className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
           </div>
         </div>
       </header>
