@@ -311,7 +311,12 @@ function AttendanceCard({
   const [notes, setNotes] = useState(record.notes ?? '')
   const [checkoutError, setCheckoutError] = useState(false)
 
-  const homeworkStatus = (record.homework as MissionStatus) ?? null
+
+  const validStatuses = ['pass', 'fail', 'delay']
+  const allDone =
+    validStatuses.includes(record.word_status as string) &&
+    validStatuses.includes(record.oral_status as string) &&
+    validStatuses.includes(record.homework as string)
 
   const checkinTime = record.checked_in_at
     ? new Date(record.checked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
@@ -336,7 +341,7 @@ function AttendanceCard({
   }
 
   function handleCheckOutWithValidation() {
-    if (!record.word_status || !record.oral_status || !homeworkStatus) {
+    if (!allDone) {
       setCheckoutError(true)
       setTimeout(() => setCheckoutError(false), 3000)
       return
@@ -404,7 +409,7 @@ function AttendanceCard({
             />
             <MissionRow
               label="과제"
-              value={homeworkStatus}
+              value={validStatuses.includes(record.homework as string) ? record.homework as MissionStatus : null}
               onChange={(v) => onMission(record.id, 'homework', v)}
             />
           </div>
@@ -422,18 +427,30 @@ function AttendanceCard({
           </div>
 
           {/* 하원 버튼 */}
-          {checkoutError && (
-            <div className="text-center text-xs text-red-500 font-medium bg-red-50 rounded-xl py-2 px-3">
-              아직 완료되지 않은 클리닉이 남았어요
-            </div>
-          )}
           {!record.checked_out_at ? (
-            <button
-              onClick={handleCheckOutWithValidation}
-              className="w-full py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors"
-            >
-              하원 처리
-            </button>
+            <div className="space-y-1.5">
+              {!allDone && (
+                <div className="text-center text-xs text-orange-500 font-medium bg-orange-50 rounded-xl py-2 px-3">
+                  단어 · 구두 · 과제 모두 선택 후 하원 처리 가능
+                </div>
+              )}
+              {checkoutError && (
+                <div className="text-center text-xs text-red-500 font-medium bg-red-50 rounded-xl py-2 px-3">
+                  아직 완료되지 않은 클리닉이 남았어요
+                </div>
+              )}
+              <button
+                onClick={handleCheckOutWithValidation}
+                disabled={!allDone}
+                className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  allDone
+                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                하원 처리
+              </button>
+            </div>
           ) : (
             <div className="flex items-center justify-between bg-indigo-50 rounded-xl px-3 py-2">
               <span className="text-xs text-indigo-600 font-medium">하원 완료 · {checkoutTime}</span>
