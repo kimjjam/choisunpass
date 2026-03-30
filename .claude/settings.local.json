@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(printf 'y\\\\n')",
+      "Bash(npx create-vite@latest . --template react-ts)",
+      "Bash(npm install:*)"
+    ]
+  }
+}
