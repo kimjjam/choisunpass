@@ -1,5 +1,5 @@
 export type AttendanceStatus = 'pending' | 'approved' | 'rejected'
-export type MissionStatus = 'pass' | 'fail' | null
+export type MissionStatus = 'pass' | 'fail' | 'delay' | null
 
 export interface Student {
   id: string

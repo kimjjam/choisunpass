@@ -98,7 +98,7 @@ export default function DashboardPage() {
       .eq('id', id)
   }
 
-  async function handleMission(id: string, field: 'word_status' | 'oral_status', value: MissionStatus) {
+  async function handleMission(id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) {
     await supabase
       .from('attendances')
       .update({ [field]: value })
@@ -297,10 +297,12 @@ function AttendanceCard({
   onAllowRetry: () => void
   onCheckOut: () => void
   onCancelCheckOut: () => void
-  onMission: (id: string, field: 'word_status' | 'oral_status', value: MissionStatus) => void
+  onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
 }) {
-  const [homework, setHomework] = useState(record.homework ?? '')
   const [notes, setNotes] = useState(record.notes ?? '')
+  const [checkoutError, setCheckoutError] = useState(false)
+
+  const homeworkStatus = (record.homework as MissionStatus) ?? null
 
   const checkinTime = record.checked_in_at
     ? new Date(record.checked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
@@ -320,8 +322,17 @@ function AttendanceCard({
     rejected: '거절',
   }
 
-  async function saveField(field: 'homework' | 'notes', value: string) {
+  async function saveField(field: 'notes', value: string) {
     await supabase.from('attendances').update({ [field]: value || null }).eq('id', record.id)
+  }
+
+  function handleCheckOutWithValidation() {
+    if (!record.word_status || !record.oral_status || !homeworkStatus) {
+      setCheckoutError(true)
+      setTimeout(() => setCheckoutError(false), 3000)
+      return
+    }
+    onCheckOut()
   }
 
   return (
@@ -371,7 +382,7 @@ function AttendanceCard({
       {/* 미션 + 과제/기타 + 하원 + 승인취소 (approved만) */}
       {record.status === 'approved' && (
         <div className="border-t border-gray-100 pt-3 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <MissionRow
               label="단어"
               value={record.word_status}
@@ -382,36 +393,34 @@ function AttendanceCard({
               value={record.oral_status}
               onChange={(v) => onMission(record.id, 'oral_status', v)}
             />
+            <MissionRow
+              label="과제"
+              value={homeworkStatus}
+              onChange={(v) => onMission(record.id, 'homework', v)}
+            />
           </div>
 
-          {/* 미완료 과제 / 기타 */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <div className="text-xs text-gray-400 mb-1">미완료 과제</div>
-              <input
-                value={homework}
-                onChange={(e) => setHomework(e.target.value)}
-                onBlur={(e) => saveField('homework', e.target.value)}
-                placeholder="입력..."
-                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-400"
-              />
-            </div>
-            <div>
-              <div className="text-xs text-gray-400 mb-1">기타</div>
-              <input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                onBlur={(e) => saveField('notes', e.target.value)}
-                placeholder="입력..."
-                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-400"
-              />
-            </div>
+          {/* 기타 */}
+          <div>
+            <div className="text-xs text-gray-400 mb-1">기타</div>
+            <input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={(e) => saveField('notes', e.target.value)}
+              placeholder="입력..."
+              className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-400"
+            />
           </div>
 
           {/* 하원 버튼 */}
+          {checkoutError && (
+            <div className="text-center text-xs text-red-500 font-medium bg-red-50 rounded-xl py-2 px-3">
+              아직 완료되지 않은 클리닉이 남았어요
+            </div>
+          )}
           {!record.checked_out_at ? (
             <button
-              onClick={onCheckOut}
+              onClick={handleCheckOutWithValidation}
               className="w-full py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors"
             >
               하원 처리
@@ -468,10 +477,10 @@ function MissionRow({
   return (
     <div>
       <div className="text-xs text-gray-500 mb-1.5 font-medium">{label}</div>
-      <div className="flex gap-1.5">
+      <div className="flex flex-col gap-1">
         <button
           onClick={() => onChange(value === 'pass' ? null : 'pass')}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+          className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-colors ${
             value === 'pass'
               ? 'bg-green-500 text-white'
               : 'bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700'
@@ -481,13 +490,23 @@ function MissionRow({
         </button>
         <button
           onClick={() => onChange(value === 'fail' ? null : 'fail')}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+          className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-colors ${
             value === 'fail'
               ? 'bg-red-500 text-white'
               : 'bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-700'
           }`}
         >
           Fail
+        </button>
+        <button
+          onClick={() => onChange(value === 'delay' ? null : 'delay')}
+          className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            value === 'delay'
+              ? 'bg-orange-400 text-white'
+              : 'bg-gray-100 text-gray-500 hover:bg-orange-100 hover:text-orange-600'
+          }`}
+        >
+          Delay
         </button>
       </div>
     </div>
