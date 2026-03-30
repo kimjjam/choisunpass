@@ -7,8 +7,8 @@ export interface Student {
   code: string
   class: string
   school: string
-  oral_type: string   // 구두 진행 방식 (빈칸 구두, 별구두 등)
-  clinic_day: string  // 클리닉 요일 (월/화/수/목/금)
+  oral_type: string
+  clinic_day: string
   created_at: string
 }
 
@@ -23,26 +23,53 @@ export interface Attendance {
   word_status: MissionStatus
   oral_status: MissionStatus
   reject_reason: string | null
-  homework: string | null   // 미완료 과제 입력
-  notes: string | null      // 기타
+  homework: string | null
+  notes: string | null
 }
 
 export interface AttendanceWithStudent extends Attendance {
   students: Student
 }
 
+export type StudentInsert = {
+  name: string
+  code: string
+  class: string
+  school: string
+  oral_type: string
+  clinic_day: string
+}
+
+export type StudentUpdate = Partial<StudentInsert>
+
+export type AttendanceInsert = {
+  student_id: string
+  date: string
+  status?: AttendanceStatus
+  checked_in_at?: string | null
+  approved_at?: string | null
+  checked_out_at?: string | null
+  word_status?: MissionStatus
+  oral_status?: MissionStatus
+  reject_reason?: string | null
+  homework?: string | null
+  notes?: string | null
+}
+
+export type AttendanceUpdate = Partial<Omit<AttendanceInsert, 'student_id'>>
+
 export type Database = {
   public: {
     Tables: {
       students: {
         Row: Student
-        Insert: Omit<Student, 'id' | 'created_at'>
-        Update: Partial<Omit<Student, 'id' | 'created_at'>>
+        Insert: StudentInsert
+        Update: StudentUpdate
       }
       attendances: {
         Row: Attendance
-        Insert: Omit<Attendance, 'id'>
-        Update: Partial<Omit<Attendance, 'id'>>
+        Insert: AttendanceInsert
+        Update: AttendanceUpdate
       }
     }
   }
