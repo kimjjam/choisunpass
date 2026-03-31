@@ -37,6 +37,7 @@ export default function DashboardPage() {
   }, [])
 
   async function handleApprove(id: string) {
+    if (!confirm('정말 학생이 등원하였습니까?')) return
     const now = new Date().toISOString()
     setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'approved', approved_at: now } : r))
     await supabase.from('attendances').update({ status: 'approved', approved_at: now }).eq('id', id)
