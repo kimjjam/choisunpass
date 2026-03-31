@@ -403,22 +403,55 @@ function AttendanceRow({
 }
 
 function MissionCycleButton({ value, onChange }: { value: MissionStatus; onChange: (v: MissionStatus) => void }) {
-  const cycle: Record<string, MissionStatus> = { 'null': 'pass', 'pass': 'fail', 'fail': 'delay', 'delay': null }
+  const [open, setOpen] = useState(false)
+  const ref = useState(() => ({ current: null as HTMLDivElement | null }))[0]
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
   const key = value ?? 'null'
-  const styles: Record<string, string> = {
-    'null': 'bg-gray-100 text-gray-400 hover:bg-gray-200',
-    'pass': 'bg-green-100 text-green-700 hover:bg-green-200',
-    'fail': 'bg-red-100 text-red-700 hover:bg-red-200',
-    'delay': 'bg-orange-100 text-orange-600 hover:bg-orange-200',
+  const badgeStyles: Record<string, string> = {
+    'null': 'bg-gray-100 text-gray-400',
+    'pass': 'bg-green-100 text-green-700',
+    'fail': 'bg-red-100 text-red-700',
+    'delay': 'bg-orange-100 text-orange-600',
   }
   const labels: Record<string, string> = { 'null': '—', 'pass': 'Pass', 'fail': 'Fail', 'delay': 'Delay' }
 
+  const options: { value: MissionStatus; label: string; style: string }[] = [
+    { value: 'pass', label: 'Pass', style: 'hover:bg-green-50 text-green-700' },
+    { value: 'fail', label: 'Fail', style: 'hover:bg-red-50 text-red-700' },
+    { value: 'delay', label: 'Delay', style: 'hover:bg-orange-50 text-orange-600' },
+    { value: null, label: '초기화', style: 'hover:bg-gray-50 text-gray-400' },
+  ]
+
   return (
-    <button
-      onClick={() => onChange(cycle[key])}
-      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors min-w-[52px] ${styles[key]}`}
-    >
-      {labels[key]}
-    </button>
+    <div className="relative inline-block" ref={(el) => { ref.current = el }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors min-w-[52px] ${badgeStyles[key]}`}
+      >
+        {labels[key]}
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full mt-1 left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[80px]">
+          {options.map((opt) => (
+            <button
+              key={String(opt.value)}
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              className={`w-full text-left px-3 py-1.5 text-xs font-semibold transition-colors ${opt.style} ${value === opt.value ? 'opacity-40' : ''}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
