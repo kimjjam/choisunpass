@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
@@ -404,16 +404,25 @@ function AttendanceRow({
 
 function MissionCycleButton({ value, onChange }: { value: MissionStatus; onChange: (v: MissionStatus) => void }) {
   const [open, setOpen] = useState(false)
-  const ref = useState(() => ({ current: null as HTMLDivElement | null }))[0]
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!open) return
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (btnRef.current && !btnRef.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
+
+  function handleOpen() {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 })
+    }
+    setOpen((o) => !o)
+  }
 
   const key = value ?? 'null'
   const badgeStyles: Record<string, string> = {
@@ -432,15 +441,19 @@ function MissionCycleButton({ value, onChange }: { value: MissionStatus; onChang
   ]
 
   return (
-    <div className="relative inline-block" ref={(el) => { ref.current = el }}>
+    <div className="inline-block">
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={btnRef}
+        onClick={handleOpen}
         className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors min-w-[52px] ${badgeStyles[key]}`}
       >
         {labels[key]}
       </button>
       {open && (
-        <div className="absolute z-50 top-full mt-1 left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[80px]">
+        <div
+          style={{ position: 'fixed', top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
+          className="z-50 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[80px]"
+        >
           {options.map((opt) => (
             <button
               key={String(opt.value)}
