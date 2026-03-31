@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<Tab>('pending')
   const [records, setRecords] = useState<AttendanceWithStudent[]>([])
   const [loading, setLoading] = useState(true)
+  const [approveModal, setApproveModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectModal, setRejectModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
@@ -36,11 +37,13 @@ export default function DashboardPage() {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
-  async function handleApprove(id: string) {
-    if (!confirm('정말 학생이 등원하였습니까?')) return
+  async function handleApprove() {
+    if (!approveModal) return
+    const { id } = approveModal
     const now = new Date().toISOString()
     setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'approved', approved_at: now } : r))
     await supabase.from('attendances').update({ status: 'approved', approved_at: now }).eq('id', id)
+    setApproveModal(null)
   }
 
   async function handleReject() {
@@ -203,7 +206,7 @@ export default function DashboardPage() {
                   <AttendanceRow
                     key={record.id}
                     record={record}
-                    onApprove={() => handleApprove(record.id)}
+                    onApprove={() => setApproveModal({ id: record.id, name: record.students.name })}
                     onReject={() => setRejectModal({ id: record.id, name: record.students.name })}
                     onCancelApprove={() => handleCancelApprove(record.id)}
                     onAllowRetry={() => handleAllowRetry(record.id)}
@@ -217,6 +220,30 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* 승인 확인 모달 */}
+      {approveModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-1">{approveModal.name} 학생 승인</h3>
+            <p className="text-sm text-gray-500 mb-5">정말 학생이 등원하였습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setApproveModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleApprove}
+                className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
+              >
+                승인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 거절 사유 모달 */}
       {rejectModal && (
