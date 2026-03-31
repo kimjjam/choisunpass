@@ -406,11 +406,18 @@ function MissionCycleButton({ value, onChange }: { value: MissionStatus; onChang
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const btnRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
     function handleClick(e: MouseEvent) {
-      if (btnRef.current && !btnRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (
+        btnRef.current && !btnRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
+        setOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
@@ -451,6 +458,7 @@ function MissionCycleButton({ value, onChange }: { value: MissionStatus; onChang
       </button>
       {open && (
         <div
+          ref={dropdownRef}
           style={{ position: 'fixed', top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
           className="z-50 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[80px]"
         >
