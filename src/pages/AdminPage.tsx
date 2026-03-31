@@ -249,57 +249,52 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 헤더 */}
-      <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
-        <div>
-          <div className="text-lg font-bold text-gray-900">관리자 페이지</div>
-          <div className="text-xs text-gray-400 mt-0.5">최선어학원 클리닉</div>
+      <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <div>
+            <div className="text-base font-bold text-gray-900">관리자 페이지</div>
+            <div className="text-xs text-gray-400">최선어학원 클리닉</div>
+          </div>
+          {/* 검색 + 요일 필터 인라인 */}
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="학생 이름 검색..."
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 w-44"
+          />
+          <div className="flex gap-1">
+            {['', '월', '화', '수', '목', '금'].map((d) => (
+              <button
+                key={d}
+                onClick={() => setDayFilter(d)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  dayFilter === d ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300'
+                }`}
+              >
+                {d || '전체'}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-2.5 py-1 transition-colors"
+            className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
           >
             조교 대시보드
           </button>
-          <div className="flex flex-col items-end gap-1">
-            <span className="text-xs text-gray-500 font-medium">{currentUser}</span>
-            <button
-              onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
-              className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 transition-colors"
-            >
-              로그아웃
-            </button>
-          </div>
+          <span className="text-xs text-gray-500">{currentUser}</span>
+          <button
+            onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
+            className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+          >
+            로그아웃
+          </button>
         </div>
       </header>
 
-      {/* 검색 + 요일 필터 */}
-      <div className="px-4 pt-4 pb-1 space-y-2">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="학생 이름 검색..."
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-400"
-        />
-        <div className="flex gap-1.5">
-          {['', '월', '화', '수', '목', '금'].map((d) => (
-            <button
-              key={d}
-              onClick={() => setDayFilter(d)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                dayFilter === d
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300'
-              }`}
-            >
-              {d || '전체'}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* 탭 */}
-      <div className="px-4 pt-3 flex gap-2 mb-4">
+      <div className="px-6 pt-4 flex gap-2 mb-4">
         <TabButton active={tab === 'students'} onClick={() => setTab('students')}>학생 관리</TabButton>
         <TabButton active={tab === 'weekly'} onClick={() => setTab('weekly')}>주차별 현황</TabButton>
         <TabButton active={tab === 'stats'} onClick={() => { setTab('stats'); fetchAllRecords() }}>누적 통계</TabButton>
@@ -307,61 +302,59 @@ export default function AdminPage() {
 
       {/* ── 학생 관리 탭 ── */}
       {tab === 'students' && (
-        <div className="px-4 space-y-4 pb-8">
+        <div className="px-6 space-y-4 pb-8 max-w-screen-2xl mx-auto">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <h2 className="font-semibold text-gray-800 mb-3">새 학생 등록</h2>
-            <form onSubmit={handleRegister} className="space-y-2.5">
-              <div className="grid grid-cols-2 gap-2">
+            <h2 className="font-semibold text-gray-800 mb-3 text-sm">새 학생 등록</h2>
+            <form onSubmit={handleRegister}>
+              <div className="flex gap-2 flex-wrap items-end">
                 <input
                   value={form.class}
                   onChange={(e) => setForm({ ...form, class: e.target.value })}
-                  placeholder="반(선생님) (예: 고정아TR)"
-                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
+                  placeholder="반(선생님)"
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-36"
                 />
                 <input
                   value={form.school}
                   onChange={(e) => setForm({ ...form, school: e.target.value })}
-                  placeholder="학교 (예: 수지고등학교)"
-                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
+                  placeholder="학교"
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-40"
                 />
-              </div>
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="이름"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
-              />
-              <div className="grid grid-cols-2 gap-2">
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="이름"
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-28"
+                />
                 <select
                   value={form.oral_type}
                   onChange={(e) => setForm({ ...form, oral_type: e.target.value })}
-                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700"
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-40"
                 >
-                  <option value="">구두 진행 방식 선택</option>
+                  <option value="">구두 방식 선택</option>
                   {ORAL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
                 <select
                   value={form.clinic_day}
                   onChange={(e) => setForm({ ...form, clinic_day: e.target.value })}
-                  className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700"
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32"
                 >
-                  <option value="">클리닉 요일 선택</option>
+                  <option value="">요일 선택</option>
                   {CLINIC_DAYS.map((d) => <option key={d} value={d}>{d}요일</option>)}
                 </select>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors whitespace-nowrap"
+                >
+                  {formLoading ? '등록 중...' : '+ 등록'}
+                </button>
               </div>
-              {formError && <p className="text-xs text-red-500">{formError}</p>}
-              <button
-                type="submit"
-                disabled={formLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors"
-              >
-                {formLoading ? '등록 중...' : '+ 학생 등록 (코드 자동 발급)'}
-              </button>
+              {formError && <p className="text-xs text-red-500 mt-2">{formError}</p>}
             </form>
           </div>
 
           {/* 학생 목록 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden max-w-screen-2xl">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <span className="font-semibold text-gray-800 text-sm">
                 전체 학생 ({filteredStudents.length}명{search && ` / 검색결과`})
@@ -435,7 +428,7 @@ export default function AdminPage() {
 
       {/* ── 주차별 현황 탭 ── */}
       {tab === 'weekly' && (
-        <div className="px-4 space-y-4 pb-8">
+        <div className="px-6 space-y-4 pb-8 max-w-screen-2xl mx-auto">
           {/* 1주차 시작일 설정 */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
             <span className="text-sm text-gray-600 font-medium whitespace-nowrap">1주차 시작일</span>
@@ -539,7 +532,7 @@ export default function AdminPage() {
       )}
       {/* ── 누적 통계 탭 ── */}
       {tab === 'stats' && (
-        <div className="px-4 pb-8 space-y-3">
+        <div className="px-6 pb-8 space-y-3 max-w-screen-2xl mx-auto">
           {loading ? (
             <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
           ) : (
