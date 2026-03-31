@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
-import type { Student, AttendanceWithStudent } from '../lib/database.types'
+import type { Student, AttendanceWithStudent, Term } from '../lib/database.types'
 import EditStudentModal from '../components/EditStudentModal'
 
 type AdminTab = 'students' | 'weekly' | 'stats'
@@ -52,25 +52,49 @@ export default function AdminPage() {
   // 주차별 탭에서 선택된 주차
   const [selectedWeek, setSelectedWeek] = useState<string>('')
 
-  // 1주차 시작일 — localStorage 유지
-  const [termStart, setTermStart] = useState<string>(
-    () => localStorage.getItem('termStart') ?? getWeekStart(new Date().toISOString().split('T')[0])
-  )
-
-  function handleTermStartChange(date: string) {
-    const monday = getWeekStart(date)
-    setTermStart(monday)
-    localStorage.setItem('termStart', monday)
-  }
+  // 학기 관리
+  const [terms, setTerms] = useState<Term[]>([])
+  const [selectedTermId, setSelectedTermId] = useState<string>('')
+  const [newTermName, setNewTermName] = useState('')
+  const [newTermDate, setNewTermDate] = useState('')
+  const [termFormError, setTermFormError] = useState('')
 
 
   useEffect(() => {
     fetchStudents()
+    fetchTerms()
   }, [])
 
   useEffect(() => {
-    if (tab === 'weekly') fetchAllRecords()
+    if (tab === 'weekly' || tab === 'stats') fetchAllRecords()
   }, [tab])
+
+  async function fetchTerms() {
+    const { data } = await supabase.from('terms').select('*').order('start_date', { ascending: true })
+    if (data && data.length > 0) {
+      setTerms(data)
+      setSelectedTermId(data[data.length - 1].id)
+    }
+  }
+
+  async function handleCreateTerm(e: React.FormEvent) {
+    e.preventDefault()
+    setTermFormError('')
+    if (!newTermName.trim()) { setTermFormError('학기 이름을 입력하세요.'); return }
+    if (!newTermDate) { setTermFormError('시작일을 선택하세요.'); return }
+    const monday = getWeekStart(newTermDate)
+    const { error } = await supabase.from('terms').insert({ name: newTermName.trim(), start_date: monday })
+    if (error) { setTermFormError('저장 실패. 다시 시도해주세요.'); return }
+    setNewTermName('')
+    setNewTermDate('')
+    fetchTerms()
+  }
+
+  async function handleDeleteTerm(id: string, name: string) {
+    if (!confirm(`"${name}" 학기를 삭제하시겠습니까?`)) return
+    await supabase.from('terms').delete().eq('id', id)
+    fetchTerms()
+  }
 
   async function fetchStudents() {
     const { data } = await supabase
@@ -227,9 +251,23 @@ export default function AdminPage() {
     XLSX.writeFile(wb, `최선패스_${label}_${weekStart}.xlsx`)
   }
 
+  // 선택된 학기
+  const selectedTerm = terms.find(t => t.id === selectedTermId)
+  const nextTerm = selectedTerm
+    ? terms.find(t => t.start_date > selectedTerm.start_date)
+    : undefined
+
+  // 학기 내 기록만 필터링
+  const termRecords = allRecords.filter(r => {
+    if (!selectedTerm) return true
+    if (r.date < selectedTerm.start_date) return false
+    if (nextTerm && r.date >= nextTerm.start_date) return false
+    return true
+  })
+
   // 주차별 데이터 그룹핑
-  const weekStarts = getWeekStarts(allRecords)
-  const weekRecords = allRecords
+  const weekStarts = getWeekStarts(termRecords)
+  const weekRecords = termRecords
     .filter((r) => getWeekStart(r.date) === selectedWeek)
     .filter((r) => r.students.name.includes(search.trim()))
     .filter((r) => !dayFilter || r.students.clinic_day === dayFilter)
@@ -429,18 +467,60 @@ export default function AdminPage() {
       {/* ── 주차별 현황 탭 ── */}
       {tab === 'weekly' && (
         <div className="px-6 space-y-4 pb-8 max-w-screen-2xl mx-auto">
-          {/* 1주차 시작일 설정 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
-            <span className="text-sm text-gray-600 font-medium whitespace-nowrap">1주차 시작일</span>
-            <input
-              type="date"
-              value={termStart}
-              onChange={(e) => handleTermStartChange(e.target.value)}
-              className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-            />
-            <span className="text-xs text-gray-400 whitespace-nowrap">
-              {new Date(termStart).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
-            </span>
+          {/* 학기 관리 */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-gray-800">학기 선택</span>
+            </div>
+            {/* 학기 선택 버튼 */}
+            {terms.length === 0 ? (
+              <p className="text-xs text-gray-400">등록된 학기가 없습니다. 아래에서 추가하세요.</p>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
+                {terms.map(t => (
+                  <div key={t.id} className="flex items-center gap-1">
+                    <button
+                      onClick={() => { setSelectedTermId(t.id); setSelectedWeek('') }}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        selectedTermId === t.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {t.name}
+                      <span className="ml-1.5 text-xs opacity-60">{t.start_date}</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTerm(t.id, t.name)}
+                      className="text-xs text-gray-300 hover:text-red-400 transition-colors px-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* 새 학기 추가 */}
+            <form onSubmit={handleCreateTerm} className="flex gap-2 items-center flex-wrap pt-1 border-t border-gray-100">
+              <span className="text-xs text-gray-500 font-medium whitespace-nowrap">새 학기 추가</span>
+              <input
+                value={newTermName}
+                onChange={(e) => setNewTermName(e.target.value)}
+                placeholder="학기 이름 (예: 2026 중간고사 후)"
+                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 w-56"
+              />
+              <input
+                type="date"
+                value={newTermDate}
+                onChange={(e) => setNewTermDate(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+              />
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+              >
+                + 추가
+              </button>
+              {termFormError && <span className="text-xs text-red-500">{termFormError}</span>}
+            </form>
           </div>
 
           {loading ? (
@@ -461,7 +541,7 @@ export default function AdminPage() {
                         : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-300'
                     }`}
                   >
-                    {weekLabel(ws, termStart)}
+                    {weekLabel(ws, selectedTerm?.start_date ?? ws)}
                     <span className="ml-1.5 text-xs opacity-70">{ws}</span>
                   </button>
                 ))}
@@ -533,13 +613,29 @@ export default function AdminPage() {
       {/* ── 누적 통계 탭 ── */}
       {tab === 'stats' && (
         <div className="px-6 pb-8 space-y-3 max-w-screen-2xl mx-auto">
+          {/* 학기 선택 */}
+          {terms.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {terms.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedTermId(t.id)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    selectedTermId === t.id ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
           {loading ? (
             <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
           ) : (
             (() => {
-              const totalWeeks = weekStarts.length
+              const totalWeeks = getWeekStarts(termRecords).length
               const statsRows = filteredStudents.map((s) => {
-                const sRecords = allRecords.filter((r) => r.student_id === s.id)
+                const sRecords = termRecords.filter((r) => r.student_id === s.id)
                 const attended = sRecords.filter((r) => r.status === 'approved').length
                 const wordPass = sRecords.filter((r) => r.word_status === 'pass').length
                 const wordFail = sRecords.filter((r) => r.word_status === 'fail').length

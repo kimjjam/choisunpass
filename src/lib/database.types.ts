@@ -1,4 +1,11 @@
 export type AttendanceStatus = 'pending' | 'approved' | 'rejected'
+
+export interface Term {
+  id: string
+  name: string
+  start_date: string
+  created_at: string
+}
 export type MissionStatus = 'pass' | 'fail' | 'delay' | null
 
 export interface Student {
