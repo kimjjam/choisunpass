@@ -37,29 +37,38 @@ export default function DashboardPage() {
   }, [])
 
   async function handleApprove(id: string) {
-    await supabase.from('attendances').update({ status: 'approved', approved_at: new Date().toISOString() }).eq('id', id)
+    const now = new Date().toISOString()
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'approved', approved_at: now } : r))
+    await supabase.from('attendances').update({ status: 'approved', approved_at: now }).eq('id', id)
   }
 
   async function handleReject() {
     if (!rejectModal) return
-    await supabase.from('attendances').update({ status: 'rejected', reject_reason: rejectReason || null }).eq('id', rejectModal.id)
+    const { id } = rejectModal
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected', reject_reason: rejectReason || null } : r))
+    await supabase.from('attendances').update({ status: 'rejected', reject_reason: rejectReason || null }).eq('id', id)
     setRejectModal(null)
     setRejectReason('')
   }
 
   async function handleCancelApprove(id: string) {
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'pending', approved_at: null, word_status: null, oral_status: null } : r))
     await supabase.from('attendances').update({ status: 'pending', approved_at: null, word_status: null, oral_status: null }).eq('id', id)
   }
 
   async function handleAllowRetry(id: string) {
+    setRecords(prev => prev.filter(r => r.id !== id))
     await supabase.from('attendances').delete().eq('id', id)
   }
 
   async function handleCheckOut(id: string) {
-    await supabase.from('attendances').update({ checked_out_at: new Date().toISOString() }).eq('id', id)
+    const now = new Date().toISOString()
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, checked_out_at: now } : r))
+    await supabase.from('attendances').update({ checked_out_at: now }).eq('id', id)
   }
 
   async function handleCancelCheckOut(id: string) {
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, checked_out_at: null } : r))
     await supabase.from('attendances').update({ checked_out_at: null }).eq('id', id)
   }
 
