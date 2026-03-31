@@ -176,7 +176,7 @@ export default function AttendPage() {
                 ref={inputRef}
                 type="text"
                 inputMode="numeric"
-                pattern="[0-9]*"
+                pattern="[A-Za-z0-9]*"
                 value={code}
                 onChange={(e) => {
                   setCode(e.target.value)
