@@ -131,6 +131,20 @@ export default function AttendPage() {
     }
   }
 
+  async function handleReCheckIn() {
+    if (!attendance) return
+    const { data } = await supabase
+      .from('attendances')
+      .update({ checked_out_at: null, rechecked_in_at: new Date().toISOString() })
+      .eq('id', attendance.id)
+      .select()
+      .single()
+    if (data) {
+      setAttendance(data)
+      setPageState('approved')
+    }
+  }
+
   function handleReset() {
     setCode('')
     setPageState('input')
@@ -224,9 +238,14 @@ export default function AttendPage() {
             <p className="text-sm text-gray-500 mb-4">
               등원이 확인되었습니다.<br />오늘도 열심히 해봐요!
             </p>
-            {attendance?.approved_at && (
-              <p className="text-xs text-gray-400 mb-6">
-                등원: {new Date(attendance.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+            {(attendance?.approved_at || attendance?.rechecked_in_at) && (
+              <p className="text-xs text-gray-400 mb-6 space-y-0.5">
+                {attendance.approved_at && (
+                  <span className="block">등원: {new Date(attendance.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+                )}
+                {attendance.rechecked_in_at && (
+                  <span className="block text-blue-400">재등원: {new Date(attendance.rechecked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+                )}
               </p>
             )}
             {!allDone && (
@@ -268,13 +287,22 @@ export default function AttendPage() {
               오늘도 수고했어요!<br />내일 또 봐요 😊
             </p>
             {attendance?.checked_out_at && (
-              <div className="bg-indigo-50 rounded-xl p-3 mb-6 text-xs text-indigo-600 space-y-1">
+              <div className="bg-indigo-50 rounded-xl p-3 mb-4 text-xs text-indigo-600 space-y-1">
                 {attendance.approved_at && (
                   <div>등원: {new Date(attendance.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
+                )}
+                {attendance.rechecked_in_at && (
+                  <div>재등원: {new Date(attendance.rechecked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
                 )}
                 <div>하원: {new Date(attendance.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
             )}
+            <button
+              onClick={handleReCheckIn}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors text-base mb-3"
+            >
+              재등원
+            </button>
             <button
               onClick={handleReset}
               className="text-sm text-gray-400 hover:text-gray-600 underline transition-colors"

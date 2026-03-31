@@ -27,6 +27,7 @@ export interface Attendance {
   checked_in_at: string | null
   approved_at: string | null
   checked_out_at: string | null
+  rechecked_in_at: string | null
   word_status: MissionStatus
   oral_status: MissionStatus
   reject_reason: string | null
@@ -56,6 +57,7 @@ export type AttendanceInsert = {
   checked_in_at?: string | null
   approved_at?: string | null
   checked_out_at?: string | null
+  rechecked_in_at?: string | null
   word_status?: MissionStatus
   oral_status?: MissionStatus
   reject_reason?: string | null

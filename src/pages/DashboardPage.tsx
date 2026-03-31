@@ -296,12 +296,16 @@ function AttendanceRow({
     validStatuses.includes(record.oral_status as string) &&
     validStatuses.includes(record.homework as string)
 
-  const checkinTime = record.checked_in_at
-    ? new Date(record.checked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-    : '-'
-  const checkoutTime = record.checked_out_at
-    ? new Date(record.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-    : null
+  function formatTimeWithDay(isoStr: string) {
+    const d = new Date(isoStr)
+    const day = d.toLocaleDateString('ko-KR', { weekday: 'narrow' })
+    const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+    return `${day} ${time}`
+  }
+
+  const checkinTime = record.checked_in_at ? formatTimeWithDay(record.checked_in_at) : '-'
+  const checkoutTime = record.checked_out_at ? formatTimeWithDay(record.checked_out_at) : null
+  const recheckInTime = record.rechecked_in_at ? formatTimeWithDay(record.rechecked_in_at) : null
 
   const rowBg: Record<string, string> = {
     pending: '',
@@ -326,7 +330,12 @@ function AttendanceRow({
         <div className="text-xs text-gray-400">{record.students.class}</div>
       </td>
       {/* 등원 */}
-      <td className="px-3 py-3 text-center text-xs text-gray-600 whitespace-nowrap">{checkinTime}</td>
+      <td className="px-3 py-3 text-center text-xs text-gray-600 whitespace-nowrap">
+        <div>{checkinTime}</div>
+        {recheckInTime && (
+          <div className="text-blue-500 font-medium mt-0.5">재등원 {recheckInTime}</div>
+        )}
+      </td>
       {/* 단어 */}
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
