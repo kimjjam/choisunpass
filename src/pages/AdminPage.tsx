@@ -552,11 +552,11 @@ export default function AdminPage() {
                 <>
                   <div className="flex items-center justify-between">
                     <h2 className="font-bold text-gray-800">
-                      {weekLabel(selectedWeek, termStart)}
+                      {weekLabel(selectedWeek, selectedTerm?.start_date ?? selectedWeek)}
                       <span className="ml-2 text-sm font-normal text-gray-400">{selectedWeek} 주</span>
                     </h2>
                     <button
-                      onClick={() => handleExcelDownload(selectedWeek, weekRecords, weekLabel(selectedWeek, termStart))}
+                      onClick={() => handleExcelDownload(selectedWeek, weekRecords, weekLabel(selectedWeek, selectedTerm?.start_date ?? selectedWeek))}
                       disabled={weekRecords.length === 0}
                       className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
                     >
