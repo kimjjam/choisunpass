@@ -69,6 +69,17 @@ export default function AdminPage() {
     if (tab === 'weekly' || tab === 'stats') fetchAllRecords()
   }, [tab])
 
+  // 어드민 실시간 구독
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-attendances')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendances' }, () => {
+        if (tab === 'weekly' || tab === 'stats') fetchAllRecords()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [tab])
+
   async function fetchTerms() {
     const { data } = await supabase.from('terms').select('*').order('start_date', { ascending: true })
     if (data && data.length > 0) {
@@ -720,19 +731,22 @@ export default function AdminPage() {
 
 // ── 주차별 행 (과제/기타 인라인 편집) ──────────────────────
 
+const VALID_STATUSES = ['pass', 'fail', 'delay']
+
 function WeeklyRow({ record, onUpdate }: { record: AttendanceWithStudent; onUpdate: () => void }) {
-  const [homework, setHomework] = useState(record.homework ?? '')
   const [notes, setNotes] = useState(record.notes ?? '')
   const [saving, setSaving] = useState(false)
 
-  async function handleBlur(field: 'homework' | 'notes', value: string) {
-    const original = field === 'homework' ? record.homework ?? '' : record.notes ?? ''
+  async function handleBlur(field: 'notes', value: string) {
+    const original = record.notes ?? ''
     if (value === original) return
     setSaving(true)
     await supabase.from('attendances').update({ [field]: value || null }).eq('id', record.id)
     setSaving(false)
     onUpdate()
   }
+
+  const homeworkIsStatus = VALID_STATUSES.includes(record.homework as string)
 
   const checkinTime = record.approved_at
     ? new Date(record.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
@@ -757,14 +771,10 @@ function WeeklyRow({ record, onUpdate }: { record: AttendanceWithStudent; onUpda
       <td className="px-3 py-2.5 text-center text-xs text-indigo-500 whitespace-nowrap">{checkoutTime}</td>
       <td className="px-3 py-2.5 text-center"><MissionBadge value={record.word_status} /></td>
       <td className="px-3 py-2.5 text-center"><MissionBadge value={record.oral_status} /></td>
-      <td className="px-3 py-2.5">
-        <input
-          value={homework}
-          onChange={(e) => setHomework(e.target.value)}
-          onBlur={(e) => handleBlur('homework', e.target.value)}
-          placeholder="입력..."
-          className="w-full min-w-[100px] text-xs border-0 border-b border-dashed border-gray-200 focus:border-orange-400 focus:outline-none py-0.5 bg-transparent"
-        />
+      <td className="px-3 py-2.5 text-center">
+        {homeworkIsStatus
+          ? <MissionBadge value={record.homework} />
+          : <span className="text-xs text-gray-400">{record.homework || '-'}</span>}
       </td>
       <td className="px-3 py-2.5">
         <input
@@ -795,12 +805,16 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 }
 
 function MissionBadge({ value }: { value: string | null }) {
-  if (!value) return <span className="text-xs text-gray-300">-</span>
+  if (!value || !VALID_STATUSES.includes(value)) return <span className="text-xs text-gray-300">-</span>
+  const styles: Record<string, string> = {
+    pass: 'bg-green-100 text-green-700',
+    fail: 'bg-red-100 text-red-700',
+    delay: 'bg-orange-100 text-orange-600',
+  }
+  const labels: Record<string, string> = { pass: 'Pass', fail: 'Fail', delay: 'Delay' }
   return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-      value === 'pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-    }`}>
-      {value === 'pass' ? 'Pass' : 'Fail'}
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[value]}`}>
+      {labels[value]}
     </span>
   )
 }
