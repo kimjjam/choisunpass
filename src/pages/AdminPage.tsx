@@ -775,7 +775,12 @@ function WeeklyRow({ record, onUpdate }: { record: AttendanceWithStudent; onUpda
     <tr className={`hover:bg-gray-50 transition-colors ${saving ? 'opacity-60' : ''}`}>
       <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{record.students.name}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 whitespace-nowrap">{record.students.oral_type || '-'}</td>
-      <td className="px-3 py-2.5 text-center text-xs text-gray-500">{record.students.clinic_day || '-'}</td>
+      <td className="px-3 py-2.5 text-center text-xs text-gray-500">
+        {['일','월','화','수','목','금','토'][new Date(record.date + 'T00:00:00').getDay()]}
+        {record.students.clinic_day && record.students.clinic_day !== ['일','월','화','수','목','금','토'][new Date(record.date + 'T00:00:00').getDay()] && (
+          <span className="text-gray-300 ml-0.5">({record.students.clinic_day})</span>
+        )}
+      </td>
       <td className="px-3 py-2.5 text-center">
         {record.status === 'approved'
           ? <span className="text-green-600 font-bold">○</span>
