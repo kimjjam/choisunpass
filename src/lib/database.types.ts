@@ -30,6 +30,8 @@ export interface Attendance {
   rechecked_in_at: string | null
   word_status: MissionStatus
   oral_status: MissionStatus
+  word_score: string | null
+  clinic_score: string | null
   reject_reason: string | null
   homework: string | null
   notes: string | null
@@ -60,6 +62,8 @@ export type AttendanceInsert = {
   rechecked_in_at?: string | null
   word_status?: MissionStatus
   oral_status?: MissionStatus
+  word_score?: string | null
+  clinic_score?: string | null
   reject_reason?: string | null
   homework?: string | null
   notes?: string | null

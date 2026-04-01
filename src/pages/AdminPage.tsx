@@ -610,6 +610,7 @@ export default function AdminPage() {
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">등원</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">하원</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">단어</th>
+                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">클리닉</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">구두</th>
                                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">미완료 과제</th>
                                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">기타</th>
@@ -783,7 +784,8 @@ function WeeklyRow({ record, onUpdate }: { record: AttendanceWithStudent; onUpda
       </td>
       <td className="px-3 py-2.5 text-center text-xs text-gray-500 whitespace-nowrap">{checkinTime}</td>
       <td className="px-3 py-2.5 text-center text-xs text-indigo-500 whitespace-nowrap">{checkoutTime}</td>
-      <td className="px-3 py-2.5 text-center"><MissionBadge value={record.word_status} /></td>
+      <td className="px-3 py-2.5 text-center text-xs text-gray-700">{record.word_score || '-'}</td>
+      <td className="px-3 py-2.5 text-center text-xs text-gray-700">{record.clinic_score || '-'}</td>
       <td className="px-3 py-2.5 text-center"><MissionBadge value={record.oral_status} /></td>
       <td className="px-3 py-2.5 text-center">
         {homeworkIsStatus

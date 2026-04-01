@@ -194,6 +194,7 @@ export default function DashboardPage() {
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">등원</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">단어</th>
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">클리닉</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구두</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">과제</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">기타</th>
@@ -316,13 +317,20 @@ function AttendanceRow({
   onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
+  const [wordScore, setWordScore] = useState(record.word_score ?? '')
+  const [clinicScore, setClinicScore] = useState(record.clinic_score ?? '')
 
   const validStatuses = ['pass', 'fail', 'delay']
   const homeworkVal = validStatuses.includes(record.homework as string) ? record.homework as MissionStatus : null
   const allDone =
-    validStatuses.includes(record.word_status as string) &&
+    wordScore.trim() !== '' &&
+    clinicScore.trim() !== '' &&
     validStatuses.includes(record.oral_status as string) &&
     validStatuses.includes(record.homework as string)
+
+  async function saveScore(field: 'word_score' | 'clinic_score', value: string) {
+    await supabase.from('attendances').update({ [field]: value || null }).eq('id', record.id)
+  }
 
   function formatTimeWithDay(isoStr: string) {
     const d = new Date(isoStr)
@@ -364,10 +372,28 @@ function AttendanceRow({
           <div className="text-blue-500 font-medium mt-0.5">재등원 {recheckInTime}</div>
         )}
       </td>
-      {/* 단어 */}
+      {/* 단어 점수 */}
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
-          ? <MissionCycleButton value={record.word_status} onChange={(v) => onMission(record.id, 'word_status', v)} />
+          ? <input
+              value={wordScore}
+              onChange={(e) => setWordScore(e.target.value)}
+              onBlur={(e) => saveScore('word_score', e.target.value)}
+              placeholder="단어"
+              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${wordScore.trim() ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}
+            />
+          : <span className="text-gray-200 text-xs">—</span>}
+      </td>
+      {/* 클리닉 점수 */}
+      <td className="px-3 py-3 text-center">
+        {record.status === 'approved'
+          ? <input
+              value={clinicScore}
+              onChange={(e) => setClinicScore(e.target.value)}
+              onBlur={(e) => saveScore('clinic_score', e.target.value)}
+              placeholder="클리닉"
+              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${clinicScore.trim() ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}
+            />
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
       {/* 구두 */}
