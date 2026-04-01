@@ -85,9 +85,11 @@ export default function DashboardPage() {
   const [dayFilter, setDayFilter] = useState<string>('')
 
   const pendingList = records.filter((r) => r.status === 'pending')
+  const DAYS = ['일', '월', '화', '수', '목', '금', '토']
+
   const displayList = (tab === 'pending' ? pendingList : records)
     .filter((r) => r.students.name.includes(search.trim()))
-    .filter((r) => !dayFilter || r.students.clinic_day === dayFilter)
+    .filter((r) => !dayFilter || DAYS[new Date(r.date + 'T00:00:00').getDay()] === dayFilter)
 
   const stats = {
     total: records.length,
@@ -363,7 +365,10 @@ function AttendanceRow({
       {/* 학교·반 */}
       <td className="px-3 py-3">
         <div className="text-xs text-gray-700">{record.students.school}</div>
-        <div className="text-xs text-gray-400">{record.students.class}</div>
+        <div className="text-xs text-gray-400">
+          {record.students.class}
+          {record.students.clinic_day && <span className="ml-1 text-blue-400">{record.students.clinic_day}요일</span>}
+        </div>
       </td>
       {/* 등원 */}
       <td className="px-3 py-3 text-center text-xs text-gray-600 whitespace-nowrap">
