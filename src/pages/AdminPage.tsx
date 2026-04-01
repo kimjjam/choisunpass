@@ -247,14 +247,15 @@ export default function AdminPage() {
       '클리닉 요일': r.students.clinic_day,
       '클리닉(출석여부)': r.status === 'approved' ? '○' : '',
       '클리닉등원시간': r.approved_at
-        ? new Date(r.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+        ? new Date(r.approved_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         : '',
       '클리닉하원시간': r.checked_out_at
-        ? new Date(r.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+        ? new Date(r.checked_out_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         : '',
       '과제(미완료과제입력)': r.homework ?? '',
-      '단어': r.word_status === 'pass' ? 'Pass' : r.word_status === 'fail' ? 'Fail' : '',
-      '구두': r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : '',
+      '단어점수': r.word_score ?? '',
+      '클리닉점수': r.clinic_score ?? '',
+      '구두': r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : '',
       '기타': r.notes ?? '',
     }))
 
