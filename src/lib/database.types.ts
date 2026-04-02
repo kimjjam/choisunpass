@@ -71,6 +71,18 @@ export type AttendanceInsert = {
 
 export type AttendanceUpdate = Partial<Omit<AttendanceInsert, 'student_id'>>
 
+export interface OralQueue {
+  id: string
+  attendance_id: string
+  student_id: string
+  status: 'waiting' | 'called' | 'done'
+  created_at: string
+}
+
+export interface OralQueueWithStudent extends OralQueue {
+  students: Student
+}
+
 export type Database = {
   public: {
     Tables: {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Student, Attendance } from '../lib/database.types'
+import type { Student, Attendance, OralQueue } from '../lib/database.types'
 
 type PageState = 'input' | 'pending' | 'approved' | 'checked_out' | 'rejected'
 
@@ -13,6 +13,11 @@ export default function AttendPage() {
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  // 구두 대기
+  const [oralQueue, setOralQueue] = useState<OralQueue | null>(null)
+  const [queuePosition, setQueuePosition] = useState<number>(0)
+  const [showCalledModal, setShowCalledModal] = useState(false)
 
   // 새로고침 후 상태 복원
   useEffect(() => {
@@ -73,6 +78,71 @@ export default function AttendPage() {
     }
   }, [attendance?.id])
 
+  // 구두 대기 조회 및 구독
+  useEffect(() => {
+    if (!attendance) return
+
+    // 현재 대기 상태 조회
+    supabase
+      .from('oral_queue')
+      .select('*')
+      .eq('attendance_id', attendance.id)
+      .in('status', ['waiting', 'called'])
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setOralQueue(data as OralQueue)
+          if (data.status === 'called') setShowCalledModal(true)
+        }
+      })
+
+    // oral_queue 실시간 구독 (내 항목 변경)
+    const queueChannel = supabase
+      .channel(`oral_queue:${attendance.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'oral_queue', filter: `attendance_id=eq.${attendance.id}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            setOralQueue(null)
+            setShowCalledModal(false)
+          } else {
+            const updated = payload.new as OralQueue
+            setOralQueue(updated)
+            if (updated.status === 'called') setShowCalledModal(true)
+            else setShowCalledModal(false)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(queueChannel) }
+  }, [attendance?.id])
+
+  // 대기 순번 실시간 계산
+  useEffect(() => {
+    if (!oralQueue || oralQueue.status !== 'waiting') return
+
+    const fetchPosition = async () => {
+      const { count } = await supabase
+        .from('oral_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'waiting')
+        .lte('created_at', oralQueue.created_at)
+      setQueuePosition(count ?? 1)
+    }
+
+    fetchPosition()
+
+    // 전체 대기열 변경시 순번 재계산
+    const posChannel = supabase
+      .channel('oral_queue_position')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'oral_queue' }, fetchPosition)
+      .subscribe()
+
+    return () => { supabase.removeChannel(posChannel) }
+  }, [oralQueue?.id, oralQueue?.status])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -81,7 +151,6 @@ export default function AttendPage() {
 
     setLoading(true)
     try {
-      // 1. 코드로 학생 조회
       const { data: studentData, error: studentError } = await supabase
         .from('students')
         .select('*')
@@ -94,7 +163,6 @@ export default function AttendPage() {
         return
       }
 
-      // 2. 오늘 이미 출석 요청했는지 확인
       const today = new Date().toISOString().split('T')[0]
       const { data: existing } = await supabase
         .from('attendances')
@@ -111,7 +179,6 @@ export default function AttendPage() {
         return
       }
 
-      // 3. 출석 요청 생성 (pending)
       const { data: newAttendance, error: insertError } = await supabase
         .from('attendances')
         .insert({
@@ -178,11 +245,29 @@ export default function AttendPage() {
     }
   }
 
+  async function handleJoinQueue() {
+    if (!attendance || !student) return
+    const { data } = await supabase
+      .from('oral_queue')
+      .insert({ attendance_id: attendance.id, student_id: student.id, status: 'waiting' })
+      .select()
+      .single()
+    if (data) setOralQueue(data as OralQueue)
+  }
+
+  async function handleLeaveQueue() {
+    if (!oralQueue) return
+    await supabase.from('oral_queue').delete().eq('id', oralQueue.id)
+    setOralQueue(null)
+  }
+
   function handleReset() {
     setCode('')
     setPageState('input')
     setStudent(null)
     setAttendance(null)
+    setOralQueue(null)
+    setShowCalledModal(false)
     setError('')
     localStorage.removeItem('attendance_id')
     if (subscriptionRef.current) {
@@ -279,7 +364,7 @@ export default function AttendPage() {
               등원이 확인되었습니다.<br />오늘도 열심히 해봐요!
             </p>
             {(attendance?.approved_at || attendance?.rechecked_in_at) && (
-              <p className="text-xs text-gray-400 mb-6 space-y-0.5">
+              <p className="text-xs text-gray-400 mb-4 space-y-0.5">
                 {attendance.approved_at && (
                   <span className="block">등원: {new Date(attendance.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
                 )}
@@ -288,6 +373,30 @@ export default function AttendPage() {
                 )}
               </p>
             )}
+
+            {/* 구두 대기 */}
+            {!oralQueue && (
+              <button
+                onClick={handleJoinQueue}
+                className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-xl transition-colors text-base mb-3"
+              >
+                구두 대기 등록
+              </button>
+            )}
+            {oralQueue && oralQueue.status === 'waiting' && (
+              <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-3">
+                <p className="text-sm text-purple-600 font-medium mb-1">구두 대기 중</p>
+                <p className="text-3xl font-bold text-purple-700 mb-1">{queuePosition}번째</p>
+                <p className="text-xs text-purple-400 mb-3">호출되면 알려드릴게요</p>
+                <button
+                  onClick={handleLeaveQueue}
+                  className="text-xs text-gray-400 hover:text-red-400 underline transition-colors"
+                >
+                  대기 취소
+                </button>
+              </div>
+            )}
+
             {!allDone && (
               <p className="text-xs text-orange-500 bg-orange-50 rounded-xl py-2 px-3 mb-3">
                 조교 선생님의 확인이 완료되면 하원 버튼이 활성화됩니다.
@@ -378,6 +487,28 @@ export default function AttendPage() {
           </div>
         )}
       </div>
+
+      {/* 구두 호출 모달 */}
+      {showCalledModal && student && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl">
+            <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <svg className="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">{student.name} 학생</h2>
+            <p className="text-3xl font-bold text-purple-600 mb-3">지금 오세요!</p>
+            <p className="text-sm text-gray-500 mb-6">구두 테스트 차례입니다.<br />조교 선생님께 가주세요.</p>
+            <button
+              onClick={() => setShowCalledModal(false)}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3.5 rounded-xl transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

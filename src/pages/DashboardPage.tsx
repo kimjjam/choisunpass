@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
-import type { AttendanceWithStudent, MissionStatus } from '../lib/database.types'
+import type { AttendanceWithStudent, MissionStatus, OralQueueWithStudent } from '../lib/database.types'
 
-type Tab = 'pending' | 'all'
+type Tab = 'pending' | 'all' | 'oral'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -79,6 +79,41 @@ export default function DashboardPage() {
   async function handleMission(id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) {
     setRecords(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
     await supabase.from('attendances').update({ [field]: value }).eq('id', id)
+  }
+
+  const [oralQueue, setOralQueue] = useState<OralQueueWithStudent[]>([])
+
+  async function fetchOralQueue() {
+    const { data } = await supabase
+      .from('oral_queue')
+      .select('*, students(*)')
+      .in('status', ['waiting', 'called'])
+      .order('created_at', { ascending: true })
+    if (data) setOralQueue(data as OralQueueWithStudent[])
+  }
+
+  useEffect(() => {
+    fetchOralQueue()
+    const ch = supabase
+      .channel('dashboard-oral-queue')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'oral_queue' }, fetchOralQueue)
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [])
+
+  async function handleCallStudent(queueId: string) {
+    await supabase.from('oral_queue').update({ status: 'called' }).eq('id', queueId)
+    fetchOralQueue()
+  }
+
+  async function handleDoneStudent(queueId: string) {
+    await supabase.from('oral_queue').update({ status: 'done' }).eq('id', queueId)
+    fetchOralQueue()
+  }
+
+  async function handleRemoveFromQueue(queueId: string) {
+    await supabase.from('oral_queue').delete().eq('id', queueId)
+    fetchOralQueue()
   }
 
   const [search, setSearch] = useState('')
@@ -177,11 +212,87 @@ export default function DashboardPage() {
             >
               전체 현황
             </button>
+            <button
+              onClick={() => setTab('oral')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                tab === 'oral' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
+              }`}
+            >
+              구두 대기
+              {oralQueue.length > 0 && (
+                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'oral' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'}`}>
+                  {oralQueue.length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
+        {/* 구두 대기 탭 */}
+        {tab === 'oral' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {oralQueue.length === 0 ? (
+              <div className="py-16 text-center text-gray-400 text-sm">구두 대기 중인 학생이 없습니다</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">순번</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">상태</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">액션</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {oralQueue.map((q, idx) => (
+                    <tr key={q.id} className={`border-b border-gray-50 ${q.status === 'called' ? 'bg-purple-50' : ''}`}>
+                      <td className="px-4 py-3 font-bold text-gray-500">{idx + 1}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800">{q.students.name}</td>
+                      <td className="px-3 py-3 text-gray-500 text-xs">{q.students.school}<br /><span className="text-blue-400">{q.students.class}</span></td>
+                      <td className="px-3 py-3 text-center">
+                        {q.status === 'waiting' ? (
+                          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">대기 중</span>
+                        ) : (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full animate-pulse">호출됨</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <div className="flex justify-center gap-1">
+                          {q.status === 'waiting' && (
+                            <button
+                              onClick={() => handleCallStudent(q.id)}
+                              className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1 rounded-lg transition-colors"
+                            >
+                              호출
+                            </button>
+                          )}
+                          {q.status === 'called' && (
+                            <button
+                              onClick={() => handleDoneStudent(q.id)}
+                              className="text-xs bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg transition-colors"
+                            >
+                              완료
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleRemoveFromQueue(q.id)}
+                            className="text-xs text-gray-300 hover:text-red-400 px-1.5 py-1 transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
         {/* 테이블 */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {tab !== 'oral' && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {loading ? (
             <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
           ) : displayList.length === 0 ? (
@@ -221,7 +332,7 @@ export default function DashboardPage() {
               </tbody>
             </table>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* 승인 확인 모달 */}
