@@ -14,6 +14,32 @@ export default function AttendPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
+  // 새로고침 후 상태 복원
+  useEffect(() => {
+    const savedId = localStorage.getItem('attendance_id')
+    if (!savedId) return
+
+    supabase
+      .from('attendances')
+      .select('*, students(*)')
+      .eq('id', savedId)
+      .single()
+      .then(({ data }) => {
+        if (!data) { localStorage.removeItem('attendance_id'); return }
+        const att = { ...data, students: undefined } as Attendance
+        const stu = data.students as Student
+        setAttendance(att)
+        setStudent(stu)
+        if (data.checked_out_at) setPageState('checked_out')
+        else setPageState(data.status as PageState)
+      })
+  }, [])
+
+  // attendance 변경시 localStorage 동기화
+  useEffect(() => {
+    if (attendance) localStorage.setItem('attendance_id', attendance.id)
+  }, [attendance?.id])
+
   // 출석 상태 실시간 구독
   useEffect(() => {
     if (!attendance) return
@@ -158,6 +184,7 @@ export default function AttendPage() {
     setStudent(null)
     setAttendance(null)
     setError('')
+    localStorage.removeItem('attendance_id')
     if (subscriptionRef.current) {
       supabase.removeChannel(subscriptionRef.current)
     }
