@@ -53,6 +53,9 @@ export default function AdminPage() {
   // 주차별 탭에서 선택된 주차
   const [selectedWeek, setSelectedWeek] = useState<string>('')
 
+  // 누적 통계 정렬
+  const [statsSort, setStatsSort] = useState<{ col: string; dir: 'asc' | 'desc' }>({ col: '', dir: 'desc' })
+
   // 학기 관리
   const [terms, setTerms] = useState<Term[]>([])
   const [selectedTermId, setSelectedTermId] = useState<string>('')
@@ -672,6 +675,35 @@ export default function AdminPage() {
                 return { s, attended, rate, wordPass, wordFail, oralPass, oralFail, total: sRecords.length }
               })
 
+              if (statsSort.col) {
+                statsRows.sort((a, b) => {
+                  const val = (row: typeof a) => {
+                    if (statsSort.col === 'attended') return row.attended
+                    if (statsSort.col === 'rate') return row.rate
+                    if (statsSort.col === 'wordPass') return row.wordPass
+                    if (statsSort.col === 'oralPass') return row.oralPass
+                    return 0
+                  }
+                  return statsSort.dir === 'desc' ? val(b) - val(a) : val(a) - val(b)
+                })
+              }
+
+              function SortTh({ col, children }: { col: string; children: React.ReactNode }) {
+                const active = statsSort.col === col
+                const isDesc = active && statsSort.dir === 'desc'
+                return (
+                  <th
+                    className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 cursor-pointer select-none hover:text-blue-600 whitespace-nowrap"
+                    onClick={() => setStatsSort(active ? { col, dir: isDesc ? 'asc' : 'desc' } : { col, dir: 'desc' })}
+                  >
+                    {children}
+                    <span className="ml-1 inline-block">
+                      {active ? (isDesc ? '↓' : '↑') : <span className="text-gray-300">↕</span>}
+                    </span>
+                  </th>
+                )
+              }
+
               return (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
@@ -684,10 +716,10 @@ export default function AdminPage() {
                         <tr className="border-b border-gray-100">
                           <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">이름</th>
                           <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">반</th>
-                          <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">출석</th>
-                          <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">출석률</th>
-                          <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">단어 P/F</th>
-                          <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">구두 P/F</th>
+                          <SortTh col="attended">출석</SortTh>
+                          <SortTh col="rate">출석률</SortTh>
+                          <SortTh col="wordPass">단어 P/F</SortTh>
+                          <SortTh col="oralPass">구두 P/F</SortTh>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
