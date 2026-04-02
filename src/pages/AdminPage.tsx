@@ -38,7 +38,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
 
   // 학생 등록 폼
-  const [form, setForm] = useState({ name: '', class: '', school: '', oral_type: '', clinic_day: '' })
+  const [form, setForm] = useState({ name: '', class: '', school: '', oral_type: '', clinic_day: '', phone: '' })
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
 
@@ -140,8 +140,9 @@ export default function AdminPage() {
     return Array.from(set).sort()
   }
 
-  // 4자리 숫자 랜덤 코드 생성
-  function generateCode(): string {
+  function extractCode(phone: string): string {
+    const digits = phone.replace(/\D/g, '')
+    if (digits.length >= 4) return digits.slice(-4)
     return String(Math.floor(Math.random() * 10000)).padStart(4, '0')
   }
 
@@ -152,12 +153,15 @@ export default function AdminPage() {
     if (!form.school.trim()) { setFormError('학교를 입력하세요.'); return }
     if (!form.name.trim()) { setFormError('이름을 입력하세요.'); return }
 
+    if (!form.phone.trim()) { setFormError('전화번호를 입력하세요.'); return }
+
     setFormLoading(true)
-    let code = generateCode()
-    while (true) {
-      const { data } = await supabase.from('students').select('id').eq('code', code).single()
-      if (!data) break
-      code = generateCode()
+    const code = extractCode(form.phone)
+    const { data: existing } = await supabase.from('students').select('id').eq('code', code).single()
+    if (existing) {
+      setFormError(`코드 ${code}가 이미 사용 중입니다. 전화번호 중간 4자리로 시도하거나 관리자에게 문의하세요.`)
+      setFormLoading(false)
+      return
     }
 
     const { error } = await supabase.from('students').insert({
@@ -172,7 +176,7 @@ export default function AdminPage() {
     if (error) {
       setFormError('등록 실패. 다시 시도해주세요.')
     } else {
-      setForm({ name: '', class: '', school: '', oral_type: '', clinic_day: '' })
+      setForm({ name: '', class: '', school: '', oral_type: '', clinic_day: '', phone: '' })
       fetchStudents()
     }
     setFormLoading(false)
@@ -371,6 +375,13 @@ export default function AdminPage() {
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="이름"
                   className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-28"
+                />
+                <input
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="전화번호"
+                  inputMode="numeric"
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-36"
                 />
                 <select
                   value={form.oral_type}
