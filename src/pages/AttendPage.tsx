@@ -132,6 +132,12 @@ export default function AttendPage() {
     }
   }
 
+  async function handleCancelPending() {
+    if (!attendance) return
+    await supabase.from('attendances').delete().eq('id', attendance.id)
+    handleReset()
+  }
+
   async function handleReCheckIn() {
     if (!attendance) return
     const { data } = await supabase
@@ -223,6 +229,12 @@ export default function AttendPage() {
               ))}
             </div>
             <p className="text-xs text-gray-400 mt-4">{student.class}</p>
+            <button
+              onClick={handleCancelPending}
+              className="mt-4 text-sm text-gray-400 hover:text-red-400 underline transition-colors"
+            >
+              출석 취소
+            </button>
           </div>
         )}
 
