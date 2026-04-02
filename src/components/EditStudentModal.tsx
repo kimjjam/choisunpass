@@ -20,9 +20,16 @@ export default function EditStudentModal({
     school: student.school,
     oral_type: student.oral_type,
     clinic_day: student.clinic_day,
+    phone: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  function extractCode(phone: string): string {
+    const digits = phone.replace(/\D/g, '')
+    if (digits.length >= 4) return digits.slice(-4)
+    return ''
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -32,13 +39,24 @@ export default function EditStudentModal({
     if (!form.school.trim()) { setError('학교를 입력하세요.'); return }
 
     setLoading(true)
-    const { error } = await supabase.from('students').update({
+
+    const updateData: Record<string, string> = {
       name: form.name.trim(),
       class: form.class.trim(),
       school: form.school.trim(),
       oral_type: form.oral_type.trim(),
       clinic_day: form.clinic_day,
-    }).eq('id', student.id)
+    }
+
+    if (form.phone.trim()) {
+      const newCode = extractCode(form.phone)
+      if (!newCode) { setError('전화번호가 너무 짧습니다.'); setLoading(false); return }
+      const { data: existing } = await supabase.from('students').select('id').eq('code', newCode).neq('id', student.id).single()
+      if (existing) { setError(`코드 ${newCode}가 이미 사용 중입니다.`); setLoading(false); return }
+      updateData.code = newCode
+    }
+
+    const { error } = await supabase.from('students').update(updateData).eq('id', student.id)
 
     if (error) {
       setError('저장 실패. 다시 시도해주세요.')
@@ -91,6 +109,20 @@ export default function EditStudentModal({
               <option value="">요일 선택</option>
               {CLINIC_DAYS.map((d) => <option key={d} value={d}>{d}요일</option>)}
             </select>
+          </div>
+          <div className="relative">
+            <input
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder={`전화번호 변경 (현재 코드: ${student.code})`}
+              inputMode="numeric"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
+            />
+            {form.phone && extractCode(form.phone) && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-500 font-mono font-bold">
+                → {extractCode(form.phone)}
+              </span>
+            )}
           </div>
           {error && <p className="text-xs text-red-500">{error}</p>}
           <div className="flex gap-2 pt-1">
