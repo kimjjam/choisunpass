@@ -290,7 +290,7 @@ export default function AttendPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-1">출석 코드 입력</h2>
             <p className="text-sm text-gray-500 mb-1">본인의 개인 코드를 입력하세요.</p>
-            <p className="text-xs text-gray-400 mb-5">코드는 번호 마지막 4자리거나 중간 4자리입니다.</p>
+            <p className="text-xs text-gray-400 mb-5">코드는 전화번호 마지막 4자리거나 중간 4자리입니다.</p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 ref={inputRef}
