@@ -154,12 +154,10 @@ export default function AdminPage() {
 
     setFormLoading(true)
     let code = generateCode()
-    let tries = 0
-    while (tries < 10) {
+    while (true) {
       const { data } = await supabase.from('students').select('id').eq('code', code).single()
       if (!data) break
       code = generateCode()
-      tries++
     }
 
     const { error } = await supabase.from('students').insert({
