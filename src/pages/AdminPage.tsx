@@ -42,8 +42,6 @@ export default function AdminPage() {
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
 
-  // 코드 재발급 대상
-  const [reissuing, setReissuing] = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<Student | null>(null)
 
   const [search, setSearch] = useState('')
@@ -180,21 +178,6 @@ export default function AdminPage() {
       fetchStudents()
     }
     setFormLoading(false)
-  }
-
-  async function handleReissueCode(studentId: string) {
-    setReissuing(studentId)
-    let code = generateCode()
-    let tries = 0
-    while (tries < 10) {
-      const { data } = await supabase.from('students').select('id').eq('code', code).single()
-      if (!data) break
-      code = generateCode()
-      tries++
-    }
-    await supabase.from('students').update({ code }).eq('id', studentId)
-    fetchStudents()
-    setReissuing(null)
   }
 
   function handlePrintCodes(list: Student[]) {
@@ -467,14 +450,6 @@ export default function AdminPage() {
                         title="정보 수정"
                       >
                         ✎
-                      </button>
-                      <button
-                        onClick={() => handleReissueCode(s.id)}
-                        disabled={reissuing === s.id}
-                        className="text-xs text-gray-400 hover:text-blue-500 transition-colors px-1"
-                        title="코드 재발급"
-                      >
-                        {reissuing === s.id ? '⟳' : '↺'}
                       </button>
                       <button
                         onClick={() => handleDeleteStudent(s.id, s.name)}
