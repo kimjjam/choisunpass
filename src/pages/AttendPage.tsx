@@ -177,14 +177,14 @@ export default function AttendPage() {
                 ref={inputRef}
                 type="text"
                 inputMode="numeric"
-                pattern="[A-Za-z0-9]*"
+                pattern="[0-9]*"
                 value={code}
                 onChange={(e) => {
                   setCode(e.target.value)
                   setError('')
                 }}
                 placeholder="코드 입력"
-                maxLength={6}
+                maxLength={4}
                 autoFocus
                 className="w-full text-center text-2xl font-bold tracking-[0.5em] border-2 border-gray-200 rounded-xl py-4 focus:border-blue-500 focus:outline-none transition-colors"
               />

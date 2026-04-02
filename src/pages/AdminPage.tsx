@@ -142,10 +142,9 @@ export default function AdminPage() {
     return Array.from(set).sort()
   }
 
-  // 6자리 영문+숫자 랜덤 코드 생성
+  // 4자리 숫자 랜덤 코드 생성
   function generateCode(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+    return String(Math.floor(Math.random() * 10000)).padStart(4, '0')
   }
 
   async function handleRegister(e: React.FormEvent) {
