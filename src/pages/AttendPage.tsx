@@ -113,7 +113,8 @@ export default function AttendPage() {
 
   const validStatuses = ['pass', 'fail', 'delay']
   const allDone =
-    validStatuses.includes(attendance?.word_status as string) &&
+    !!attendance?.word_score?.trim() &&
+    !!attendance?.clinic_score?.trim() &&
     validStatuses.includes(attendance?.oral_status as string) &&
     validStatuses.includes(attendance?.homework as string)
 
