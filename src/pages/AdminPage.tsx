@@ -716,6 +716,7 @@ export default function AdminPage() {
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">요일</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">출석</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">등원</th>
+                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">재등원</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">하원</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">단어</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">클리닉</th>
@@ -1338,6 +1339,9 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
   const checkinTime = record.approved_at
     ? new Date(record.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
     : '-'
+  const recheckInTime = record.rechecked_in_at
+    ? new Date(record.rechecked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+    : '-'
   const checkoutTime = record.checked_out_at
     ? new Date(record.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
     : '-'
@@ -1362,6 +1366,9 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
           : <span className="text-gray-300">-</span>}
       </td>
       <td className="px-3 py-2.5 text-center text-xs text-gray-500 whitespace-nowrap">{checkinTime}</td>
+      <td className="px-3 py-2.5 text-center text-xs text-blue-500 whitespace-nowrap">
+        {record.rechecked_in_at ? recheckInTime : <span className="text-gray-200">-</span>}
+      </td>
       <td className="px-3 py-2.5 text-center text-xs text-indigo-500 whitespace-nowrap">{checkoutTime}</td>
       <td className="px-3 py-2.5 text-center text-xs text-gray-700">{record.word_score || '-'}</td>
       <td className="px-3 py-2.5 text-center text-xs text-gray-700">{record.clinic_score || '-'}</td>
