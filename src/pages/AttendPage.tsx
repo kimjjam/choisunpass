@@ -4,6 +4,12 @@ import type { Student, Attendance, OralQueue, VisitType } from '../lib/database.
 
 type PageState = 'input' | 'pending' | 'approved' | 'checked_out' | 'rejected'
 
+// 한국 로컬 날짜 (UTC 기준 toISOString은 오전 9시 전에 날짜가 하루 늦음)
+function getLocalDateStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function AttendPage() {
   const [code, setCode] = useState('')
   const [pageState, setPageState] = useState<PageState>('input')
@@ -180,7 +186,7 @@ export default function AttendPage() {
         return
       }
 
-      const today = new Date().toISOString().split('T')[0]
+      const today = getLocalDateStr()
       const { data: existing } = await supabase
         .from('attendances')
         .select('*')
