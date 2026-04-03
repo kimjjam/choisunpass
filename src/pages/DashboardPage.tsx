@@ -216,36 +216,34 @@ export default function DashboardPage() {
             <StatPill label="대기" value={stats.pending} color="yellow" />
             <StatPill label="승인" value={stats.approved} color="green" />
             <StatPill label="거절" value={stats.rejected} color="red" />
+            <button
+              onClick={() => setTab('oral')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors ml-1 ${
+                tab === 'oral' ? 'bg-purple-600 text-white' : 'bg-purple-50 border border-purple-200 text-purple-600 hover:bg-purple-100'
+              }`}
+            >
+              구두 대기
+              {oralQueue.length > 0 && (
+                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'oral' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'}`}>
+                  {oralQueue.length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1.5">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/admin')}
-              className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
-            >
-              관리자 페이지
-            </button>
-            <span className="text-xs text-gray-500">{currentUser}</span>
-            <button
-              onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
-              className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
-            >
-              로그아웃
-            </button>
-          </div>
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setTab('oral')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              tab === 'oral' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-            }`}
+            onClick={() => navigate('/admin')}
+            className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
           >
-            구두 대기
-            {oralQueue.length > 0 && (
-              <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'oral' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'}`}>
-                {oralQueue.length}
-              </span>
-            )}
+            관리자 페이지
+          </button>
+          <span className="text-xs text-gray-500">{currentUser}</span>
+          <button
+            onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
+            className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+          >
+            로그아웃
           </button>
         </div>
       </header>
