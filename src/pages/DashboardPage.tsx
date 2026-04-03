@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [approveModal, setApproveModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectModal, setRejectModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -433,7 +434,7 @@ export default function DashboardPage() {
             {classClinicList.filter(r => !r.checked_out_at).length > 0 && (
               <div className="flex justify-end">
                 <button
-                  onClick={handleBulkCheckOut}
+                  onClick={() => setShowBulkConfirm(true)}
                   className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
                 >
                   일괄 하원 처리 ({classClinicList.filter(r => !r.checked_out_at).length}명)
@@ -498,7 +499,12 @@ export default function DashboardPage() {
 
       {/* 승인 확인 모달 */}
       {approveModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onKeyDown={(e) => { if (e.key === 'Enter') handleApprove() }}
+          tabIndex={-1}
+          ref={(el) => el?.focus()}
+        >
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
             <h3 className="font-semibold text-gray-800 mb-1">{approveModal.name} 학생 승인</h3>
             <p className="text-sm text-gray-500 mb-5">정말 학생이 등원하였습니까?</p>
@@ -545,6 +551,30 @@ export default function DashboardPage() {
                 className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors"
               >
                 거절 확정
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 일괄 하원 확인 모달 */}
+      {showBulkConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">일괄 하원 처리</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">정말 일괄처리 하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowBulkConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { setShowBulkConfirm(false); handleBulkCheckOut() }}
+                className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-sm transition-colors"
+              >
+                확인
               </button>
             </div>
           </div>
