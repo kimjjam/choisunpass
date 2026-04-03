@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { useNavigate } from 'react-router-dom'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
-import type { Student, AttendanceWithStudent, Term } from '../lib/database.types'
+import type { Student, AttendanceWithStudent, Term, ClinicAbsenceWithStudent } from '../lib/database.types'
 import EditStudentModal from '../components/EditStudentModal'
 
-type AdminTab = 'students' | 'weekly' | 'stats'
+type AdminTab = 'students' | 'weekly' | 'stats' | 'absence'
 
 const ORAL_TYPES = ['빈칸 구두', '별구두', '해석 구두', '별 빈칸 구두', '기타']
 const CLINIC_DAYS = ['월', '화', '수', '목', '금']
@@ -54,6 +55,22 @@ export default function AdminPage() {
   // 누적 통계 정렬
   const [statsSort, setStatsSort] = useState<{ col: string; dir: 'asc' | 'desc' }>({ col: '', dir: 'desc' })
 
+  // 재등원 관리
+  const [absences, setAbsences] = useState<ClinicAbsenceWithStudent[]>([])
+  const [absenceWeek, setAbsenceWeek] = useState<string>('')
+  const [absenceReasonModal, setAbsenceReasonModal] = useState<{ studentId: string; name: string; type: '미실시' | '미재등원' } | null>(null)
+  const [absenceReason, setAbsenceReason] = useState('')
+  const [absenceLoading, setAbsenceLoading] = useState(false)
+  // 미실시 학생 (이번 선택 주차에 출석 없는 학생)
+  const [noShowStudents, setNoShowStudents] = useState<Student[]>([])
+  // 미재등원 학생 (next_clinic_date 지났는데 미등원)
+  const [overdueStudents, setOverdueStudents] = useState<AttendanceWithStudent[]>([])
+
+  // 학생 히스토리 모달
+  const [historyTarget, setHistoryTarget] = useState<Student | null>(null)
+  const [historyRecords, setHistoryRecords] = useState<AttendanceWithStudent[]>([])
+  const [historyAbsences, setHistoryAbsences] = useState<ClinicAbsenceWithStudent[]>([])
+
   // 학기 관리
   const [terms, setTerms] = useState<Term[]>([])
   const [selectedTermId, setSelectedTermId] = useState<string>('')
@@ -69,6 +86,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab === 'weekly' || tab === 'stats') fetchAllRecords()
+    if (tab === 'absence') { fetchAbsences(); fetchNoShowData() }
   }, [tab])
 
   // 어드민 실시간 구독
@@ -138,6 +156,96 @@ export default function AdminPage() {
   function getWeekStarts(records: AttendanceWithStudent[]): string[] {
     const set = new Set(records.map((r) => getWeekStart(r.date)))
     return Array.from(set).sort()
+  }
+
+  async function fetchAbsences() {
+    const { data } = await supabase
+      .from('clinic_absences')
+      .select('*, students(*)')
+      .order('week_start_date', { ascending: false })
+    if (data) setAbsences(data as ClinicAbsenceWithStudent[])
+  }
+
+  async function fetchNoShowData() {
+    // 직전 주 월요일 계산
+    const today = new Date()
+    const day = today.getDay()
+    const diff = day === 0 ? -6 : 1 - day
+    const thisMonday = new Date(today)
+    thisMonday.setDate(today.getDate() + diff)
+    const lastMonday = new Date(thisMonday)
+    lastMonday.setDate(thisMonday.getDate() - 7)
+    const lastFriday = new Date(lastMonday)
+    lastFriday.setDate(lastMonday.getDate() + 4)
+    const weekStart = lastMonday.toISOString().split('T')[0]
+    const weekEnd = lastFriday.toISOString().split('T')[0]
+    setAbsenceWeek(weekStart)
+
+    // 지난주 출석한 학생 id 목록
+    const { data: attendedData } = await supabase
+      .from('attendances')
+      .select('student_id')
+      .gte('date', weekStart)
+      .lte('date', weekEnd)
+    const attendedIds = new Set((attendedData || []).map((r: { student_id: string }) => r.student_id))
+
+    // 모든 학생 중 출석 안 한 학생
+    const { data: allStudents } = await supabase.from('students').select('*').order('name')
+    if (allStudents) {
+      setNoShowStudents((allStudents as Student[]).filter(s => !attendedIds.has(s.id)))
+    }
+
+    // 미재등원: next_clinic_date가 오늘 이전이고 그 이후 출석이 없는 경우
+    const todayStr = today.toISOString().split('T')[0]
+    const { data: overdueData } = await supabase
+      .from('attendances')
+      .select('*, students(*)')
+      .not('next_clinic_date', 'is', null)
+      .lt('next_clinic_date', todayStr)
+    if (overdueData) {
+      // next_clinic_date 이후 출석이 없는 경우만 필터
+      const overdue = (overdueData as AttendanceWithStudent[]).filter(r => {
+        const hasLaterAttendance = (overdueData as AttendanceWithStudent[]).some(
+          r2 => r2.student_id === r.student_id && r2.date > r.next_clinic_date!
+        )
+        return !hasLaterAttendance
+      })
+      setOverdueStudents(overdue)
+    }
+  }
+
+  async function handleAddAbsence(studentId: string, type: '미실시' | '미재등원') {
+    if (!absenceReasonModal || !selectedTermId) return
+    setAbsenceLoading(true)
+    await supabase.from('clinic_absences').insert({
+      student_id: studentId,
+      term_id: selectedTermId,
+      week_start_date: absenceWeek,
+      type,
+      reason: absenceReason.trim() || null,
+    })
+    setAbsenceReasonModal(null)
+    setAbsenceReason('')
+    setAbsenceLoading(false)
+    fetchAbsences()
+    fetchNoShowData()
+  }
+
+  async function openStudentHistory(student: Student) {
+    setHistoryTarget(student)
+    const { data: records } = await supabase
+      .from('attendances')
+      .select('*, students(*)')
+      .eq('student_id', student.id)
+      .order('date', { ascending: false })
+    if (records) setHistoryRecords(records as AttendanceWithStudent[])
+
+    const { data: abs } = await supabase
+      .from('clinic_absences')
+      .select('*, students(*)')
+      .eq('student_id', student.id)
+      .order('week_start_date', { ascending: false })
+    if (abs) setHistoryAbsences(abs as ClinicAbsenceWithStudent[])
   }
 
   function extractCode(phone: string): string {
@@ -345,10 +453,11 @@ export default function AdminPage() {
       </header>
 
       {/* 탭 */}
-      <div className="px-6 pt-4 flex gap-2 mb-4">
+      <div className="px-6 pt-4 flex gap-2 mb-4 flex-wrap">
         <TabButton active={tab === 'students'} onClick={() => setTab('students')}>학생 관리</TabButton>
         <TabButton active={tab === 'weekly'} onClick={() => setTab('weekly')}>주차별 현황</TabButton>
         <TabButton active={tab === 'stats'} onClick={() => { setTab('stats'); fetchAllRecords() }}>누적 통계</TabButton>
+        <TabButton active={tab === 'absence'} onClick={() => setTab('absence')}>재등원 관리</TabButton>
       </div>
 
       {/* ── 학생 관리 탭 ── */}
@@ -437,7 +546,10 @@ export default function AdminPage() {
                         {s.name[0]}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900 text-sm">{s.name}</div>
+                        <div
+                          className="font-medium text-gray-900 text-sm cursor-pointer hover:text-blue-600 transition-colors"
+                          onClick={() => openStudentHistory(s)}
+                        >{s.name}</div>
                         <div className="text-xs text-gray-400">
                           {s.class} · {s.school}
                           {s.oral_type && <span> · {s.oral_type}</span>}
@@ -745,6 +857,238 @@ export default function AdminPage() {
               )
             })()
           )}
+        </div>
+      )}
+
+      {/* ── 재등원 관리 탭 ── */}
+      {tab === 'absence' && (
+        <div className="px-6 pb-8 max-w-screen-xl mx-auto space-y-4">
+          <p className="text-xs text-gray-400">기준 주차: {absenceWeek ? `${absenceWeek} 주` : '계산 중...'}</p>
+
+          {/* 미실시 학생 */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 bg-red-50">
+              <span className="font-semibold text-red-700 text-sm">미실시 학생 ({noShowStudents.filter(s => !absences.some(a => a.student_id === s.id && a.week_start_date === absenceWeek && a.type === '미실시')).length}명)</span>
+              <span className="text-xs text-red-400 ml-2">직전 주 출석 기록 없음</span>
+            </div>
+            {noShowStudents.filter(s => !absences.some(a => a.student_id === s.id && a.week_start_date === absenceWeek && a.type === '미실시')).length === 0 ? (
+              <div className="py-8 text-center text-gray-400 text-sm">모두 처리됐습니다</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="px-4 py-2 text-left text-xs text-gray-500">이름</th>
+                  <th className="px-3 py-2 text-left text-xs text-gray-500">학교 · 반</th>
+                  <th className="px-3 py-2 text-center text-xs text-gray-500">처리</th>
+                </tr></thead>
+                <tbody>
+                  {noShowStudents.filter(s => !absences.some(a => a.student_id === s.id && a.week_start_date === absenceWeek && a.type === '미실시')).map(s => (
+                    <tr key={s.id} className="border-b border-gray-50">
+                      <td className="px-4 py-2.5 font-medium text-gray-800">{s.name}</td>
+                      <td className="px-3 py-2.5 text-xs text-gray-500">{s.school} · {s.class}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <button
+                          onClick={() => setAbsenceReasonModal({ studentId: s.id, name: s.name, type: '미실시' })}
+                          className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded-lg transition-colors"
+                        >사유 입력</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* 미재등원 학생 */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 bg-orange-50">
+              <span className="font-semibold text-orange-700 text-sm">미재등원 학생 ({overdueStudents.filter(r => !absences.some(a => a.student_id === r.student_id && a.type === '미재등원')).length}명)</span>
+              <span className="text-xs text-orange-400 ml-2">다음에 올게요 날짜 경과</span>
+            </div>
+            {overdueStudents.filter(r => !absences.some(a => a.student_id === r.student_id && a.type === '미재등원')).length === 0 ? (
+              <div className="py-8 text-center text-gray-400 text-sm">모두 처리됐습니다</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="px-4 py-2 text-left text-xs text-gray-500">이름</th>
+                  <th className="px-3 py-2 text-left text-xs text-gray-500">학교 · 반</th>
+                  <th className="px-3 py-2 text-center text-xs text-gray-500">약속 날짜</th>
+                  <th className="px-3 py-2 text-center text-xs text-gray-500">처리</th>
+                </tr></thead>
+                <tbody>
+                  {overdueStudents.filter(r => !absences.some(a => a.student_id === r.student_id && a.type === '미재등원')).map(r => (
+                    <tr key={r.id} className="border-b border-gray-50">
+                      <td className="px-4 py-2.5 font-medium text-gray-800">{r.students.name}</td>
+                      <td className="px-3 py-2.5 text-xs text-gray-500">{r.students.school} · {r.students.class}</td>
+                      <td className="px-3 py-2.5 text-center text-xs text-orange-600 font-medium">{r.next_clinic_date}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <button
+                          onClick={() => setAbsenceReasonModal({ studentId: r.student_id, name: r.students.name, type: '미재등원' })}
+                          className="text-xs bg-orange-50 hover:bg-orange-100 text-orange-600 px-2.5 py-1 rounded-lg transition-colors"
+                        >사유 입력</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* 처리된 기록 */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <span className="font-semibold text-gray-700 text-sm">처리된 기록 ({absences.filter(a => a.week_start_date === absenceWeek).length}건)</span>
+            </div>
+            {absences.filter(a => a.week_start_date === absenceWeek).length === 0 ? (
+              <div className="py-6 text-center text-gray-400 text-sm">이번 주 처리 기록 없음</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="px-4 py-2 text-left text-xs text-gray-500">이름</th>
+                  <th className="px-3 py-2 text-left text-xs text-gray-500">학교</th>
+                  <th className="px-3 py-2 text-center text-xs text-gray-500">구분</th>
+                  <th className="px-3 py-2 text-left text-xs text-gray-500">사유</th>
+                </tr></thead>
+                <tbody>
+                  {absences.filter(a => a.week_start_date === absenceWeek).map(a => (
+                    <tr key={a.id} className="border-b border-gray-50">
+                      <td className="px-4 py-2.5 font-medium text-gray-800">{a.students.name}</td>
+                      <td className="px-3 py-2.5 text-xs text-gray-500">{a.students.school}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${a.type === '미실시' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>{a.type}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-gray-500">{a.reason || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 사유 입력 모달 */}
+      {absenceReasonModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-1">{absenceReasonModal.name} — {absenceReasonModal.type}</h3>
+            <p className="text-xs text-gray-400 mb-4">사유를 입력하면 재등원탭에서 제거되고 주차별 현황에 기록됩니다.</p>
+            <textarea
+              value={absenceReason}
+              onChange={(e) => setAbsenceReason(e.target.value)}
+              placeholder="사유 입력 (선택사항)"
+              rows={3}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 mb-4 resize-none"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { setAbsenceReasonModal(null); setAbsenceReason('') }} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600">취소</button>
+              <button
+                onClick={() => handleAddAbsence(absenceReasonModal.studentId, absenceReasonModal.type)}
+                disabled={absenceLoading}
+                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-sm font-semibold"
+              >{absenceLoading ? '저장 중...' : '저장'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 학생 히스토리 모달 */}
+      {historyTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800 text-lg">{historyTarget.name}</h3>
+                <p className="text-xs text-gray-400">{historyTarget.school} · {historyTarget.class} · 코드: {historyTarget.code}</p>
+              </div>
+              <button onClick={() => setHistoryTarget(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="p-6 space-y-6">
+              {/* 성적 차트 */}
+              {historyRecords.filter(r => r.word_score || r.clinic_score).length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-700 text-sm mb-3">성적 히스토리</h4>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={historyRecords.filter(r => r.word_score || r.clinic_score).reverse().map(r => ({
+                      date: r.date.slice(5),
+                      단어: r.word_score ? Number(r.word_score) : null,
+                      클리닉: r.clinic_score ? Number(r.clinic_score) : null,
+                    }))}>
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="단어" fill="#3b82f6" radius={[3,3,0,0]} />
+                      <Bar dataKey="클리닉" fill="#8b5cf6" radius={[3,3,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 출석 히스토리 */}
+              <div>
+                <h4 className="font-semibold text-gray-700 text-sm mb-3">출석 기록 ({historyRecords.length}건)</h4>
+                {historyRecords.length === 0 ? <p className="text-sm text-gray-400">기록 없음</p> : (
+                  <table className="w-full text-xs">
+                    <thead><tr className="border-b border-gray-100 bg-gray-50">
+                      <th className="px-3 py-2 text-left text-gray-500">날짜</th>
+                      <th className="px-2 py-2 text-center text-gray-500">구분</th>
+                      <th className="px-2 py-2 text-center text-gray-500">상태</th>
+                      <th className="px-2 py-2 text-center text-gray-500">단어</th>
+                      <th className="px-2 py-2 text-center text-gray-500">클리닉</th>
+                      <th className="px-2 py-2 text-center text-gray-500">구두</th>
+                      <th className="px-2 py-2 text-left text-gray-500">다음 예정</th>
+                    </tr></thead>
+                    <tbody>
+                      {historyRecords.map(r => (
+                        <tr key={r.id} className="border-b border-gray-50">
+                          <td className="px-3 py-2 text-gray-700">{r.date}</td>
+                          <td className="px-2 py-2 text-center">
+                            <span className={`px-1.5 py-0.5 rounded text-xs ${r.visit_type === 'class_clinic' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                              {r.visit_type === 'class_clinic' ? '수업+클리닉' : '클리닉'}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            {r.status === 'approved' ? <span className="text-green-600">✓</span> : r.status === 'rejected' ? <span className="text-red-400">✕</span> : <span className="text-yellow-500">대기</span>}
+                          </td>
+                          <td className="px-2 py-2 text-center text-gray-700">{r.word_score || '-'}</td>
+                          <td className="px-2 py-2 text-center text-gray-700">{r.clinic_score || '-'}</td>
+                          <td className="px-2 py-2 text-center">
+                            {r.oral_status === 'pass' ? <span className="text-green-500">P</span> : r.oral_status === 'fail' ? <span className="text-red-400">F</span> : r.oral_status === 'delay' ? <span className="text-yellow-500">D</span> : <span className="text-gray-300">-</span>}
+                          </td>
+                          <td className="px-2 py-2 text-blue-500">{r.next_clinic_date || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* 결석 사유 기록 */}
+              {historyAbsences.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-700 text-sm mb-3">결석 사유 기록</h4>
+                  <table className="w-full text-xs">
+                    <thead><tr className="border-b border-gray-100 bg-gray-50">
+                      <th className="px-3 py-2 text-left text-gray-500">주차</th>
+                      <th className="px-2 py-2 text-center text-gray-500">구분</th>
+                      <th className="px-2 py-2 text-left text-gray-500">사유</th>
+                    </tr></thead>
+                    <tbody>
+                      {historyAbsences.map(a => (
+                        <tr key={a.id} className="border-b border-gray-50">
+                          <td className="px-3 py-2 text-gray-700">{a.week_start_date}</td>
+                          <td className="px-2 py-2 text-center">
+                            <span className={`px-1.5 py-0.5 rounded text-xs ${a.type === '미실시' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>{a.type}</span>
+                          </td>
+                          <td className="px-2 py-2 text-gray-500">{a.reason || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

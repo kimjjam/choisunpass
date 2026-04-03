@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Student, Attendance, OralQueue } from '../lib/database.types'
+import type { Student, Attendance, OralQueue, VisitType } from '../lib/database.types'
 
 type PageState = 'input' | 'pending' | 'approved' | 'checked_out' | 'rejected'
 
@@ -13,6 +13,15 @@ export default function AttendPage() {
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  // visit_type 모달
+  const [showVisitTypeModal, setShowVisitTypeModal] = useState(false)
+  const [pendingStudentData, setPendingStudentData] = useState<Student | null>(null)
+
+  // 다음에 올게요
+  const [showNextClinicModal, setShowNextClinicModal] = useState(false)
+  const [nextClinicDate, setNextClinicDate] = useState('')
+  const [nextClinicLoading, setNextClinicLoading] = useState(false)
 
   // 구두 대기
   const [oralQueue, setOralQueue] = useState<OralQueue | null>(null)
@@ -180,34 +189,73 @@ export default function AttendPage() {
       if (existing) {
         setStudent(studentData)
         setAttendance(existing)
-        setPageState(existing.status as PageState)
+        if (existing.checked_out_at) setPageState('checked_out')
+        else setPageState(existing.status as PageState)
         setLoading(false)
         return
       }
 
-      const { data: newAttendance, error: insertError } = await supabase
-        .from('attendances')
-        .insert({
-          student_id: studentData.id,
-          date: today,
-          status: 'pending',
-          checked_in_at: new Date().toISOString(),
-        })
-        .select()
-        .single()
-
-      if (insertError || !newAttendance) {
-        setError('출석 요청 중 오류가 발생했습니다. 다시 시도해주세요.')
-        setLoading(false)
-        return
-      }
-
+      // 신규 출석: visit_type 선택 모달
       setStudent(studentData)
-      setAttendance(newAttendance)
-      setPageState('pending')
+      setPendingStudentData(studentData)
+      setShowVisitTypeModal(true)
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleVisitTypeSelect(visitType: VisitType) {
+    if (!pendingStudentData) return
+    setShowVisitTypeModal(false)
+    setLoading(true)
+    const today = new Date().toISOString().split('T')[0]
+    const { data: newAttendance, error: insertError } = await supabase
+      .from('attendances')
+      .insert({
+        student_id: pendingStudentData.id,
+        date: today,
+        status: 'pending',
+        visit_type: visitType,
+        checked_in_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (insertError || !newAttendance) {
+      setError('출석 요청 중 오류가 발생했습니다. 다시 시도해주세요.')
+      setLoading(false)
+      return
+    }
+    setAttendance(newAttendance)
+    setPageState('pending')
+    setLoading(false)
+  }
+
+  async function handleNextClinic() {
+    if (!attendance || !nextClinicDate) return
+    setNextClinicLoading(true)
+    if (attendance.visit_type === 'class_clinic') {
+      // class_clinic: 조교확인 없이 바로 하원
+      const { data } = await supabase
+        .from('attendances')
+        .update({ next_clinic_date: nextClinicDate, checked_out_at: new Date().toISOString() })
+        .eq('id', attendance.id)
+        .select()
+        .single()
+      if (data) { setAttendance(data); setPageState('checked_out') }
+    } else {
+      // clinic: next_clinic_date 저장 후 조교 확인 대기
+      const { data } = await supabase
+        .from('attendances')
+        .update({ next_clinic_date: nextClinicDate })
+        .eq('id', attendance.id)
+        .select()
+        .single()
+      if (data) setAttendance(data)
+    }
+    setShowNextClinicModal(false)
+    setNextClinicDate('')
+    setNextClinicLoading(false)
   }
 
   const validStatuses = ['pass', 'fail', 'delay']
@@ -274,6 +322,10 @@ export default function AttendPage() {
     setAttendance(null)
     setOralQueue(null)
     setShowCalledModal(false)
+    setShowVisitTypeModal(false)
+    setShowNextClinicModal(false)
+    setPendingStudentData(null)
+    setNextClinicDate('')
     setError('')
     localStorage.removeItem('attendance_id')
     if (subscriptionRef.current) {
@@ -404,7 +456,15 @@ export default function AttendPage() {
               </div>
             )}
 
-            {!allDone && (
+            {/* 다음에 올게요 - 조교확인 대기 중 */}
+            {attendance?.next_clinic_date && attendance.visit_type === 'clinic' && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3 text-xs text-blue-600">
+                다음 클리닉: <span className="font-bold">{attendance.next_clinic_date}</span><br />
+                조교 선생님 확인 후 하원 처리됩니다.
+              </div>
+            )}
+
+            {!allDone && !attendance?.next_clinic_date && (
               <p className="text-xs text-orange-500 bg-orange-50 rounded-xl py-2 px-3 mb-3">
                 조교 선생님의 확인이 완료되면 하원 버튼이 활성화됩니다.
               </p>
@@ -420,6 +480,14 @@ export default function AttendPage() {
             >
               하원할게요
             </button>
+            {!attendance?.next_clinic_date && (
+              <button
+                onClick={() => setShowNextClinicModal(true)}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-3 rounded-xl transition-colors text-sm mb-3"
+              >
+                다음에 올게요
+              </button>
+            )}
             <button
               onClick={handleReset}
               className="text-sm text-gray-400 hover:text-gray-600 underline transition-colors"
@@ -494,6 +562,73 @@ export default function AttendPage() {
           </div>
         )}
       </div>
+
+      {/* visit_type 선택 모달 */}
+      {showVisitTypeModal && student && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl">
+            <h3 className="font-bold text-gray-800 text-center text-lg mb-1">{student.name} 학생</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">오늘 방문 목적을 선택하세요</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleVisitTypeSelect('class_clinic')}
+                className="py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base transition-colors"
+              >
+                수업 + 클리닉
+              </button>
+              <button
+                onClick={() => handleVisitTypeSelect('clinic')}
+                className="py-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-base transition-colors"
+              >
+                클리닉만
+              </button>
+            </div>
+            <button
+              onClick={() => { setShowVisitTypeModal(false); setStudent(null); setPendingStudentData(null) }}
+              className="w-full mt-3 py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 다음에 올게요 모달 */}
+      {showNextClinicModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl">
+            <h3 className="font-bold text-gray-800 text-center text-lg mb-1">다음에 올게요</h3>
+            <p className="text-sm text-gray-500 text-center mb-5">다음 클리닉 날짜를 입력해주세요</p>
+            <input
+              type="date"
+              value={nextClinicDate}
+              onChange={(e) => setNextClinicDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-blue-400 mb-4"
+            />
+            {attendance?.visit_type === 'clinic' && (
+              <p className="text-xs text-orange-500 bg-orange-50 rounded-lg p-2 mb-4">
+                클리닉 학생은 조교 선생님 확인 후 하원 처리됩니다.
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowNextClinicModal(false); setNextClinicDate('') }}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleNextClinic}
+                disabled={!nextClinicDate || nextClinicLoading}
+                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-sm font-semibold transition-colors"
+              >
+                {nextClinicLoading ? '처리 중...' : '확인'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 구두 호출 모달 */}
       {showCalledModal && student && (

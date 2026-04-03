@@ -5,7 +5,19 @@
       "Bash(printf 'y\\\\n')",
       "Bash(npx create-vite@latest . --template react-ts)",
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Read(//c/Users/2mp2p/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/2dff36e4-50b6-4232-a3db-f5ae2db8e875/92343678-8e17-4615-a707-5539a5cae156/skills/xlsx/**)",
+      "Bash(python -c \":*)",
+      "Bash(pip install:*)",
+      "Bash(python -c \"import sys; sys.stdout.buffer.write\\(sys.stdin.buffer.read\\(\\)\\)\")",
+      "Bash(grep -iE \"\\\\.xls$\")",
+      "Bash(find C:/Users/2mp2p/Downloads -name *.xls -o -name *.xlsx)",
+      "Bash(find C:/Users/2mp2p/Desktop C:/Users/2mp2p/Documents -name *.xls -o -name *.xlsx)",
+      "Bash(find /c/Users/2mp2p -name 고정아* -o -name 김수연* -o -name 김지영*)",
+      "Bash(cmd /c \"dir /b \"\"C:\\\\Users\\\\2mp2p\\\\OneDrive\"\" 2>&1\")",
+      "Bash(cmd /c \"dir /b \"\"C:\\\\Users\\\\2mp2p\\\\OneDrive\\\\문서\\\\카카오톡 받은 파일\"\" 2>&1\")",
+      "Bash(python:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

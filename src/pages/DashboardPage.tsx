@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 import type { AttendanceWithStudent, MissionStatus, OralQueueWithStudent } from '../lib/database.types'
 
-type Tab = 'pending' | 'all' | 'oral'
+type Tab = 'pending' | 'clinic' | 'class_clinic' | 'oral'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -119,20 +119,43 @@ export default function DashboardPage() {
     fetchOralQueue()
   }
 
+  async function handleForceCheckOut(id: string) {
+    const now = new Date().toISOString()
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, checked_out_at: now } : r))
+    await supabase.from('attendances').update({ checked_out_at: now }).eq('id', id)
+  }
+
   const [search, setSearch] = useState('')
-  const [dayFilter, setDayFilter] = useState<string>('')
+  const [schoolFilter, setSchoolFilter] = useState('')
 
-  const pendingList = records.filter((r) => r.status === 'pending')
-  const DAYS = ['일', '월', '화', '수', '목', '금', '토']
+  const schools = [...new Set(records.map(r => r.students.school).filter(Boolean))].sort()
 
-  const displayList = (tab === 'pending' ? pendingList : records)
-    .filter((r) => r.students.name.includes(search.trim()))
-    .filter((r) => !dayFilter || DAYS[new Date(r.date + 'T00:00:00').getDay()] === dayFilter)
+  const pendingList = records
+    .filter(r => r.status === 'pending')
+    .filter(r => !search || r.students.name.includes(search.trim()))
+    .filter(r => !schoolFilter || r.students.school === schoolFilter)
+
+  const clinicList = records
+    .filter(r => r.visit_type === 'clinic' && r.status === 'approved')
+    .filter(r => !search || r.students.name.includes(search.trim()))
+    .filter(r => !schoolFilter || r.students.school === schoolFilter)
+    .sort((a, b) => a.students.name.localeCompare(b.students.name, 'ko'))
+
+  const classClinicList = records
+    .filter(r => r.visit_type === 'class_clinic' && r.status === 'approved')
+    .filter(r => !search || r.students.name.includes(search.trim()))
+    .filter(r => !schoolFilter || r.students.school === schoolFilter)
+    .sort((a, b) => a.students.name.localeCompare(b.students.name, 'ko'))
+
+  // 강제하원 요청 (clinic + next_clinic_date 있는데 미하원)
+  const forceCheckOutList = records.filter(
+    r => r.visit_type === 'clinic' && r.next_clinic_date && !r.checked_out_at && r.status === 'approved'
+  )
 
   const stats = {
     total: records.length,
     approved: records.filter((r) => r.status === 'approved').length,
-    pending: pendingList.length,
+    pending: records.filter(r => r.status === 'pending').length,
     rejected: records.filter((r) => r.status === 'rejected').length,
   }
 
@@ -180,24 +203,19 @@ export default function DashboardPage() {
             placeholder="학생 이름 검색..."
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-44"
           />
-          <div className="flex gap-1">
-            {['', '월', '화', '수', '목', '금'].map((d) => (
-              <button
-                key={d}
-                onClick={() => setDayFilter(d)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  dayFilter === d ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300'
-                }`}
-              >
-                {d || '전체'}
-              </button>
-            ))}
-          </div>
+          <select
+            value={schoolFilter}
+            onChange={(e) => setSchoolFilter(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-600"
+          >
+            <option value="">전체 학교</option>
+            {schools.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
           <div className="flex gap-1 ml-2">
             <button
               onClick={() => setTab('pending')}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === 'pending' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
+                tab === 'pending' ? 'bg-yellow-500 text-white' : 'bg-white border border-gray-200 text-gray-600'
               }`}
             >
               대기 중
@@ -208,12 +226,25 @@ export default function DashboardPage() {
               )}
             </button>
             <button
-              onClick={() => setTab('all')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === 'all' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
+              onClick={() => setTab('clinic')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                tab === 'clinic' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
               }`}
             >
-              전체 현황
+              클리닉
+              {forceCheckOutList.length > 0 && (
+                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'clinic' ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-700'}`}>
+                  !{forceCheckOutList.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setTab('class_clinic')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                tab === 'class_clinic' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
+              }`}
+            >
+              수업+클리닉
             </button>
             <button
               onClick={() => setTab('oral')}
@@ -297,48 +328,82 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* 테이블 */}
-        {tab !== 'oral' && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          {loading ? (
-            <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
-          ) : displayList.length === 0 ? (
-            <div className="py-16 text-center text-gray-400 text-sm">
-              {tab === 'pending' ? '대기 중인 학생이 없습니다 🎉' : '아직 출석 기록이 없습니다'}
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">등원</th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">단어</th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">클리닉</th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구두</th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">과제</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">기타</th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">하원</th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">액션</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {displayList.map((record) => (
-                  <AttendanceRow
-                    key={record.id}
-                    record={record}
-                    onApprove={() => setApproveModal({ id: record.id, name: record.students.name })}
-                    onReject={() => setRejectModal({ id: record.id, name: record.students.name })}
-                    onCancelApprove={() => handleCancelApprove(record.id)}
-                    onAllowRetry={() => handleAllowRetry(record.id)}
-                    onCheckOut={() => handleCheckOut(record.id)}
-                    onCancelCheckOut={() => handleCancelCheckOut(record.id)}
-                    onMission={handleMission}
-                  />
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>}
+        {/* 대기 중 탭 */}
+        {tab === 'pending' && (
+          <AttendanceTable
+            list={pendingList}
+            loading={loading}
+            emptyText="대기 중인 학생이 없습니다 🎉"
+            onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
+            onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
+            onCancelApprove={(r) => handleCancelApprove(r.id)}
+            onAllowRetry={(r) => handleAllowRetry(r.id)}
+            onCheckOut={(r) => handleCheckOut(r.id)}
+            onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
+            onMission={handleMission}
+          />
+        )}
+
+        {/* 클리닉 탭 */}
+        {tab === 'clinic' && (
+          <div className="space-y-3">
+            {/* 강제하원 요청 */}
+            {forceCheckOutList.length > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-2xl overflow-hidden">
+                <div className="px-4 py-2 bg-orange-100 border-b border-orange-200">
+                  <span className="text-xs font-semibold text-orange-700">다음에 올게요 요청 ({forceCheckOutList.length}명)</span>
+                </div>
+                <table className="w-full text-sm">
+                  <tbody>
+                    {forceCheckOutList.map(r => (
+                      <tr key={r.id} className="border-b border-orange-100 last:border-0">
+                        <td className="px-4 py-3 font-medium text-gray-800">{r.students.name}</td>
+                        <td className="px-3 py-3 text-xs text-gray-500">{r.students.school} · {r.students.class}</td>
+                        <td className="px-3 py-3 text-xs text-blue-600 font-medium">다음 클리닉: {r.next_clinic_date}</td>
+                        <td className="px-3 py-3 text-center">
+                          <button
+                            onClick={() => handleForceCheckOut(r.id)}
+                            className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg transition-colors"
+                          >
+                            하원 확인
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <AttendanceTable
+              list={clinicList}
+              loading={loading}
+              emptyText="클리닉 학생이 없습니다"
+              onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
+              onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
+              onCancelApprove={(r) => handleCancelApprove(r.id)}
+              onAllowRetry={(r) => handleAllowRetry(r.id)}
+              onCheckOut={(r) => handleCheckOut(r.id)}
+              onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
+              onMission={handleMission}
+            />
+          </div>
+        )}
+
+        {/* 수업+클리닉 탭 */}
+        {tab === 'class_clinic' && (
+          <AttendanceTable
+            list={classClinicList}
+            loading={loading}
+            emptyText="수업+클리닉 학생이 없습니다"
+            onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
+            onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
+            onCancelApprove={(r) => handleCancelApprove(r.id)}
+            onAllowRetry={(r) => handleAllowRetry(r.id)}
+            onCheckOut={(r) => handleCheckOut(r.id)}
+            onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
+            onMission={handleMission}
+          />
+        )}
       </div>
 
       {/* 승인 확인 모달 */}
@@ -426,6 +491,63 @@ export default function DashboardPage() {
 }
 
 // ─── 서브 컴포넌트 ────────────────────────────────────────
+
+function AttendanceTable({
+  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission,
+}: {
+  list: AttendanceWithStudent[]
+  loading: boolean
+  emptyText: string
+  onApprove: (r: AttendanceWithStudent) => void
+  onReject: (r: AttendanceWithStudent) => void
+  onCancelApprove: (r: AttendanceWithStudent) => void
+  onAllowRetry: (r: AttendanceWithStudent) => void
+  onCheckOut: (r: AttendanceWithStudent) => void
+  onCancelCheckOut: (r: AttendanceWithStudent) => void
+  onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {loading ? (
+        <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+      ) : list.length === 0 ? (
+        <div className="py-16 text-center text-gray-400 text-sm">{emptyText}</div>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">등원</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">단어</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">클리닉</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구두</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">과제</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">기타</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">하원</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">액션</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {list.map((record) => (
+              <AttendanceRow
+                key={record.id}
+                record={record}
+                onApprove={() => onApprove(record)}
+                onReject={() => onReject(record)}
+                onCancelApprove={() => onCancelApprove(record)}
+                onAllowRetry={() => onAllowRetry(record)}
+                onCheckOut={() => onCheckOut(record)}
+                onCancelCheckOut={() => onCancelCheckOut(record)}
+                onMission={onMission}
+              />
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}
 
 function StatPill({ label, value, color }: { label: string; value: number; color: 'blue' | 'yellow' | 'green' | 'red' }) {
   const colors = {

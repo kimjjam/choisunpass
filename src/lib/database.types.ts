@@ -19,15 +19,19 @@ export interface Student {
   created_at: string
 }
 
+export type VisitType = 'clinic' | 'class_clinic'
+
 export interface Attendance {
   id: string
   student_id: string
   date: string
   status: AttendanceStatus
+  visit_type: VisitType
   checked_in_at: string | null
   approved_at: string | null
   checked_out_at: string | null
   rechecked_in_at: string | null
+  next_clinic_date: string | null
   word_status: MissionStatus
   oral_status: MissionStatus
   word_score: string | null
@@ -56,10 +60,12 @@ export type AttendanceInsert = {
   student_id: string
   date: string
   status?: AttendanceStatus
+  visit_type?: VisitType
   checked_in_at?: string | null
   approved_at?: string | null
   checked_out_at?: string | null
   rechecked_in_at?: string | null
+  next_clinic_date?: string | null
   word_status?: MissionStatus
   oral_status?: MissionStatus
   word_score?: string | null
@@ -67,6 +73,20 @@ export type AttendanceInsert = {
   reject_reason?: string | null
   homework?: string | null
   notes?: string | null
+}
+
+export interface ClinicAbsence {
+  id: string
+  student_id: string
+  term_id: string
+  week_start_date: string
+  type: '미실시' | '미재등원'
+  reason: string | null
+  created_at: string
+}
+
+export interface ClinicAbsenceWithStudent extends ClinicAbsence {
+  students: Student
 }
 
 export type AttendanceUpdate = Partial<Omit<AttendanceInsert, 'student_id'>>
