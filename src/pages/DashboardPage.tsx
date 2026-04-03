@@ -20,7 +20,9 @@ export default function DashboardPage() {
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
-  const today = new Date().toISOString().split('T')[0]
+  // 한국 로컬 날짜 기준 (UTC 기준 toISOString은 오전 9시 전에 날짜가 하루 늦음)
+  const d = new Date()
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
   async function fetchRecords() {
     const { data, error } = await supabase
