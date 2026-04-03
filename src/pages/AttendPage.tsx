@@ -16,8 +16,11 @@ export default function AttendPage() {
 
   // 구두 대기
   const [oralQueue, setOralQueue] = useState<OralQueue | null>(null)
+  const oralQueueRef = useRef<OralQueue | null>(null)
   const [queuePosition, setQueuePosition] = useState<number>(0)
   const [showCalledModal, setShowCalledModal] = useState(false)
+
+  useEffect(() => { oralQueueRef.current = oralQueue }, [oralQueue])
 
   // 새로고침 후 상태 복원
   useEffect(() => {
@@ -96,18 +99,21 @@ export default function AttendPage() {
         }
       })
 
-    // oral_queue 실시간 구독 (내 항목 변경)
+    // oral_queue 실시간 구독 (내 항목 변경) - 필터 없이 id로 직접 비교 (DELETE 이벤트는 PK만 포함)
     const queueChannel = supabase
       .channel(`oral_queue:${attendance.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'oral_queue', filter: `attendance_id=eq.${attendance.id}` },
+        { event: '*', schema: 'public', table: 'oral_queue' },
         (payload) => {
           if (payload.eventType === 'DELETE') {
-            setOralQueue(null)
-            setShowCalledModal(false)
+            if (oralQueueRef.current && payload.old.id === oralQueueRef.current.id) {
+              setOralQueue(null)
+              setShowCalledModal(false)
+            }
           } else {
             const updated = payload.new as OralQueue
+            if (updated.attendance_id !== attendance.id) return
             setOralQueue(updated)
             if (updated.status === 'called') setShowCalledModal(true)
             else setShowCalledModal(false)
