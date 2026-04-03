@@ -49,6 +49,8 @@ export default function AttendPage() {
       .single()
       .then(({ data }) => {
         if (!data) { localStorage.removeItem('attendance_id'); return }
+        // 오늘 날짜가 아닌 기록이면 초기화 (날짜 넘어갔을 때 어제 기록 복원 방지)
+        if (data.date !== getLocalDateStr()) { localStorage.removeItem('attendance_id'); return }
         const att = { ...data, students: undefined } as Attendance
         const stu = data.students as Student
         setAttendance(att)
