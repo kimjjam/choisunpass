@@ -46,7 +46,14 @@ export default function DashboardPage() {
         }
       })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+
+    // 리얼타임이 이벤트를 놓칠 경우를 대비한 10초 폴링 백업
+    const pollInterval = setInterval(fetchRecords, 10000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(pollInterval)
+    }
   }, [])
 
   async function handleApprove() {
