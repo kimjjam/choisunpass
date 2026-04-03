@@ -377,12 +377,14 @@ export default function AdminPage() {
     setGsLoading(true)
     setGsResult(null)
 
-    // 학교별로 그룹핑
-    const schools: Record<string, object[]> = {}
+    // 학교 → 반(선생님)별로 이중 그룹핑
+    const schools: Record<string, Record<string, object[]>> = {}
     for (const r of weekRecords) {
       const school = r.students.school
-      if (!schools[school]) schools[school] = []
-      schools[school].push({
+      const cls = r.students.class
+      if (!schools[school]) schools[school] = {}
+      if (!schools[school][cls]) schools[school][cls] = []
+      schools[school][cls].push({
         name: r.students.name,
         clinic_day: r.students.clinic_day,
         oral_type: r.students.oral_type,
