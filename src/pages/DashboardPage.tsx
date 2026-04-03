@@ -267,19 +267,20 @@ export default function DashboardPage() {
               }`}
             >
               클리닉
-              {forceCheckOutList.length > 0 && (
-                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'clinic' ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-700'}`}>
-                  !{forceCheckOutList.length}
-                </span>
-              )}
+              <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'clinic' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'}`}>
+                {forceCheckOutList.length > 0 ? `!${forceCheckOutList.length}` : clinicList.length}
+              </span>
             </button>
             <button
               onClick={() => setTab('class_clinic')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 tab === 'class_clinic' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
               }`}
             >
               수업+클리닉
+              <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'class_clinic' ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'}`}>
+                {classClinicList.length}
+              </span>
             </button>
             <button
               onClick={() => setTab('overview')}
