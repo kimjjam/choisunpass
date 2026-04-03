@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [approveModal, setApproveModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectModal, setRejectModal] = useState<{ id: string; name: string } | null>(null)
+  const [cancelApproveModal, setCancelApproveModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
@@ -59,6 +60,7 @@ export default function DashboardPage() {
   async function handleCancelApprove(id: string) {
     setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'pending', approved_at: null } : r))
     await supabase.from('attendances').update({ status: 'pending', approved_at: null }).eq('id', id)
+    setCancelApproveModal(null)
   }
 
   async function handleAllowRetry(id: string) {
@@ -542,7 +544,7 @@ export default function DashboardPage() {
             emptyText="대기 중인 학생이 없습니다 🎉"
             onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
             onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
-            onCancelApprove={(r) => handleCancelApprove(r.id)}
+            onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
             onCheckOut={(r) => handleCheckOut(r.id)}
             onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
             onMission={handleMission}
@@ -585,7 +587,7 @@ export default function DashboardPage() {
               emptyText="클리닉 학생이 없습니다"
               onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
               onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
-              onCancelApprove={(r) => handleCancelApprove(r.id)}
+              onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
                 onCheckOut={(r) => handleCheckOut(r.id)}
               onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
               onMission={handleMission}
@@ -612,7 +614,7 @@ export default function DashboardPage() {
             emptyText="수업+클리닉 학생이 없습니다"
             onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
             onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
-            onCancelApprove={(r) => handleCancelApprove(r.id)}
+            onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
             onCheckOut={(r) => handleCheckOut(r.id)}
             onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
             onMission={handleMission}
@@ -685,6 +687,33 @@ export default function DashboardPage() {
                 className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
               >
                 승인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 승인 취소 확인 모달 */}
+      {cancelApproveModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">승인 취소</h3>
+            <p className="text-sm text-gray-500 text-center mb-1">
+              <span className="font-semibold text-gray-700">{cancelApproveModal.name}</span> 학생의
+            </p>
+            <p className="text-sm text-gray-500 text-center mb-6">승인을 취소하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCancelApproveModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => handleCancelApprove(cancelApproveModal.id)}
+                className="flex-1 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold transition-colors"
+              >
+                승인 취소
               </button>
             </div>
           </div>
