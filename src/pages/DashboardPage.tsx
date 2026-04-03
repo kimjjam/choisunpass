@@ -467,6 +467,7 @@ export default function DashboardPage() {
                     <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
                     <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">사유</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">시간</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">재시도</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -477,6 +478,14 @@ export default function DashboardPage() {
                       <td className="px-3 py-3 text-xs text-red-500">{r.reject_reason || '-'}</td>
                       <td className="px-3 py-3 text-center text-xs text-gray-400">
                         {r.checked_in_at ? new Date(r.checked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <button
+                          onClick={() => handleAllowRetry(r.id)}
+                          className="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded-lg transition-colors"
+                        >
+                          재시도 허용
+                        </button>
                       </td>
                     </tr>
                   ))}
