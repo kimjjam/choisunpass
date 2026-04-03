@@ -21,8 +21,8 @@ create table if not exists public.attendances (
                     check (status in ('pending', 'approved', 'rejected')),
   checked_in_at   timestamptz default now(),
   approved_at     timestamptz,
-  word_status     text check (word_status in ('pass', 'fail')),
-  oral_status     text check (oral_status in ('pass', 'fail')),
+  word_status     text check (word_status in ('pass', 'fail', 'delay')),
+  oral_status     text check (oral_status in ('pass', 'fail', 'delay')),
   reject_reason   text,
 
   -- 같은 날 동일 학생 중복 출석 차단
