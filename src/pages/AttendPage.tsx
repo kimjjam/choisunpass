@@ -78,6 +78,8 @@ export default function AttendPage() {
             setPageState('checked_out')
           } else {
             setPageState(updated.status as PageState)
+            // 관리자가 일괄 하원 시 force_next_clinic 플래그 감지
+            if (updated.force_next_clinic) setShowNextClinicModal(true)
           }
         }
       )
@@ -238,7 +240,7 @@ export default function AttendPage() {
       // class_clinic: 조교확인 없이 바로 하원
       const { data } = await supabase
         .from('attendances')
-        .update({ next_clinic_date: nextClinicDate, checked_out_at: new Date().toISOString() })
+        .update({ next_clinic_date: nextClinicDate, checked_out_at: new Date().toISOString(), force_next_clinic: false })
         .eq('id', attendance.id)
         .select()
         .single()

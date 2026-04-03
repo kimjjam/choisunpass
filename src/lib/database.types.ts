@@ -32,6 +32,7 @@ export interface Attendance {
   checked_out_at: string | null
   rechecked_in_at: string | null
   next_clinic_date: string | null
+  force_next_clinic: boolean
   word_status: MissionStatus
   oral_status: MissionStatus
   word_score: string | null

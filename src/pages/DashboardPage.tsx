@@ -125,6 +125,27 @@ export default function DashboardPage() {
     await supabase.from('attendances').update({ checked_out_at: now }).eq('id', id)
   }
 
+  const VALID = ['pass', 'fail', 'delay']
+  function isAllDone(r: AttendanceWithStudent) {
+    return !!r.word_score?.trim() && !!r.clinic_score?.trim() &&
+      VALID.includes(r.oral_status as string) && VALID.includes(r.homework as string)
+  }
+
+  async function handleBulkCheckOut() {
+    const now = new Date().toISOString()
+    const targets = classClinicList.filter(r => !r.checked_out_at)
+    for (const r of targets) {
+      if (isAllDone(r)) {
+        // 즉시 하원
+        await supabase.from('attendances').update({ checked_out_at: now }).eq('id', r.id)
+      } else {
+        // force_next_clinic 플래그 → 학생 폰에 모달 팝업
+        await supabase.from('attendances').update({ force_next_clinic: true }).eq('id', r.id)
+      }
+    }
+    fetchRecords()
+  }
+
   const [search, setSearch] = useState('')
   const [schoolFilter, setSchoolFilter] = useState('')
 
@@ -391,6 +412,17 @@ export default function DashboardPage() {
 
         {/* 수업+클리닉 탭 */}
         {tab === 'class_clinic' && (
+          <div className="space-y-3">
+            {classClinicList.filter(r => !r.checked_out_at).length > 0 && (
+              <div className="flex justify-end">
+                <button
+                  onClick={handleBulkCheckOut}
+                  className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+                >
+                  일괄 하원 처리 ({classClinicList.filter(r => !r.checked_out_at).length}명)
+                </button>
+              </div>
+            )}
           <AttendanceTable
             list={classClinicList}
             loading={loading}
@@ -403,6 +435,7 @@ export default function DashboardPage() {
             onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
             onMission={handleMission}
           />
+          </div>
         )}
       </div>
 

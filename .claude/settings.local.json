@@ -17,7 +17,8 @@
       "Bash(cmd /c \"dir /b \"\"C:\\\\Users\\\\2mp2p\\\\OneDrive\"\" 2>&1\")",
       "Bash(cmd /c \"dir /b \"\"C:\\\\Users\\\\2mp2p\\\\OneDrive\\\\문서\\\\카카오톡 받은 파일\"\" 2>&1\")",
       "Bash(python:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(\"C:\\\\Users\\\\2mp2p\\\\Downloads\\\\migration_v3.sql\":*)"
     ]
   }
 }
