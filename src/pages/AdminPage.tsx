@@ -142,7 +142,7 @@ export default function AdminPage() {
     if (data) setStudents(data)
   }
 
-  async function fetchAllRecords() {
+  async function fetchAllRecords(keepWeek = false) {
     setLoading(true)
     const { data } = await supabase
       .from('attendances')
@@ -151,8 +151,8 @@ export default function AdminPage() {
     if (data) {
       const records = data as AttendanceWithStudent[]
       setAllRecords(records)
-      // 기본 선택: 가장 최근 주차
-      if (records.length > 0) {
+      // 기본 선택: 가장 최근 주차 (keepWeek=true면 현재 선택 유지)
+      if (!keepWeek && records.length > 0) {
         const starts = getWeekStarts(records)
         setSelectedWeek(starts[starts.length - 1])
       }
@@ -731,7 +731,7 @@ export default function AdminPage() {
                                 <WeeklyRow
                                   key={r.id}
                                   record={r}
-                                  onUpdate={fetchAllRecords}
+                                  onUpdate={() => fetchAllRecords(true)}
                                   onNameClick={() => openStudentHistory(r.students)}
                                 />
                               ))}
