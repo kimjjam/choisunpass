@@ -712,6 +712,7 @@ export default function AdminPage() {
                             <thead>
                               <tr className="border-b border-gray-100">
                                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">이름</th>
+                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500"></th>
                                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">구두 방식</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">요일</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">출석</th>
@@ -1324,6 +1325,15 @@ const VALID_STATUSES = ['pass', 'fail', 'delay']
 function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithStudent; onUpdate: () => void; onNameClick?: () => void }) {
   const [notes, setNotes] = useState(record.notes ?? '')
   const [saving, setSaving] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showEditConfirm, setShowEditConfirm] = useState(false)
+  const [editForm, setEditForm] = useState({
+    word_score: record.word_score ?? '',
+    clinic_score: record.clinic_score ?? '',
+    oral_status: record.oral_status ?? '',
+    homework: record.homework ?? '',
+    notes: record.notes ?? '',
+  })
 
   async function handleBlur(field: 'notes', value: string) {
     const original = record.notes ?? ''
@@ -1331,6 +1341,22 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     setSaving(true)
     await supabase.from('attendances').update({ [field]: value || null }).eq('id', record.id)
     setSaving(false)
+    onUpdate()
+  }
+
+  async function handleEditSubmit() {
+    setSaving(true)
+    await supabase.from('attendances').update({
+      word_score: editForm.word_score || null,
+      clinic_score: editForm.clinic_score || null,
+      oral_status: VALID_STATUSES.includes(editForm.oral_status) ? editForm.oral_status : null,
+      homework: editForm.homework || null,
+      notes: editForm.notes || null,
+    }).eq('id', record.id)
+    setSaving(false)
+    setShowEditConfirm(false)
+    setShowEditModal(false)
+    setNotes(editForm.notes)
     onUpdate()
   }
 
@@ -1347,9 +1373,19 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     : '-'
 
   return (
+    <>
     <tr className={`hover:bg-gray-50 transition-colors ${saving ? 'opacity-60' : ''}`}>
       <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">
         <span onClick={onNameClick} className={onNameClick ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}>{record.students.name}</span>
+      </td>
+      <td className="px-3 py-2.5 text-center">
+        <button
+          onClick={() => { setEditForm({ word_score: record.word_score ?? '', clinic_score: record.clinic_score ?? '', oral_status: record.oral_status ?? '', homework: record.homework ?? '', notes: record.notes ?? '' }); setShowEditModal(true) }}
+          className="text-gray-300 hover:text-blue-500 transition-colors"
+          title="수정"
+        >
+          ✏️
+        </button>
       </td>
       <td className="px-3 py-2.5 text-xs text-gray-500 whitespace-nowrap">{record.students.oral_type || '-'}</td>
       <td className="px-3 py-2.5 text-center text-xs text-gray-500">
@@ -1388,6 +1424,123 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
         />
       </td>
     </tr>
+
+    {/* 수정 모달 */}
+    {showEditModal && (
+      <tr><td colSpan={99}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800">기록 수정</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{record.students.name} · {record.date}</p>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">단어 점수</label>
+                  <input
+                    value={editForm.word_score}
+                    onChange={(e) => setEditForm(f => ({ ...f, word_score: e.target.value }))}
+                    placeholder="예: 85"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">클리닉 점수</label>
+                  <input
+                    value={editForm.clinic_score}
+                    onChange={(e) => setEditForm(f => ({ ...f, clinic_score: e.target.value }))}
+                    placeholder="예: 90"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">구두</label>
+                  <select
+                    value={editForm.oral_status}
+                    onChange={(e) => setEditForm(f => ({ ...f, oral_status: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  >
+                    <option value="">-</option>
+                    <option value="pass">Pass</option>
+                    <option value="fail">Fail</option>
+                    <option value="delay">Delay</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">과제</label>
+                  <select
+                    value={VALID_STATUSES.includes(editForm.homework) ? editForm.homework : ''}
+                    onChange={(e) => setEditForm(f => ({ ...f, homework: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  >
+                    <option value="">-</option>
+                    <option value="pass">Pass</option>
+                    <option value="fail">Fail</option>
+                    <option value="delay">Delay</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">기타 메모</label>
+                <input
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="메모..."
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => setShowEditConfirm(true)}
+                  className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+                >
+                  수정
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </td></tr>
+    )}
+
+    {/* 수정 확인 모달 */}
+    {showEditConfirm && (
+      <tr><td colSpan={99}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-2 text-center">정말 수정하시겠습니까?</h3>
+            <p className="text-xs text-gray-400 text-center mb-6">{record.students.name} · {record.date}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowEditConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleEditSubmit}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      </td></tr>
+    )}
+    </>
   )
 }
 
