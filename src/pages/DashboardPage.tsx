@@ -218,19 +218,34 @@ export default function DashboardPage() {
             <StatPill label="거절" value={stats.rejected} color="red" />
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/admin')}
+              className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              관리자 페이지
+            </button>
+            <span className="text-xs text-gray-500">{currentUser}</span>
+            <button
+              onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
+              className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              로그아웃
+            </button>
+          </div>
           <button
-            onClick={() => navigate('/admin')}
-            className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
+            onClick={() => setTab('oral')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              tab === 'oral' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
           >
-            관리자 페이지
-          </button>
-          <span className="text-xs text-gray-500">{currentUser}</span>
-          <button
-            onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
-            className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
-          >
-            로그아웃
+            구두 대기
+            {oralQueue.length > 0 && (
+              <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'oral' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'}`}>
+                {oralQueue.length}
+              </span>
+            )}
           </button>
         </div>
       </header>
@@ -309,19 +324,6 @@ export default function DashboardPage() {
               <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'overview' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
                 {overviewList.length}
               </span>
-            </button>
-            <button
-              onClick={() => setTab('oral')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === 'oral' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
-              }`}
-            >
-              구두 대기
-              {oralQueue.length > 0 && (
-                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'oral' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'}`}>
-                  {oralQueue.length}
-                </span>
-              )}
             </button>
             <button
               onClick={() => setTab('rejected')}
