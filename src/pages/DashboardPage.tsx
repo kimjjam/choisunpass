@@ -82,6 +82,16 @@ export default function DashboardPage() {
   }
 
   const [oralQueue, setOralQueue] = useState<OralQueueWithStudent[]>([])
+  const [callerModal, setCallerModal] = useState<string | null>(null) // queueId 저장
+  const [teachers, setTeachers] = useState<string[]>([])
+
+  async function fetchTeachers() {
+    const { data } = await supabase.from('students').select('class')
+    if (data) {
+      const unique = [...new Set(data.map((s: { class: string }) => s.class).filter(Boolean))].sort()
+      setTeachers(unique)
+    }
+  }
 
   async function fetchOralQueue() {
     const { data } = await supabase
@@ -94,6 +104,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchOralQueue()
+    fetchTeachers()
     const ch = supabase
       .channel('dashboard-oral-queue')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'oral_queue' }, fetchOralQueue)
@@ -101,8 +112,9 @@ export default function DashboardPage() {
     return () => { supabase.removeChannel(ch) }
   }, [])
 
-  async function handleCallStudent(queueId: string) {
-    await supabase.from('oral_queue').update({ status: 'called' }).eq('id', queueId)
+  async function handleCallStudent(queueId: string, caller: string) {
+    await supabase.from('oral_queue').update({ status: 'called', caller }).eq('id', queueId)
+    setCallerModal(null)
     fetchOralQueue()
   }
 
@@ -254,14 +266,17 @@ export default function DashboardPage() {
                         {q.status === 'waiting' ? (
                           <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">대기 중</span>
                         ) : (
-                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full animate-pulse">호출됨</span>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full animate-pulse">호출됨</span>
+                            {q.caller && <span className="text-xs text-purple-500 font-medium">{q.caller}</span>}
+                          </div>
                         )}
                       </td>
                       <td className="px-3 py-3 text-center">
                         <div className="flex justify-center gap-1">
                           {q.status === 'waiting' && (
                             <button
-                              onClick={() => handleCallStudent(q.id)}
+                              onClick={() => setCallerModal(q.id)}
                               className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1 rounded-lg transition-colors"
                             >
                               호출
@@ -386,6 +401,32 @@ export default function DashboardPage() {
                 거절 확정
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 조교 선택 모달 */}
+      {callerModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-4 text-center">호출하는 조교 선택</h3>
+            <div className="flex flex-col gap-2">
+              {teachers.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => handleCallStudent(callerModal, t)}
+                  className="py-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-sm transition-colors"
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCallerModal(null)}
+              className="w-full mt-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              취소
+            </button>
           </div>
         </div>
       )}

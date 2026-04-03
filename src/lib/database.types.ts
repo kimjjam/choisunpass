@@ -76,6 +76,7 @@ export interface OralQueue {
   attendance_id: string
   student_id: string
   status: 'waiting' | 'called' | 'done'
+  caller: string | null
   created_at: string
 }
 
