@@ -399,11 +399,9 @@ export default function AdminPage() {
         homework: r.homework ?? '',
         oral: r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : '',
         notes: r.notes ?? '',
+        next_clinic_date: r.next_clinic_date ?? '',
       })
     }
-
-    // 디버그: 전송 데이터 확인 (콘솔에서 확인 후 삭제 예정)
-    console.log('구글시트 전송 데이터:', JSON.stringify({ weekLabel: label, schools }, null, 2))
 
     try {
       const res = await fetch(GOOGLE_SCRIPT_URL, {
