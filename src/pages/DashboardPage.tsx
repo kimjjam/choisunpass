@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 import type { AttendanceWithStudent, MissionStatus, OralQueueWithStudent } from '../lib/database.types'
 
-type Tab = 'pending' | 'clinic' | 'class_clinic' | 'oral'
+type Tab = 'pending' | 'clinic' | 'class_clinic' | 'oral' | 'rejected'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -173,6 +173,12 @@ export default function DashboardPage() {
     r => r.visit_type === 'clinic' && r.next_clinic_date && !r.checked_out_at && r.status === 'approved'
   )
 
+  const rejectedList = records
+    .filter(r => r.status === 'rejected')
+    .filter(r => !search || r.students.name.includes(search.trim()))
+    .filter(r => !schoolFilter || r.students.school === schoolFilter)
+    .sort((a, b) => a.students.name.localeCompare(b.students.name, 'ko'))
+
   const stats = {
     total: records.length,
     approved: records.filter((r) => r.status === 'approved').length,
@@ -280,6 +286,19 @@ export default function DashboardPage() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setTab('rejected')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                tab === 'rejected' ? 'bg-red-500 text-white' : 'bg-white border border-gray-200 text-gray-600'
+              }`}
+            >
+              거절
+              {stats.rejected > 0 && (
+                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'rejected' ? 'bg-white/20 text-white' : 'bg-red-100 text-red-600'}`}>
+                  {stats.rejected}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -358,7 +377,6 @@ export default function DashboardPage() {
             onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
             onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
             onCancelApprove={(r) => handleCancelApprove(r.id)}
-            onAllowRetry={(r) => handleAllowRetry(r.id)}
             onCheckOut={(r) => handleCheckOut(r.id)}
             onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
             onMission={handleMission}
@@ -402,8 +420,7 @@ export default function DashboardPage() {
               onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
               onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
               onCancelApprove={(r) => handleCancelApprove(r.id)}
-              onAllowRetry={(r) => handleAllowRetry(r.id)}
-              onCheckOut={(r) => handleCheckOut(r.id)}
+                onCheckOut={(r) => handleCheckOut(r.id)}
               onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
               onMission={handleMission}
             />
@@ -430,11 +447,42 @@ export default function DashboardPage() {
             onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
             onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
             onCancelApprove={(r) => handleCancelApprove(r.id)}
-            onAllowRetry={(r) => handleAllowRetry(r.id)}
             onCheckOut={(r) => handleCheckOut(r.id)}
             onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
             onMission={handleMission}
           />
+          </div>
+        )}
+
+        {/* 거절 탭 */}
+        {tab === 'rejected' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {rejectedList.length === 0 ? (
+              <div className="py-16 text-center text-gray-400 text-sm">거절된 학생이 없습니다</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">사유</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">시간</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {rejectedList.map(r => (
+                    <tr key={r.id}>
+                      <td className="px-4 py-3 font-medium text-gray-800">{r.students.name}</td>
+                      <td className="px-3 py-3 text-xs text-gray-500">{r.students.school}<br /><span className="text-blue-400">{r.students.class}</span></td>
+                      <td className="px-3 py-3 text-xs text-red-500">{r.reject_reason || '-'}</td>
+                      <td className="px-3 py-3 text-center text-xs text-gray-400">
+                        {r.checked_in_at ? new Date(r.checked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>
@@ -534,7 +582,7 @@ function AttendanceTable({
   onApprove: (r: AttendanceWithStudent) => void
   onReject: (r: AttendanceWithStudent) => void
   onCancelApprove: (r: AttendanceWithStudent) => void
-  onAllowRetry: (r: AttendanceWithStudent) => void
+  onAllowRetry?: (r: AttendanceWithStudent) => void
   onCheckOut: (r: AttendanceWithStudent) => void
   onCancelCheckOut: (r: AttendanceWithStudent) => void
   onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
@@ -611,7 +659,7 @@ function AttendanceRow({
   onApprove: () => void
   onReject: () => void
   onCancelApprove: () => void
-  onAllowRetry: () => void
+  onAllowRetry?: () => void
   onCheckOut: () => void
   onCancelCheckOut: () => void
   onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
@@ -767,9 +815,11 @@ function AttendanceRow({
         {record.status === 'rejected' && (
           <div className="space-y-1">
             {record.reject_reason && <div className="text-xs text-red-400">{record.reject_reason}</div>}
-            <button onClick={onAllowRetry} className="text-xs text-gray-400 hover:text-blue-500 transition-colors">
-              재시도 허용
-            </button>
+            {onAllowRetry && (
+              <button onClick={onAllowRetry} className="text-xs text-gray-400 hover:text-blue-500 transition-colors">
+                재시도 허용
+              </button>
+            )}
           </div>
         )}
       </td>
