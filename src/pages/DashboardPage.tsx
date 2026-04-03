@@ -83,15 +83,7 @@ export default function DashboardPage() {
 
   const [oralQueue, setOralQueue] = useState<OralQueueWithStudent[]>([])
   const [callerModal, setCallerModal] = useState<string | null>(null) // queueId 저장
-  const [teachers, setTeachers] = useState<string[]>([])
-
-  async function fetchTeachers() {
-    const { data } = await supabase.from('students').select('class')
-    if (data) {
-      const unique = [...new Set(data.map((s: { class: string }) => s.class).filter(Boolean))].sort()
-      setTeachers(unique)
-    }
-  }
+  const CALLERS = ['김재민조교', '조은채조교', '신수현조교', '이채연조교']
 
   async function fetchOralQueue() {
     const { data } = await supabase
@@ -104,7 +96,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchOralQueue()
-    fetchTeachers()
     const ch = supabase
       .channel('dashboard-oral-queue')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'oral_queue' }, fetchOralQueue)
@@ -411,7 +402,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-xl">
             <h3 className="font-semibold text-gray-800 mb-4 text-center">호출하는 조교 선택</h3>
             <div className="flex flex-col gap-2">
-              {teachers.map((t) => (
+              {CALLERS.map((t) => (
                 <button
                   key={t}
                   onClick={() => handleCallStudent(callerModal, t)}
