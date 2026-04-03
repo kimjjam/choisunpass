@@ -110,7 +110,7 @@ export default function DashboardPage() {
   }
 
   async function handleDoneStudent(queueId: string) {
-    await supabase.from('oral_queue').update({ status: 'done' }).eq('id', queueId)
+    await supabase.from('oral_queue').delete().eq('id', queueId)
     fetchOralQueue()
   }
 
