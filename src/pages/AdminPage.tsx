@@ -1346,7 +1346,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
 
   async function handleEditSubmit() {
     setSaving(true)
-    await supabase.from('attendances').update({
+    const { error } = await supabase.from('attendances').update({
       word_score: editForm.word_score || null,
       clinic_score: editForm.clinic_score || null,
       oral_status: VALID_STATUSES.includes(editForm.oral_status) ? editForm.oral_status : null,
@@ -1354,6 +1354,10 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
       notes: editForm.notes || null,
     }).eq('id', record.id)
     setSaving(false)
+    if (error) {
+      alert('저장 실패: ' + error.message)
+      return
+    }
     setShowEditConfirm(false)
     setShowEditModal(false)
     setNotes(editForm.notes)
