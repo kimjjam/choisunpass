@@ -372,32 +372,38 @@ export default function AdminPage() {
     XLSX.writeFile(wb, `최선패스_${label}_${weekStart}.xlsx`)
   }
 
-  async function handleGoogleSheetUpload(weekStart: string, weekRecords: AttendanceWithStudent[], label: string) {
+  async function handleGoogleSheetUpload(_weekStart: string, weekRecords: AttendanceWithStudent[], label: string) {
     if (weekRecords.length === 0) return
     setGsLoading(true)
     setGsResult(null)
 
-    const headers = ['반(선생님)', '학교', '이름', '구두 진행 방식', '클리닉 요일', '클리닉(출석여부)', '클리닉등원시간', '클리닉하원시간', '과제(미완료과제입력)', '단어점수', '클리닉점수', '구두', '기타']
-    const rows = weekRecords.map(r => [
-      r.students.class,
-      r.students.school,
-      r.students.name,
-      r.students.oral_type,
-      r.students.clinic_day,
-      r.status === 'approved' ? '○' : '',
-      r.approved_at ? new Date(r.approved_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '',
-      r.checked_out_at ? new Date(r.checked_out_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '',
-      r.homework ?? '',
-      r.word_score ?? '',
-      r.clinic_score ?? '',
-      r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : '',
-      r.notes ?? '',
-    ])
+    // 학교별로 그룹핑
+    const schools: Record<string, object[]> = {}
+    for (const r of weekRecords) {
+      const school = r.students.school
+      if (!schools[school]) schools[school] = []
+      schools[school].push({
+        name: r.students.name,
+        clinic_day: r.students.clinic_day,
+        oral_type: r.students.oral_type,
+        attendance: r.status === 'approved' ? '○' : '',
+        checkin: r.approved_at
+          ? new Date(r.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+          : '',
+        checkout: r.checked_out_at
+          ? new Date(r.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+          : '',
+        score: [r.word_score, r.clinic_score].filter(Boolean).join(' / '),
+        homework: r.homework ?? '',
+        oral: r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : '',
+        notes: r.notes ?? '',
+      })
+    }
 
     try {
       const res = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify({ sheetName: `${label} (${weekStart})`, headers, rows }),
+        body: JSON.stringify({ weekLabel: label, schools }),
       })
       const json = await res.json()
       setGsResult(json.success ? 'success' : 'error')
