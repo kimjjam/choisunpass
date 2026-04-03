@@ -56,8 +56,8 @@ export default function DashboardPage() {
   }
 
   async function handleCancelApprove(id: string) {
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'pending', approved_at: null, word_status: null, oral_status: null } : r))
-    await supabase.from('attendances').update({ status: 'pending', approved_at: null, word_status: null, oral_status: null }).eq('id', id)
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'pending', approved_at: null } : r))
+    await supabase.from('attendances').update({ status: 'pending', approved_at: null }).eq('id', id)
   }
 
   async function handleAllowRetry(id: string) {
