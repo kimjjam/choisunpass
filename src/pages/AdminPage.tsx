@@ -11,6 +11,7 @@ type AdminTab = 'students' | 'weekly' | 'stats' | 'absence'
 
 const ORAL_TYPES = ['빈칸 구두', '별구두', '해석 구두', '별 빈칸 구두', '기타']
 const CLINIC_DAYS = ['월', '화', '수', '목', '금']
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz4IvQ4iiQ-d7ZOSfHu1bMlIG3SUrFXbnZ6Xpjd-4vNHrjS9FhC2hLySVoz0hK-yj91zQ/exec'
 
 // 날짜 → 해당 주의 월요일
 function getWeekStart(dateStr: string): string {
@@ -37,6 +38,8 @@ export default function AdminPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [allRecords, setAllRecords] = useState<AttendanceWithStudent[]>([])
   const [loading, setLoading] = useState(false)
+  const [gsLoading, setGsLoading] = useState(false)
+  const [gsResult, setGsResult] = useState<'success' | 'error' | null>(null)
 
   // 학생 등록 폼
   const [form, setForm] = useState({ name: '', class: '', school: '', oral_type: '', clinic_day: '', phone: '' })
@@ -369,6 +372,43 @@ export default function AdminPage() {
     XLSX.writeFile(wb, `최선패스_${label}_${weekStart}.xlsx`)
   }
 
+  async function handleGoogleSheetUpload(weekStart: string, weekRecords: AttendanceWithStudent[], label: string) {
+    if (weekRecords.length === 0) return
+    setGsLoading(true)
+    setGsResult(null)
+
+    const headers = ['반(선생님)', '학교', '이름', '구두 진행 방식', '클리닉 요일', '클리닉(출석여부)', '클리닉등원시간', '클리닉하원시간', '과제(미완료과제입력)', '단어점수', '클리닉점수', '구두', '기타']
+    const rows = weekRecords.map(r => [
+      r.students.class,
+      r.students.school,
+      r.students.name,
+      r.students.oral_type,
+      r.students.clinic_day,
+      r.status === 'approved' ? '○' : '',
+      r.approved_at ? new Date(r.approved_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '',
+      r.checked_out_at ? new Date(r.checked_out_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '',
+      r.homework ?? '',
+      r.word_score ?? '',
+      r.clinic_score ?? '',
+      r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : '',
+      r.notes ?? '',
+    ])
+
+    try {
+      const res = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ sheetName: `${label} (${weekStart})`, headers, rows }),
+      })
+      const json = await res.json()
+      setGsResult(json.success ? 'success' : 'error')
+    } catch {
+      setGsResult('error')
+    } finally {
+      setGsLoading(false)
+      setTimeout(() => setGsResult(null), 3000)
+    }
+  }
+
   // 선택된 학기
   const selectedTerm = terms.find(t => t.id === selectedTermId)
   const nextTerm = selectedTerm
@@ -639,13 +679,28 @@ export default function AdminPage() {
                       {weekLabel(selectedWeek, selectedTerm?.start_date ?? selectedWeek)}
                       <span className="ml-2 text-sm font-normal text-gray-400">{selectedWeek} 주</span>
                     </h2>
-                    <button
-                      onClick={() => handleExcelDownload(selectedWeek, weekRecords, weekLabel(selectedWeek, selectedTerm?.start_date ?? selectedWeek))}
-                      disabled={weekRecords.length === 0}
-                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
-                    >
-                      엑셀 다운로드
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {gsResult === 'success' && <span className="text-xs text-green-600 font-medium">✓ 구글시트 전송 완료</span>}
+                      {gsResult === 'error' && <span className="text-xs text-red-500 font-medium">전송 실패, 다시 시도해주세요</span>}
+                      <button
+                        onClick={() => handleGoogleSheetUpload(selectedWeek, weekRecords, weekLabel(selectedWeek, selectedTerm?.start_date ?? selectedWeek))}
+                        disabled={weekRecords.length === 0 || gsLoading}
+                        className="flex items-center gap-1.5 bg-white hover:bg-gray-50 disabled:bg-gray-100 border border-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                          <rect x="3" y="3" width="18" height="18" rx="2" fill="#0F9D58"/>
+                          <path d="M7 8h10M7 12h10M7 16h6" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                        {gsLoading ? '전송 중...' : '구글시트 전송'}
+                      </button>
+                      <button
+                        onClick={() => handleExcelDownload(selectedWeek, weekRecords, weekLabel(selectedWeek, selectedTerm?.start_date ?? selectedWeek))}
+                        disabled={weekRecords.length === 0}
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+                      >
+                        엑셀 다운로드
+                      </button>
+                    </div>
                   </div>
 
                   {weekRecords.length === 0 ? (
