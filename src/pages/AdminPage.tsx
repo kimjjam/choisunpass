@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [formLoading, setFormLoading] = useState(false)
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [showRegisterConfirm, setShowRegisterConfirm] = useState(false)
+  const [showTermModal, setShowTermModal] = useState(false)
 
   const [editTarget, setEditTarget] = useState<Student | null>(null)
 
@@ -123,6 +124,7 @@ export default function AdminPage() {
     if (error) { setTermFormError('저장 실패. 다시 시도해주세요.'); return }
     setNewTermName('')
     setNewTermDate('')
+    setShowTermModal(false)
     fetchTerms()
   }
 
@@ -604,6 +606,12 @@ export default function AdminPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-gray-800">학기 선택</span>
+              <button
+                onClick={() => { setShowTermModal(true); setTermFormError(''); setNewTermName(''); setNewTermDate('') }}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                + 학기 추가
+              </button>
             </div>
             {/* 학기 선택 버튼 */}
             {terms.length === 0 ? (
@@ -631,29 +639,6 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
-            {/* 새 학기 추가 */}
-            <form onSubmit={handleCreateTerm} className="flex gap-2 items-center flex-wrap pt-1 border-t border-gray-100">
-              <span className="text-xs text-gray-500 font-medium whitespace-nowrap">새 학기 추가</span>
-              <input
-                value={newTermName}
-                onChange={(e) => setNewTermName(e.target.value)}
-                placeholder="학기 이름 (예: 2026 중간고사 후)"
-                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 w-56"
-              />
-              <input
-                type="date"
-                value={newTermDate}
-                onChange={(e) => setNewTermDate(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400"
-              />
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
-              >
-                + 추가
-              </button>
-              {termFormError && <span className="text-xs text-red-500">{termFormError}</span>}
-            </form>
           </div>
 
           {loading ? (
@@ -987,6 +972,58 @@ export default function AdminPage() {
                 </tbody>
               </table>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 학기 추가 모달 */}
+      {showTermModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-800">새 학기 추가</h3>
+              <button
+                onClick={() => { setShowTermModal(false); setTermFormError(''); setNewTermName(''); setNewTermDate('') }}
+                className="text-gray-400 hover:text-gray-600 text-xl"
+              >✕</button>
+            </div>
+            <form onSubmit={handleCreateTerm} className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">학기 이름</label>
+                <input
+                  value={newTermName}
+                  onChange={(e) => setNewTermName(e.target.value)}
+                  placeholder="예: 2026 중간고사 후"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">시작일</label>
+                <input
+                  type="date"
+                  value={newTermDate}
+                  onChange={(e) => setNewTermDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                />
+                <p className="text-xs text-gray-400 mt-1">선택한 날짜가 포함된 주의 월요일로 저장됩니다.</p>
+              </div>
+              {termFormError && <p className="text-xs text-red-500">{termFormError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { setShowTermModal(false); setTermFormError(''); setNewTermName(''); setNewTermDate('') }}
+                  className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+                >
+                  + 추가
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
