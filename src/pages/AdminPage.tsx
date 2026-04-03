@@ -721,6 +721,7 @@ export default function AdminPage() {
                                   key={r.id}
                                   record={r}
                                   onUpdate={fetchAllRecords}
+                                  onNameClick={() => openStudentHistory(r.students)}
                                 />
                               ))}
                             </tbody>
@@ -1003,27 +1004,6 @@ export default function AdminPage() {
               <button onClick={() => setHistoryTarget(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
             <div className="p-6 space-y-6">
-              {/* 성적 차트 */}
-              {historyRecords.filter(r => r.word_score || r.clinic_score).length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-gray-700 text-sm mb-3">성적 히스토리</h4>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={historyRecords.filter(r => r.word_score || r.clinic_score).reverse().map(r => ({
-                      date: r.date.slice(5),
-                      단어: r.word_score ? Number(r.word_score) : null,
-                      클리닉: r.clinic_score ? Number(r.clinic_score) : null,
-                    }))}>
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="단어" fill="#3b82f6" radius={[3,3,0,0]} />
-                      <Bar dataKey="클리닉" fill="#8b5cf6" radius={[3,3,0,0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
               {/* 출석 히스토리 */}
               <div>
                 <h4 className="font-semibold text-gray-700 text-sm mb-3">출석 기록 ({historyRecords.length}건)</h4>
@@ -1062,6 +1042,27 @@ export default function AdminPage() {
                   </table>
                 )}
               </div>
+
+              {/* 성적 차트 */}
+              {historyRecords.filter(r => r.word_score || r.clinic_score).length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-700 text-sm mb-3">성적 히스토리</h4>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={[...historyRecords].filter(r => r.word_score || r.clinic_score).reverse().map(r => ({
+                      date: r.date.slice(5),
+                      단어: r.word_score ? Number(r.word_score) : null,
+                      클리닉: r.clinic_score ? Number(r.clinic_score) : null,
+                    }))}>
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="단어" fill="#3b82f6" radius={[3,3,0,0]} />
+                      <Bar dataKey="클리닉" fill="#8b5cf6" radius={[3,3,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
 
               {/* 결석 사유 기록 */}
               {historyAbsences.length > 0 && (
@@ -1108,7 +1109,7 @@ export default function AdminPage() {
 
 const VALID_STATUSES = ['pass', 'fail', 'delay']
 
-function WeeklyRow({ record, onUpdate }: { record: AttendanceWithStudent; onUpdate: () => void }) {
+function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithStudent; onUpdate: () => void; onNameClick?: () => void }) {
   const [notes, setNotes] = useState(record.notes ?? '')
   const [saving, setSaving] = useState(false)
 
@@ -1132,7 +1133,9 @@ function WeeklyRow({ record, onUpdate }: { record: AttendanceWithStudent; onUpda
 
   return (
     <tr className={`hover:bg-gray-50 transition-colors ${saving ? 'opacity-60' : ''}`}>
-      <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{record.students.name}</td>
+      <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">
+        <span onClick={onNameClick} className={onNameClick ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}>{record.students.name}</span>
+      </td>
       <td className="px-3 py-2.5 text-xs text-gray-500 whitespace-nowrap">{record.students.oral_type || '-'}</td>
       <td className="px-3 py-2.5 text-center text-xs text-gray-500">
         {['일','월','화','수','목','금','토'][new Date(record.date + 'T00:00:00').getDay()]}
