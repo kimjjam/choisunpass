@@ -42,6 +42,8 @@ export default function AdminPage() {
   const [form, setForm] = useState({ name: '', class: '', school: '', oral_type: '', clinic_day: '', phone: '' })
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
+  const [showRegisterModal, setShowRegisterModal] = useState(false)
+  const [showRegisterConfirm, setShowRegisterConfirm] = useState(false)
 
   const [editTarget, setEditTarget] = useState<Student | null>(null)
 
@@ -254,20 +256,24 @@ export default function AdminPage() {
     return String(Math.floor(Math.random() * 10000)).padStart(4, '0')
   }
 
-  async function handleRegister(e: React.FormEvent) {
+  function handleRegisterValidate(e: React.FormEvent) {
     e.preventDefault()
     setFormError('')
+    if (!form.name.trim()) { setFormError('이름을 입력하세요.'); return }
     if (!form.class.trim()) { setFormError('반(선생님)을 입력하세요.'); return }
     if (!form.school.trim()) { setFormError('학교를 입력하세요.'); return }
-    if (!form.name.trim()) { setFormError('이름을 입력하세요.'); return }
-
     if (!form.phone.trim()) { setFormError('전화번호를 입력하세요.'); return }
+    setShowRegisterConfirm(true)
+  }
 
+  async function handleRegisterSubmit() {
     setFormLoading(true)
+    setFormError('')
     const code = extractCode(form.phone)
     const { data: existing } = await supabase.from('students').select('id').eq('code', code).single()
     if (existing) {
       setFormError(`코드 ${code}가 이미 사용 중입니다. 전화번호 중간 4자리로 시도하거나 관리자에게 문의하세요.`)
+      setShowRegisterConfirm(false)
       setFormLoading(false)
       return
     }
@@ -283,8 +289,11 @@ export default function AdminPage() {
 
     if (error) {
       setFormError('등록 실패. 다시 시도해주세요.')
+      setShowRegisterConfirm(false)
     } else {
       setForm({ name: '', class: '', school: '', oral_type: '', clinic_day: '', phone: '' })
+      setShowRegisterConfirm(false)
+      setShowRegisterModal(false)
       fetchStudents()
     }
     setFormLoading(false)
@@ -453,73 +462,24 @@ export default function AdminPage() {
       </header>
 
       {/* 탭 */}
-      <div className="px-6 pt-4 flex gap-2 mb-4 flex-wrap">
-        <TabButton active={tab === 'students'} onClick={() => setTab('students')}>학생 관리</TabButton>
-        <TabButton active={tab === 'weekly'} onClick={() => setTab('weekly')}>주차별 현황</TabButton>
-        <TabButton active={tab === 'stats'} onClick={() => { setTab('stats'); fetchAllRecords() }}>누적 통계</TabButton>
-        <TabButton active={tab === 'absence'} onClick={() => setTab('absence')}>재등원 관리</TabButton>
+      <div className="px-6 pt-4 flex items-center justify-between mb-4">
+        <div className="flex gap-2 flex-wrap">
+          <TabButton active={tab === 'students'} onClick={() => setTab('students')}>학생 관리</TabButton>
+          <TabButton active={tab === 'weekly'} onClick={() => setTab('weekly')}>주차별 현황</TabButton>
+          <TabButton active={tab === 'stats'} onClick={() => { setTab('stats'); fetchAllRecords() }}>누적 통계</TabButton>
+          <TabButton active={tab === 'absence'} onClick={() => setTab('absence')}>재등원 관리</TabButton>
+        </div>
+        <button
+          onClick={() => { setShowRegisterModal(true); setShowRegisterConfirm(false); setFormError('') }}
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+        >
+          + 학생 등록
+        </button>
       </div>
 
       {/* ── 학생 관리 탭 ── */}
       {tab === 'students' && (
         <div className="px-6 space-y-4 pb-8 max-w-screen-2xl mx-auto">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <h2 className="font-semibold text-gray-800 mb-3 text-sm">새 학생 등록</h2>
-            <form onSubmit={handleRegister}>
-              <div className="flex gap-2 flex-wrap items-end">
-                <input
-                  value={form.class}
-                  onChange={(e) => setForm({ ...form, class: e.target.value })}
-                  placeholder="반(선생님)"
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-36"
-                />
-                <input
-                  value={form.school}
-                  onChange={(e) => setForm({ ...form, school: e.target.value })}
-                  placeholder="학교"
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-40"
-                />
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="이름"
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-28"
-                />
-                <input
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="전화번호"
-                  inputMode="numeric"
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-36"
-                />
-                <select
-                  value={form.oral_type}
-                  onChange={(e) => setForm({ ...form, oral_type: e.target.value })}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-40"
-                >
-                  <option value="">구두 방식 선택</option>
-                  {ORAL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <select
-                  value={form.clinic_day}
-                  onChange={(e) => setForm({ ...form, clinic_day: e.target.value })}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32"
-                >
-                  <option value="">요일 선택</option>
-                  {CLINIC_DAYS.map((d) => <option key={d} value={d}>{d}요일</option>)}
-                </select>
-                <button
-                  type="submit"
-                  disabled={formLoading}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors whitespace-nowrap"
-                >
-                  {formLoading ? '등록 중...' : '+ 등록'}
-                </button>
-              </div>
-              {formError && <p className="text-xs text-red-500 mt-2">{formError}</p>}
-            </form>
-          </div>
-
           {/* 학생 목록 */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden max-w-screen-2xl">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -962,6 +922,156 @@ export default function AdminPage() {
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 학생 등록 모달 */}
+      {showRegisterModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-800">새 학생 등록</h3>
+              <button
+                onClick={() => { setShowRegisterModal(false); setShowRegisterConfirm(false); setForm({ name: '', class: '', school: '', oral_type: '', clinic_day: '', phone: '' }); setFormError('') }}
+                className="text-gray-400 hover:text-gray-600 text-xl"
+              >✕</button>
+            </div>
+
+            {!showRegisterConfirm ? (
+              /* ── 입력 폼 ── */
+              <form onSubmit={handleRegisterValidate} className="p-6 space-y-3">
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">이름 *</label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="홍길동"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">반(선생님) *</label>
+                  <input
+                    value={form.class}
+                    onChange={(e) => setForm({ ...form, class: e.target.value })}
+                    placeholder="김선생님반"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">학교 *</label>
+                  <input
+                    value={form.school}
+                    onChange={(e) => setForm({ ...form, school: e.target.value })}
+                    placeholder="신봉고등학교"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">전화번호 * <span className="text-gray-400 font-normal">(코드 자동 생성)</span></label>
+                  <input
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    placeholder="010-0000-0000"
+                    inputMode="numeric"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  />
+                  {form.phone.replace(/\D/g, '').length >= 4 && (
+                    <p className="text-xs text-blue-500 mt-1">코드: <span className="font-mono font-bold">{extractCode(form.phone)}</span></p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">구두 방식</label>
+                  <select
+                    value={form.oral_type}
+                    onChange={(e) => setForm({ ...form, oral_type: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700"
+                  >
+                    <option value="">선택 안 함</option>
+                    {ORAL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">클리닉 요일</label>
+                  <select
+                    value={form.clinic_day}
+                    onChange={(e) => setForm({ ...form, clinic_day: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700"
+                  >
+                    <option value="">선택 안 함</option>
+                    {CLINIC_DAYS.map((d) => <option key={d} value={d}>{d}요일</option>)}
+                  </select>
+                </div>
+                {formError && <p className="text-xs text-red-500">{formError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setShowRegisterModal(false); setForm({ name: '', class: '', school: '', oral_type: '', clinic_day: '', phone: '' }); setFormError('') }}
+                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
+                  >
+                    다음 →
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* ── 등록 확인 ── */
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-gray-500">아래 내용으로 등록하시겠습니까?</p>
+                <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">이름</span>
+                    <span className="font-semibold text-gray-800">{form.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">반(선생님)</span>
+                    <span className="text-gray-700">{form.class}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">학교</span>
+                    <span className="text-gray-700">{form.school}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">코드</span>
+                    <span className="font-mono font-bold text-blue-600">{extractCode(form.phone)}</span>
+                  </div>
+                  {form.oral_type && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">구두 방식</span>
+                      <span className="text-gray-700">{form.oral_type}</span>
+                    </div>
+                  )}
+                  {form.clinic_day && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">클리닉 요일</span>
+                      <span className="text-gray-700">{form.clinic_day}요일</span>
+                    </div>
+                  )}
+                </div>
+                {formError && <p className="text-xs text-red-500">{formError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowRegisterConfirm(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    ← 수정
+                  </button>
+                  <button
+                    onClick={handleRegisterSubmit}
+                    disabled={formLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold text-sm transition-colors"
+                  >
+                    {formLoading ? '등록 중...' : '확인 등록'}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
