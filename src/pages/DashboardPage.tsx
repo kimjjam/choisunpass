@@ -34,7 +34,15 @@ export default function DashboardPage() {
     fetchRecords()
     const channel = supabase
       .channel('dashboard-attendances')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendances', filter: `date=eq.${today}` }, () => fetchRecords())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendances', filter: `date=eq.${today}` }, (payload) => {
+        if (payload.eventType === 'UPDATE' && payload.new) {
+          // UPDATE는 payload.new로 해당 레코드만 직접 머지 (fetchRecords 하면 DB 커밋 전 stale 데이터가 올 수 있음)
+          setRecords(prev => prev.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r))
+        } else {
+          // INSERT / DELETE는 전체 재조회 (students 관계 데이터 필요)
+          fetchRecords()
+        }
+      })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
