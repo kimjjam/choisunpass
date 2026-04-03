@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 import type { AttendanceWithStudent, MissionStatus, OralQueueWithStudent } from '../lib/database.types'
 
-type Tab = 'pending' | 'clinic' | 'class_clinic' | 'oral' | 'rejected'
+type Tab = 'pending' | 'clinic' | 'class_clinic' | 'overview' | 'oral' | 'rejected'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -174,6 +174,13 @@ export default function DashboardPage() {
     r => r.visit_type === 'clinic' && r.next_clinic_date && !r.checked_out_at && r.status === 'approved'
   )
 
+  const overviewList = [
+    ...records.filter(r => r.status === 'approved'),
+  ]
+    .filter(r => !search || r.students.name.includes(search.trim()))
+    .filter(r => !schoolFilter || r.students.school === schoolFilter)
+    .sort((a, b) => (a.checked_in_at ?? '').localeCompare(b.checked_in_at ?? ''))
+
   const rejectedList = records
     .filter(r => r.status === 'rejected')
     .filter(r => !search || r.students.name.includes(search.trim()))
@@ -275,6 +282,17 @@ export default function DashboardPage() {
               수업+클리닉
             </button>
             <button
+              onClick={() => setTab('overview')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                tab === 'overview' ? 'bg-slate-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
+              }`}
+            >
+              전체현황
+              <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'overview' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {overviewList.length}
+              </span>
+            </button>
+            <button
               onClick={() => setTab('oral')}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 tab === 'oral' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
@@ -302,6 +320,71 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+
+        {/* 전체현황 탭 */}
+        {tab === 'overview' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {loading ? (
+              <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+            ) : overviewList.length === 0 ? (
+              <div className="py-16 text-center text-gray-400 text-sm">승인된 학생이 없습니다</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">유형</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">등원</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">단어</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">클리닉</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구두</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">과제</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">하원</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {overviewList.map(r => {
+                    const missionBadge = (v: string | null) => {
+                      if (!v) return <span className="text-gray-300">-</span>
+                      const map: Record<string, string> = { pass: 'bg-green-100 text-green-700', fail: 'bg-red-100 text-red-600', delay: 'bg-yellow-100 text-yellow-700' }
+                      const label: Record<string, string> = { pass: 'pass', fail: 'fail', delay: 'delay' }
+                      return <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${map[v] ?? 'bg-gray-100 text-gray-500'}`}>{label[v] ?? v}</span>
+                    }
+                    return (
+                      <tr key={r.id} className={r.checked_out_at ? 'bg-gray-50 opacity-60' : ''}>
+                        <td className="px-4 py-3 font-medium text-gray-800">{r.students.name}</td>
+                        <td className="px-3 py-3 text-xs text-gray-500">
+                          {r.students.school}<br />
+                          <span className="text-blue-400">{r.students.class}</span>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          {r.visit_type === 'class_clinic'
+                            ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">수업+클리닉</span>
+                            : <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">클리닉</span>
+                          }
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs text-gray-500">
+                          {r.checked_in_at ? new Date(r.checked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs text-gray-700">{r.word_score || <span className="text-gray-300">-</span>}</td>
+                        <td className="px-3 py-3 text-center text-xs text-gray-700">{r.clinic_score || <span className="text-gray-300">-</span>}</td>
+                        <td className="px-3 py-3 text-center">{missionBadge(r.oral_status)}</td>
+                        <td className="px-3 py-3 text-center">{missionBadge(r.homework)}</td>
+                        <td className="px-3 py-3 text-center text-xs">
+                          {r.checked_out_at
+                            ? <span className="text-gray-400">{new Date(r.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            : <span className="text-green-600 font-medium">재원 중</span>
+                          }
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
 
         {/* 구두 대기 탭 */}
         {tab === 'oral' && (
