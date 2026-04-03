@@ -626,7 +626,7 @@ function AttendanceTable({
                 onApprove={() => onApprove(record)}
                 onReject={() => onReject(record)}
                 onCancelApprove={() => onCancelApprove(record)}
-                onAllowRetry={() => onAllowRetry(record)}
+                onAllowRetry={onAllowRetry ? () => onAllowRetry(record) : undefined}
                 onCheckOut={() => onCheckOut(record)}
                 onCancelCheckOut={() => onCancelCheckOut(record)}
                 onMission={onMission}
