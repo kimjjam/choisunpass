@@ -508,7 +508,7 @@ export default function AttendPage() {
             <p className="text-3xl font-bold text-purple-600 mb-3">지금 오세요!</p>
             {oralQueue?.caller ? (
               <p className="text-sm text-gray-500 mb-6">
-                <span className="font-bold text-purple-700">{oralQueue.caller}</span> 선생님이 호출했습니다.<br />선생님께 가주세요.
+                <span className="font-bold text-purple-700">{oralQueue.caller}</span> 님이 호출했습니다.<br />조교님께 가주세요.
               </p>
             ) : (
               <p className="text-sm text-gray-500 mb-6">구두 테스트 차례입니다.<br />조교 선생님께 가주세요.</p>
