@@ -829,8 +829,8 @@ export default function AdminPage() {
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {statsRows.map(({ s, attended, rate, wordPass, wordFail, oralPass, oralFail }) => (
-                          <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3 font-medium text-gray-900">{s.name}</td>
+                          <tr key={s.id} className="hover:bg-blue-50 transition-colors cursor-pointer" onClick={() => openStudentHistory(s)}>
+                            <td className="px-4 py-3 font-medium text-gray-900 hover:text-blue-600 underline underline-offset-2 decoration-dotted">{s.name}</td>
                             <td className="px-3 py-3 text-xs text-gray-500">{s.class}</td>
                             <td className="px-3 py-3 text-center text-sm font-bold text-gray-700">
                               {attended}<span className="text-xs font-normal text-gray-400">/{totalWeeks}</span>
