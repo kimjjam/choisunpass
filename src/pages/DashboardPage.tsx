@@ -15,6 +15,8 @@ export default function DashboardPage() {
   const [approveModal, setApproveModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectModal, setRejectModal] = useState<{ id: string; name: string } | null>(null)
   const [cancelApproveModal, setCancelApproveModal] = useState<{ id: string; name: string } | null>(null)
+  const [forceCheckoutModal, setForceCheckoutModal] = useState<{ id: string; name: string; record: AttendanceWithStudent } | null>(null)
+  const [forceCheckoutDate, setForceCheckoutDate] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
@@ -134,6 +136,25 @@ export default function DashboardPage() {
     const now = new Date().toISOString()
     setRecords(prev => prev.map(r => r.id === id ? { ...r, checked_out_at: now } : r))
     await supabase.from('attendances').update({ checked_out_at: now }).eq('id', id)
+  }
+
+  async function handleAdminForceCheckout() {
+    if (!forceCheckoutModal || !forceCheckoutDate) return
+    const { id, record } = forceCheckoutModal
+    const now = new Date().toISOString()
+    const validStatuses = ['pass', 'fail', 'delay']
+    const updates: Record<string, unknown> = {
+      checked_out_at: now,
+      next_clinic_date: forceCheckoutDate,
+      word_score: record.word_score?.trim() ? record.word_score : '00',
+      clinic_score: record.clinic_score?.trim() ? record.clinic_score : '00',
+      oral_status: validStatuses.includes(record.oral_status as string) ? record.oral_status : 'delay',
+      homework: validStatuses.includes(record.homework as string) ? record.homework : 'delay',
+    }
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r))
+    await supabase.from('attendances').update(updates).eq('id', id)
+    setForceCheckoutModal(null)
+    setForceCheckoutDate('')
   }
 
   const VALID = ['pass', 'fail', 'delay']
@@ -596,9 +617,10 @@ export default function DashboardPage() {
               onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
               onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
               onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
-                onCheckOut={(r) => handleCheckOut(r.id)}
+              onCheckOut={(r) => handleCheckOut(r.id)}
               onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
               onMission={handleMission}
+              onAdminForceCheckout={(r) => { setForceCheckoutDate(''); setForceCheckoutModal({ id: r.id, name: r.students.name, record: r }) }}
             />
           </div>
         )}
@@ -696,6 +718,55 @@ export default function DashboardPage() {
               >
                 승인
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 강제하원 모달 */}
+      {forceCheckoutModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs shadow-xl">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-800">강제 하원</h3>
+              <button onClick={() => setForceCheckoutModal(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-gray-600">
+                <span className="font-semibold text-gray-800">{forceCheckoutModal.name}</span> 학생을 강제 하원 처리합니다.
+              </p>
+              <div className="bg-orange-50 rounded-xl p-3 text-xs text-orange-700 space-y-0.5">
+                <p>• 단어 / 클리닉 점수 미입력 → <span className="font-semibold">00</span> 자동 입력</p>
+                <p>• 구두 / 과제 미입력 → <span className="font-semibold">Delay</span> 자동 설정</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">다음 클리닉 날짜 <span className="text-red-400">*</span></label>
+                <input
+                  type="date"
+                  value={forceCheckoutDate}
+                  onChange={(e) => setForceCheckoutDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setForceCheckoutModal(null)}
+                  className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleAdminForceCheckout}
+                  disabled={!forceCheckoutDate}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                    forceCheckoutDate
+                      ? 'bg-red-500 hover:bg-red-600 text-white'
+                      : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  강제 하원
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -815,7 +886,7 @@ export default function DashboardPage() {
 // ─── 서브 컴포넌트 ────────────────────────────────────────
 
 function AttendanceTable({
-  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission,
+  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout,
 }: {
   list: AttendanceWithStudent[]
   loading: boolean
@@ -827,6 +898,7 @@ function AttendanceTable({
   onCheckOut: (r: AttendanceWithStudent) => void
   onCancelCheckOut: (r: AttendanceWithStudent) => void
   onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
+  onAdminForceCheckout?: (r: AttendanceWithStudent) => void
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -862,6 +934,7 @@ function AttendanceTable({
                 onCheckOut={() => onCheckOut(record)}
                 onCancelCheckOut={() => onCancelCheckOut(record)}
                 onMission={onMission}
+                onAdminForceCheckout={onAdminForceCheckout ? () => onAdminForceCheckout(record) : undefined}
               />
             ))}
           </tbody>
@@ -895,6 +968,7 @@ function AttendanceRow({
   onCheckOut,
   onCancelCheckOut,
   onMission,
+  onAdminForceCheckout,
 }: {
   record: AttendanceWithStudent
   onApprove: () => void
@@ -904,6 +978,7 @@ function AttendanceRow({
   onCheckOut: () => void
   onCancelCheckOut: () => void
   onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
+  onAdminForceCheckout?: () => void
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
   const [wordScore, setWordScore] = useState(record.word_score ?? '')
@@ -1016,18 +1091,28 @@ function AttendanceRow({
       <td className="px-3 py-3 text-center whitespace-nowrap">
         {record.status === 'approved' && (
           !record.checked_out_at ? (
-            <button
-              onClick={onCheckOut}
-              disabled={!allDone}
-              title={!allDone ? '단어·구두·과제 완료 후 하원 가능' : ''}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                allDone
-                  ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-              }`}
-            >
-              하원 처리
-            </button>
+            <div className="flex flex-col items-center gap-1">
+              <button
+                onClick={onCheckOut}
+                disabled={!allDone}
+                title={!allDone ? '단어·구두·과제 완료 후 하원 가능' : ''}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  allDone
+                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                }`}
+              >
+                하원 처리
+              </button>
+              {onAdminForceCheckout && (
+                <button
+                  onClick={onAdminForceCheckout}
+                  className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-500 transition-colors"
+                >
+                  강제하원
+                </button>
+              )}
+            </div>
           ) : (
             <div className="flex flex-col items-center gap-0.5">
               <span className="text-xs text-indigo-600 font-medium">{checkoutTime}</span>
