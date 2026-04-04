@@ -77,10 +77,10 @@ export default function AttendPage() {
           event: 'UPDATE',
           schema: 'public',
           table: 'attendances',
-          filter: `id=eq.${attendance.id}`,
         },
         (payload) => {
           const updated = payload.new as Attendance
+          if (updated.id !== attendance.id) return
           setAttendance(updated)
           if (updated.checked_out_at) {
             setPageState('checked_out')
@@ -134,7 +134,29 @@ export default function AttendPage() {
             const updated = payload.new as OralQueue
             if (updated.attendance_id !== attendance.id) return
             setOralQueue(updated)
-            if (updated.status === 'called') setShowCalledModal(true)
+            if (updated.status === 'called') {
+              setShowCalledModal(true)
+              // 진동 (Android 지원)
+              if (navigator.vibrate) navigator.vibrate([400, 100, 400, 100, 400])
+              // 알람음
+              try {
+                const ctx = new AudioContext()
+                const playBeep = (time: number) => {
+                  const osc = ctx.createOscillator()
+                  const gain = ctx.createGain()
+                  osc.connect(gain)
+                  gain.connect(ctx.destination)
+                  osc.frequency.value = 880
+                  gain.gain.setValueAtTime(0.5, time)
+                  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.4)
+                  osc.start(time)
+                  osc.stop(time + 0.4)
+                }
+                playBeep(ctx.currentTime)
+                playBeep(ctx.currentTime + 0.5)
+                playBeep(ctx.currentTime + 1.0)
+              } catch {}
+            }
             else setShowCalledModal(false)
           }
         }
