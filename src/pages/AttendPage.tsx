@@ -46,7 +46,7 @@ export default function AttendPage() {
       .from('attendances')
       .select('*, students(*)')
       .eq('id', savedId)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         if (!data) { localStorage.removeItem('attendance_id'); return }
         // 오늘 날짜가 아닌 기록이면 초기화 (날짜 넘어갔을 때 어제 기록 복원 방지)
@@ -194,7 +194,7 @@ export default function AttendPage() {
         .select('*')
         .eq('student_id', studentData.id)
         .eq('date', today)
-        .single()
+        .maybeSingle()
 
       if (existing) {
         setStudent(studentData)
