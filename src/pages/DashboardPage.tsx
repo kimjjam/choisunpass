@@ -1059,6 +1059,12 @@ function AttendanceRow({
     await supabase.from('attendances').update({ notes: value || null }).eq('id', record.id)
   }
 
+  function scoreStyle(val: string) {
+    if (!val.trim()) return 'border-gray-200'
+    if (val.trim() === '00' || val.trim() === '--') return 'border-orange-300 bg-orange-50 text-orange-600'
+    return 'border-green-300 bg-green-50'
+  }
+
   return (
     <tr className={`hover:bg-blue-50/30 transition-colors ${rowBg[record.status]}`}>
       {/* 이름 */}
@@ -1089,7 +1095,7 @@ function AttendanceRow({
               onChange={(e) => setWordScore(e.target.value)}
               onBlur={(e) => saveScore('word_score', e.target.value)}
               placeholder="단어"
-              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${wordScore.trim() ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}
+              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${scoreStyle(wordScore)}`}
             />
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
@@ -1101,7 +1107,7 @@ function AttendanceRow({
               onChange={(e) => setClinicScore(e.target.value)}
               onBlur={(e) => saveScore('clinic_score', e.target.value)}
               placeholder="클리닉"
-              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${clinicScore.trim() ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}
+              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${scoreStyle(clinicScore)}`}
             />
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
