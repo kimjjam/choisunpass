@@ -450,15 +450,6 @@ export default function AttendPage() {
               </svg>
             </div>
             <h2 className="text-lg font-bold text-gray-800 mb-1">{student.name} 학생</h2>
-            <button
-              onClick={() => {
-                const result = navigator.vibrate ? navigator.vibrate([1000, 200, 1000, 200, 1000, 200, 1000, 200, 1000]) : false
-                alert(`진동 지원: ${!!navigator.vibrate}, 결과: ${result}`)
-              }}
-              className="text-xs text-gray-400 underline mb-2"
-            >
-              진동 테스트
-            </button>
             <p className="text-2xl font-bold text-green-600 mb-2">출석 완료!</p>
             <p className="text-sm text-gray-500 mb-4">
               등원이 확인되었습니다.<br />오늘도 열심히 해봐요!
