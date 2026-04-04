@@ -137,7 +137,7 @@ export default function AttendPage() {
             if (updated.status === 'called') {
               setShowCalledModal(true)
               // 진동 (Android 지원)
-              if (navigator.vibrate) navigator.vibrate([1000, 200, 1000, 200, 1000, 200, 1000, 200, 1000])
+              if (navigator.vibrate) navigator.vibrate([1000, 200, 1000])
               // 알람음
               try {
                 const ctx = new AudioContext()
