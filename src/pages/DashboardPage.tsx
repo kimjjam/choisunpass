@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const [cancelApproveModal, setCancelApproveModal] = useState<{ id: string; name: string } | null>(null)
   const [forceCheckoutModal, setForceCheckoutModal] = useState<{ id: string; name: string; record: AttendanceWithStudent } | null>(null)
   const [forceCheckoutDate, setForceCheckoutDate] = useState('')
+  const [checkoutConfirmModal, setCheckoutConfirmModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
@@ -626,7 +627,7 @@ export default function DashboardPage() {
               onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
               onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
               onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
-              onCheckOut={(r) => handleCheckOut(r.id)}
+              onCheckOut={(r) => setCheckoutConfirmModal({ id: r.id, name: r.students.name })}
               onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
               onMission={handleMission}
               onAdminForceCheckout={(r) => { setForceCheckoutDate(''); setForceCheckoutModal({ id: r.id, name: r.students.name, record: r }) }}
@@ -726,6 +727,38 @@ export default function DashboardPage() {
                 className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
               >
                 승인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 하원 확인 모달 */}
+      {checkoutConfirmModal && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onKeyDown={(e) => { if (e.key === 'Enter') { handleCheckOut(checkoutConfirmModal.id); setCheckoutConfirmModal(null) } }}
+          tabIndex={-1}
+          ref={(el) => el?.focus()}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">하원 처리</h3>
+            <p className="text-sm text-gray-500 text-center mb-1">
+              <span className="font-semibold text-gray-700">{checkoutConfirmModal.name}</span> 학생을
+            </p>
+            <p className="text-sm text-gray-500 text-center mb-6">하원 처리하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCheckoutConfirmModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { handleCheckOut(checkoutConfirmModal.id); setCheckoutConfirmModal(null) }}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors"
+              >
+                확인
               </button>
             </div>
           </div>
