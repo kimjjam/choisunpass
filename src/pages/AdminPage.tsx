@@ -1243,8 +1243,16 @@ export default function AdminPage() {
                           <td className="px-2 py-2 text-center">
                             {r.status === 'approved' ? <span className="text-green-600">✓</span> : r.status === 'rejected' ? <span className="text-red-400">✕</span> : <span className="text-yellow-500">대기</span>}
                           </td>
-                          <td className="px-2 py-2 text-center text-gray-700">{r.word_score || '-'}</td>
-                          <td className="px-2 py-2 text-center text-gray-700">{r.clinic_score || '-'}</td>
+                          <td className="px-2 py-2 text-center">
+                            {r.word_score
+                              ? <span className={(r.word_score === '00' || r.word_score === '--') ? 'text-orange-500 font-semibold text-xs' : 'text-gray-700 text-xs'}>{r.word_score}</span>
+                              : <span className="text-gray-300 text-xs">-</span>}
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            {r.clinic_score
+                              ? <span className={(r.clinic_score === '00' || r.clinic_score === '--') ? 'text-orange-500 font-semibold text-xs' : 'text-gray-700 text-xs'}>{r.clinic_score}</span>
+                              : <span className="text-gray-300 text-xs">-</span>}
+                          </td>
                           <td className="px-2 py-2 text-center">
                             {r.oral_status === 'pass' ? <span className="text-green-500">P</span> : r.oral_status === 'fail' ? <span className="text-red-400">F</span> : r.oral_status === 'delay' ? <span className="text-yellow-500">D</span> : <span className="text-gray-300">-</span>}
                           </td>
@@ -1410,8 +1418,16 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
         {record.rechecked_in_at ? recheckInTime : <span className="text-gray-200">-</span>}
       </td>
       <td className="px-3 py-2.5 text-center text-xs text-indigo-500 whitespace-nowrap">{checkoutTime}</td>
-      <td className="px-3 py-2.5 text-center text-xs text-gray-700">{record.word_score || '-'}</td>
-      <td className="px-3 py-2.5 text-center text-xs text-gray-700">{record.clinic_score || '-'}</td>
+      <td className="px-3 py-2.5 text-center text-xs">
+        {record.word_score
+          ? <span className={(record.word_score === '00' || record.word_score === '--') ? 'text-orange-500 font-semibold' : 'text-gray-700'}>{record.word_score}</span>
+          : <span className="text-gray-300">-</span>}
+      </td>
+      <td className="px-3 py-2.5 text-center text-xs">
+        {record.clinic_score
+          ? <span className={(record.clinic_score === '00' || record.clinic_score === '--') ? 'text-orange-500 font-semibold' : 'text-gray-700'}>{record.clinic_score}</span>
+          : <span className="text-gray-300">-</span>}
+      </td>
       <td className="px-3 py-2.5 text-center"><MissionBadge value={record.oral_status} /></td>
       <td className="px-3 py-2.5 text-center">
         {homeworkIsStatus
