@@ -240,7 +240,7 @@ export default function AttendPage() {
     if (!pendingStudentData) return
     setShowVisitTypeModal(false)
     setLoading(true)
-    const today = new Date().toISOString().split('T')[0]
+    const today = getLocalDateStr()
     const { data: newAttendance, error: insertError } = await supabase
       .from('attendances')
       .insert({
