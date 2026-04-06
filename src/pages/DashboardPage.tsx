@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [forceCheckoutDate, setForceCheckoutDate] = useState('')
   const [checkoutConfirmModal, setCheckoutConfirmModal] = useState<{ id: string; name: string } | null>(null)
   const [cancelCheckoutModal, setCancelCheckoutModal] = useState<{ id: string; name: string } | null>(null)
+  const [cancelNextClinicModal, setCancelNextClinicModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
@@ -141,6 +142,11 @@ export default function DashboardPage() {
   async function handleRemoveFromQueue(queueId: string) {
     await supabase.from('oral_queue').delete().eq('id', queueId)
     fetchOralQueue()
+  }
+
+  async function handleCancelNextClinic(id: string) {
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, next_clinic_date: null } : r))
+    await supabase.from('attendances').update({ next_clinic_date: null }).eq('id', id)
   }
 
   async function handleForceCheckOut(id: string) {
@@ -624,12 +630,20 @@ export default function DashboardPage() {
                         <td className="px-3 py-3 text-xs text-gray-500">{r.students.school} · {r.students.class}</td>
                         <td className="px-3 py-3 text-xs text-blue-600 font-medium">다음 클리닉: {r.next_clinic_date}</td>
                         <td className="px-3 py-3 text-center">
-                          <button
-                            onClick={() => handleForceCheckOut(r.id)}
-                            className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg transition-colors"
-                          >
-                            하원 확인
-                          </button>
+                          <div className="flex gap-2 justify-center">
+                            <button
+                              onClick={() => handleForceCheckOut(r.id)}
+                              className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg transition-colors"
+                            >
+                              하원 확인
+                            </button>
+                            <button
+                              onClick={() => setCancelNextClinicModal({ id: r.id, name: r.students.name })}
+                              className="text-xs border border-gray-300 hover:border-red-400 text-gray-500 hover:text-red-500 px-3 py-1 rounded-lg transition-colors"
+                            >
+                              요청 취소
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -774,6 +788,38 @@ export default function DashboardPage() {
               <button
                 onClick={() => { handleCheckOut(checkoutConfirmModal.id); setCheckoutConfirmModal(null) }}
                 className="flex-1 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 다음에 올게요 요청 취소 모달 */}
+      {cancelNextClinicModal && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onKeyDown={(e) => { if (e.key === 'Enter') { handleCancelNextClinic(cancelNextClinicModal.id); setCancelNextClinicModal(null) } }}
+          tabIndex={-1}
+          ref={(el) => el?.focus()}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">요청 취소</h3>
+            <p className="text-sm text-gray-500 text-center mb-1">
+              <span className="font-semibold text-gray-700">{cancelNextClinicModal.name}</span> 학생의
+            </p>
+            <p className="text-sm text-gray-500 text-center mb-6">다음에 올게요 요청을 취소하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCancelNextClinicModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { handleCancelNextClinic(cancelNextClinicModal.id); setCancelNextClinicModal(null) }}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors"
               >
                 확인
               </button>
