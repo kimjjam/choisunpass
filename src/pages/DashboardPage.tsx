@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
@@ -1121,6 +1122,8 @@ function AttendanceRow({
   const [wordScore, setWordScore] = useState(record.word_score ?? '')
   const [clinicScore, setClinicScore] = useState(record.clinic_score ?? '')
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showNotesModal, setShowNotesModal] = useState(false)
+  const [modalNotes, setModalNotes] = useState('')
 
   const validStatuses = ['pass', 'fail', 'delay']
   const homeworkVal = validStatuses.includes(record.homework as string) ? record.homework as MissionStatus : null
@@ -1159,6 +1162,18 @@ function AttendanceRow({
     if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
     notesTimerRef.current = setTimeout(() => saveNotes(value), 500)
   }, [record.id])
+
+  function openNotesModal() {
+    setModalNotes(notes)
+    setShowNotesModal(true)
+  }
+
+  async function handleSaveModal() {
+    setNotes(modalNotes)
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
+    await saveNotes(modalNotes)
+    setShowNotesModal(false)
+  }
 
   function scoreStyle(val: string) {
     if (!val.trim()) return 'border-gray-200'
@@ -1227,13 +1242,48 @@ function AttendanceRow({
       {/* 기타 */}
       <td className="px-3 py-3">
         {record.status === 'approved' && (
-          <input
-            value={notes}
-            onChange={(e) => { setNotes(e.target.value); debouncedSaveNotes(e.target.value) }}
-            onBlur={(e) => { if (notesTimerRef.current) clearTimeout(notesTimerRef.current); saveNotes(e.target.value) }}
-            placeholder="메모..."
-            className="w-full min-w-[80px] text-xs border-0 border-b border-dashed border-gray-200 focus:border-blue-400 focus:outline-none py-0.5 bg-transparent"
-          />
+          <button
+            onClick={openNotesModal}
+            className="flex items-center gap-1 max-w-[100px] group"
+          >
+            {notes ? (
+              <span className="text-xs text-gray-600 truncate max-w-[70px]">{notes}</span>
+            ) : (
+              <span className="text-xs text-gray-300">메모...</span>
+            )}
+            <span className={`text-xs flex-shrink-0 ${notes ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
+          </button>
+        )}
+        {showNotesModal && createPortal(
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+              <h3 className="font-semibold text-gray-800 mb-1">{record.students.name} 학생</h3>
+              <p className="text-xs text-gray-400 mb-3">기타 메모</p>
+              <textarea
+                value={modalNotes}
+                onChange={(e) => setModalNotes(e.target.value)}
+                autoFocus
+                rows={5}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 resize-none mb-4"
+                placeholder="메모를 입력하세요..."
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowNotesModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveModal}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors"
+                >
+                  저장
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
       </td>
       {/* 하원 */}
