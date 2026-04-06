@@ -402,6 +402,7 @@ export default function DashboardPage() {
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구두</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">과제</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">하원</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">재등원 예정</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">액션</th>
                   </tr>
                 </thead>
@@ -436,6 +437,12 @@ export default function DashboardPage() {
                         <td className="px-3 py-3 text-center">{missionBadge(r.homework)}</td>
                         <td className="px-3 py-3 text-center text-xs font-semibold text-orange-500">
                           {r.checked_out_at ? new Date(r.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs">
+                          {r.next_clinic_date
+                            ? <span className="text-blue-600 font-medium">{r.next_clinic_date}</span>
+                            : <span className="text-gray-300">-</span>
+                          }
                         </td>
                         <td className="px-3 py-3 text-center">
                           <button
