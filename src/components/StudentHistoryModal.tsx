@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import type { Student, AttendanceWithStudent, ClinicAbsenceWithStudent } from '../lib/database.types'
 
@@ -23,9 +24,29 @@ function StatusBadge({ value }: { value: string | null }) {
 }
 
 export default function StudentHistoryModal({ student, records, onClose, showChart = false, absences }: Props) {
+  const [popover, setPopover] = useState<{ text: string; x: number; y: number } | null>(null)
+
+  function handleNoteClick(e: React.MouseEvent, text: string) {
+    if (!text) return
+    if (popover) { setPopover(null); return }
+    const rect = (e.target as HTMLElement).getBoundingClientRect()
+    setPopover({ text, x: rect.left, y: rect.bottom + 6 })
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setPopover(null)}>
+      {/* 기타 말풍선 팝오버 */}
+      {popover && (
+        <div
+          className="fixed z-[60] bg-gray-800 text-white text-xs rounded-xl px-3 py-2 max-w-xs shadow-xl whitespace-pre-wrap"
+          style={{ left: popover.x, top: popover.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {popover.text}
+          <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-800 rotate-45" />
+        </div>
+      )}
+      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* 헤더 */}
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
           <div>
@@ -77,7 +98,12 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
                         <td className="px-2 py-2 text-center"><ScoreBadge value={r.clinic_score} /></td>
                         <td className="px-2 py-2 text-center"><StatusBadge value={r.oral_status} /></td>
                         <td className="px-2 py-2 text-center"><StatusBadge value={r.homework} /></td>
-                        <td className="px-2 py-2 text-gray-500 max-w-[120px] truncate" title={r.notes ?? ''}>{r.notes || <span className="text-gray-300">-</span>}</td>
+                        <td
+                          className={`px-2 py-2 max-w-[120px] truncate ${r.notes ? 'text-gray-600 cursor-pointer hover:text-blue-500 hover:bg-blue-50 rounded' : 'text-gray-300'}`}
+                          onClick={(e) => r.notes && handleNoteClick(e, r.notes)}
+                        >
+                          {r.notes || '-'}
+                        </td>
                         <td className="px-2 py-2 text-blue-500 whitespace-nowrap">{r.next_clinic_date || '-'}</td>
                       </tr>
                     ))}
