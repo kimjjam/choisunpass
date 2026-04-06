@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
@@ -1074,6 +1074,7 @@ function AttendanceRow({
   const [notes, setNotes] = useState(record.notes ?? '')
   const [wordScore, setWordScore] = useState(record.word_score ?? '')
   const [clinicScore, setClinicScore] = useState(record.clinic_score ?? '')
+  const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const validStatuses = ['pass', 'fail', 'delay']
   const homeworkVal = validStatuses.includes(record.homework as string) ? record.homework as MissionStatus : null
@@ -1107,6 +1108,11 @@ function AttendanceRow({
   async function saveNotes(value: string) {
     await supabase.from('attendances').update({ notes: value || null }).eq('id', record.id)
   }
+
+  const debouncedSaveNotes = useCallback((value: string) => {
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
+    notesTimerRef.current = setTimeout(() => saveNotes(value), 500)
+  }, [record.id])
 
   function scoreStyle(val: string) {
     if (!val.trim()) return 'border-gray-200'
@@ -1177,8 +1183,8 @@ function AttendanceRow({
         {record.status === 'approved' && (
           <input
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={(e) => saveNotes(e.target.value)}
+            onChange={(e) => { setNotes(e.target.value); debouncedSaveNotes(e.target.value) }}
+            onBlur={(e) => { if (notesTimerRef.current) clearTimeout(notesTimerRef.current); saveNotes(e.target.value) }}
             placeholder="메모..."
             className="w-full min-w-[80px] text-xs border-0 border-b border-dashed border-gray-200 focus:border-blue-400 focus:outline-none py-0.5 bg-transparent"
           />
