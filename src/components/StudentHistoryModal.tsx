@@ -77,7 +77,7 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
                         <td className="px-2 py-2 text-center"><ScoreBadge value={r.clinic_score} /></td>
                         <td className="px-2 py-2 text-center"><StatusBadge value={r.oral_status} /></td>
                         <td className="px-2 py-2 text-center"><StatusBadge value={r.homework} /></td>
-                        <td className="px-2 py-2 text-gray-500 max-w-[120px] truncate">{r.notes || <span className="text-gray-300">-</span>}</td>
+                        <td className="px-2 py-2 text-gray-500 max-w-[120px] truncate" title={r.notes ?? ''}>{r.notes || <span className="text-gray-300">-</span>}</td>
                         <td className="px-2 py-2 text-blue-500 whitespace-nowrap">{r.next_clinic_date || '-'}</td>
                       </tr>
                     ))}
