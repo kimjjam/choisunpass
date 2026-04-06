@@ -34,6 +34,7 @@ export default function AttendPage() {
   const oralQueueRef = useRef<OralQueue | null>(null)
   const [queuePosition, setQueuePosition] = useState<number>(0)
   const [showCalledModal, setShowCalledModal] = useState(false)
+  const [showReCheckInModal, setShowReCheckInModal] = useState(false)
 
   useEffect(() => { oralQueueRef.current = oralQueue }, [oralQueue])
 
@@ -573,7 +574,7 @@ export default function AttendPage() {
               </div>
             )}
             <button
-              onClick={handleReCheckIn}
+              onClick={() => setShowReCheckInModal(true)}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors text-base mb-3"
             >
               재등원
@@ -613,6 +614,35 @@ export default function AttendPage() {
           </div>
         )}
       </div>
+
+      {/* 재등원 확인 모달 */}
+      {showReCheckInModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl text-center">
+            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+            <h3 className="font-bold text-gray-800 text-base mb-2">재등원 확인</h3>
+            <p className="text-sm text-gray-500 mb-6">정말 학원에 다시 방문했나요?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowReCheckInModal(false)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { setShowReCheckInModal(false); handleReCheckIn() }}
+                className="flex-1 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors"
+              >
+                네, 방문했어요
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* visit_type 선택 모달 */}
       {showVisitTypeModal && student && (
