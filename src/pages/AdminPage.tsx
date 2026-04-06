@@ -1352,15 +1352,6 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     onUpdate()
   }
 
-  async function handleBlur(field: 'notes', value: string) {
-    const original = record.notes ?? ''
-    if (value === original) return
-    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
-    setSaving(true)
-    await saveNotes(value)
-    setSaving(false)
-  }
-
   const debouncedSaveNotes = useCallback((value: string) => {
     if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
     notesTimerRef.current = setTimeout(() => saveNotes(value), 500)
