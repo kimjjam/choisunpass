@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import * as XLSX from 'xlsx'
 import { useNavigate } from 'react-router-dom'
@@ -1352,10 +1352,6 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     onUpdate()
   }
 
-  const debouncedSaveNotes = useCallback((value: string) => {
-    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
-    notesTimerRef.current = setTimeout(() => saveNotes(value), 500)
-  }, [record.id])
 
   function openNotesModal() {
     setModalNotes(notes)

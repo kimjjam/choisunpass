@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -1158,10 +1158,6 @@ function AttendanceRow({
     await supabase.from('attendances').update({ notes: value || null }).eq('id', record.id)
   }
 
-  const debouncedSaveNotes = useCallback((value: string) => {
-    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
-    notesTimerRef.current = setTimeout(() => saveNotes(value), 500)
-  }, [record.id])
 
   function openNotesModal() {
     setModalNotes(notes)
