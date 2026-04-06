@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [forceCheckoutModal, setForceCheckoutModal] = useState<{ id: string; name: string; record: AttendanceWithStudent } | null>(null)
   const [forceCheckoutDate, setForceCheckoutDate] = useState('')
   const [checkoutConfirmModal, setCheckoutConfirmModal] = useState<{ id: string; name: string } | null>(null)
+  const [cancelCheckoutModal, setCancelCheckoutModal] = useState<{ id: string; name: string } | null>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
@@ -401,6 +402,7 @@ export default function DashboardPage() {
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구두</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">과제</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">하원</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">액션</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -434,6 +436,14 @@ export default function DashboardPage() {
                         <td className="px-3 py-3 text-center">{missionBadge(r.homework)}</td>
                         <td className="px-3 py-3 text-center text-xs font-semibold text-orange-500">
                           {r.checked_out_at ? new Date(r.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <button
+                            onClick={() => setCancelCheckoutModal({ id: r.id, name: r.students.name })}
+                            className="text-xs text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-2 py-1 rounded-lg transition-colors"
+                          >
+                            하원 취소
+                          </button>
                         </td>
                       </tr>
                     )
@@ -757,6 +767,38 @@ export default function DashboardPage() {
               <button
                 onClick={() => { handleCheckOut(checkoutConfirmModal.id); setCheckoutConfirmModal(null) }}
                 className="flex-1 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 하원 취소 확인 모달 */}
+      {cancelCheckoutModal && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onKeyDown={(e) => { if (e.key === 'Enter') { handleCancelCheckOut(cancelCheckoutModal.id); setCancelCheckoutModal(null) } }}
+          tabIndex={-1}
+          ref={(el) => el?.focus()}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">하원 취소</h3>
+            <p className="text-sm text-gray-500 text-center mb-1">
+              <span className="font-semibold text-gray-700">{cancelCheckoutModal.name}</span> 학생의
+            </p>
+            <p className="text-sm text-gray-500 text-center mb-6">하원을 취소하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCancelCheckoutModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { handleCancelCheckOut(cancelCheckoutModal.id); setCancelCheckoutModal(null) }}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors"
               >
                 확인
               </button>
