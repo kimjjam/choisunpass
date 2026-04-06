@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import * as XLSX from 'xlsx'
 import { useNavigate } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -1334,6 +1335,9 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
   const [notes, setNotes] = useState(record.notes ?? '')
   const [saving, setSaving] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showNotesModal, setShowNotesModal] = useState(false)
+  const [modalNotes, setModalNotes] = useState('')
+  const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showEditConfirm, setShowEditConfirm] = useState(false)
   const [editForm, setEditForm] = useState({
     word_score: record.word_score ?? '',
@@ -1343,13 +1347,37 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     notes: record.notes ?? '',
   })
 
+  async function saveNotes(value: string) {
+    await supabase.from('attendances').update({ notes: value || null }).eq('id', record.id)
+    onUpdate()
+  }
+
   async function handleBlur(field: 'notes', value: string) {
     const original = record.notes ?? ''
     if (value === original) return
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
     setSaving(true)
-    await supabase.from('attendances').update({ [field]: value || null }).eq('id', record.id)
+    await saveNotes(value)
     setSaving(false)
-    onUpdate()
+  }
+
+  const debouncedSaveNotes = useCallback((value: string) => {
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
+    notesTimerRef.current = setTimeout(() => saveNotes(value), 500)
+  }, [record.id])
+
+  function openNotesModal() {
+    setModalNotes(notes)
+    setShowNotesModal(true)
+  }
+
+  async function handleSaveModal() {
+    setNotes(modalNotes)
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
+    setSaving(true)
+    await saveNotes(modalNotes)
+    setSaving(false)
+    setShowNotesModal(false)
   }
 
   async function handleEditSubmit() {
@@ -1435,13 +1463,45 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
           : <span className="text-xs text-gray-400">{record.homework || '-'}</span>}
       </td>
       <td className="px-3 py-2.5">
-        <input
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={(e) => handleBlur('notes', e.target.value)}
-          placeholder="입력..."
-          className="w-full min-w-[80px] text-xs border-0 border-b border-dashed border-gray-200 focus:border-blue-400 focus:outline-none py-0.5 bg-transparent"
-        />
+        <button onClick={openNotesModal} className="flex items-center gap-1 max-w-[100px] group">
+          {notes
+            ? <span className="text-xs text-gray-600 truncate max-w-[70px]">{notes}</span>
+            : <span className="text-xs text-gray-300">입력...</span>
+          }
+          <span className={`text-xs flex-shrink-0 ${notes ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
+        </button>
+        {showNotesModal && createPortal(
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+              <h3 className="font-semibold text-gray-800 mb-1">{record.students.name} 학생</h3>
+              <p className="text-xs text-gray-400 mb-3">기타 메모</p>
+              <textarea
+                value={modalNotes}
+                onChange={(e) => setModalNotes(e.target.value)}
+                autoFocus
+                rows={5}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 resize-none mb-4"
+                placeholder="메모를 입력하세요..."
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowNotesModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveModal}
+                  disabled={saving}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white text-sm font-semibold transition-colors"
+                >
+                  {saving ? '저장 중...' : '저장'}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
       </td>
     </tr>
 
