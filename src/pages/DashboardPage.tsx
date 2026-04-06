@@ -27,11 +27,14 @@ export default function DashboardPage() {
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
-  // 한국 로컬 날짜 기준 (UTC 기준 toISOString은 오전 9시 전에 날짜가 하루 늦음)
-  const d = new Date()
-  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  // 한국 로컬 날짜 기준 — 매 조회 시점에 계산 (자정 넘어가도 갱신됨)
+  function getToday() {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
 
   async function fetchRecords() {
+    const today = getToday()
     const { data, error } = await supabase
       .from('attendances')
       .select('*, students(*)')
@@ -45,7 +48,7 @@ export default function DashboardPage() {
     fetchRecords()
     const channel = supabase
       .channel('dashboard-attendances')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendances', filter: `date=eq.${today}` }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendances', filter: `date=eq.${getToday()}` }, (payload) => {
         if (payload.eventType === 'UPDATE' && payload.new) {
           // UPDATE는 payload.new로 해당 레코드만 직접 머지 (fetchRecords 하면 DB 커밋 전 stale 데이터가 올 수 있음)
           setRecords(prev => prev.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r))
@@ -69,45 +72,59 @@ export default function DashboardPage() {
     if (!approveModal) return
     const { id } = approveModal
     const now = new Date().toISOString()
+    const prev = records
     setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'approved', approved_at: now } : r))
-    await supabase.from('attendances').update({ status: 'approved', approved_at: now }).eq('id', id)
+    const { error } = await supabase.from('attendances').update({ status: 'approved', approved_at: now }).eq('id', id)
+    if (error) { console.error('승인 실패:', error); setRecords(prev); return }
     setApproveModal(null)
   }
 
   async function handleReject() {
     if (!rejectModal) return
     const { id } = rejectModal
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected', reject_reason: rejectReason || null } : r))
-    await supabase.from('attendances').update({ status: 'rejected', reject_reason: rejectReason || null }).eq('id', id)
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, status: 'rejected', reject_reason: rejectReason || null } : r))
+    const { error } = await supabase.from('attendances').update({ status: 'rejected', reject_reason: rejectReason || null }).eq('id', id)
+    if (error) { console.error('거절 실패:', error); setRecords(prev); return }
     setRejectModal(null)
     setRejectReason('')
   }
 
   async function handleCancelApprove(id: string) {
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'pending', approved_at: null } : r))
-    await supabase.from('attendances').update({ status: 'pending', approved_at: null }).eq('id', id)
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, status: 'pending', approved_at: null } : r))
+    const { error } = await supabase.from('attendances').update({ status: 'pending', approved_at: null }).eq('id', id)
+    if (error) { console.error('승인취소 실패:', error); setRecords(prev); return }
     setCancelApproveModal(null)
   }
 
   async function handleAllowRetry(id: string) {
-    setRecords(prev => prev.filter(r => r.id !== id))
-    await supabase.from('attendances').delete().eq('id', id)
+    const prev = records
+    setRecords(p => p.filter(r => r.id !== id))
+    const { error } = await supabase.from('attendances').delete().eq('id', id)
+    if (error) { console.error('삭제 실패:', error); setRecords(prev) }
   }
 
   async function handleCheckOut(id: string) {
     const now = new Date().toISOString()
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, checked_out_at: now } : r))
-    await supabase.from('attendances').update({ checked_out_at: now }).eq('id', id)
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, checked_out_at: now } : r))
+    const { error } = await supabase.from('attendances').update({ checked_out_at: now }).eq('id', id)
+    if (error) { console.error('하원 실패:', error); setRecords(prev) }
   }
 
   async function handleCancelCheckOut(id: string) {
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, checked_out_at: null } : r))
-    await supabase.from('attendances').update({ checked_out_at: null }).eq('id', id)
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, checked_out_at: null } : r))
+    const { error } = await supabase.from('attendances').update({ checked_out_at: null }).eq('id', id)
+    if (error) { console.error('하원취소 실패:', error); setRecords(prev) }
   }
 
   async function handleMission(id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) {
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
-    await supabase.from('attendances').update({ [field]: value }).eq('id', id)
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, [field]: value } : r))
+    const { error } = await supabase.from('attendances').update({ [field]: value }).eq('id', id)
+    if (error) { console.error('미션 업데이트 실패:', error); setRecords(prev) }
   }
 
   const [oralQueue, setOralQueue] = useState<OralQueueWithStudent[]>([])
@@ -159,14 +176,19 @@ export default function DashboardPage() {
   }
 
   async function handleCancelNextClinic(id: string) {
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, next_clinic_date: null } : r))
-    await supabase.from('attendances').update({ next_clinic_date: null }).eq('id', id)
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, next_clinic_date: null } : r))
+    const { error } = await supabase.from('attendances').update({ next_clinic_date: null }).eq('id', id)
+    if (error) { console.error('재등원취소 실패:', error); setRecords(prev) }
+    setCancelNextClinicModal(null)
   }
 
   async function handleForceCheckOut(id: string) {
     const now = new Date().toISOString()
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, checked_out_at: now } : r))
-    await supabase.from('attendances').update({ checked_out_at: now }).eq('id', id)
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, checked_out_at: now } : r))
+    const { error } = await supabase.from('attendances').update({ checked_out_at: now }).eq('id', id)
+    if (error) { console.error('강제하원 실패:', error); setRecords(prev) }
   }
 
   async function handleAdminForceCheckout() {
@@ -182,8 +204,10 @@ export default function DashboardPage() {
       oral_status: validStatuses.includes(record.oral_status as string) ? record.oral_status : 'delay',
       homework: validStatuses.includes(record.homework as string) ? record.homework : 'delay',
     }
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r))
-    await supabase.from('attendances').update(updates).eq('id', id)
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, ...updates } : r))
+    const { error } = await supabase.from('attendances').update(updates).eq('id', id)
+    if (error) { console.error('강제하원(관리자) 실패:', error); setRecords(prev); return }
     setForceCheckoutModal(null)
     setForceCheckoutDate('')
   }
@@ -197,15 +221,22 @@ export default function DashboardPage() {
   async function handleBulkCheckOut() {
     const now = new Date().toISOString()
     const targets = classClinicList.filter(r => !r.checked_out_at)
+    const failed: string[] = []
+
     for (const r of targets) {
       if (isAllDone(r)) {
-        // 즉시 하원
-        await supabase.from('attendances').update({ checked_out_at: now }).eq('id', r.id)
+        const { error } = await supabase.from('attendances').update({ checked_out_at: now }).eq('id', r.id)
+        if (error) { console.error(`하원 실패 (${r.students.name}):`, error); failed.push(r.students.name) }
       } else {
-        // force_next_clinic 플래그 → 학생 폰에 모달 팝업
-        await supabase.from('attendances').update({ force_next_clinic: true }).eq('id', r.id)
+        const { error } = await supabase.from('attendances').update({ force_next_clinic: true }).eq('id', r.id)
+        if (error) { console.error(`강제하원 플래그 실패 (${r.students.name}):`, error); failed.push(r.students.name) }
       }
     }
+
+    if (failed.length > 0) {
+      alert(`일부 학생 처리 실패:\n${failed.join(', ')}\n\n해당 학생은 수동으로 하원 처리해주세요.`)
+    }
+
     fetchRecords()
   }
 

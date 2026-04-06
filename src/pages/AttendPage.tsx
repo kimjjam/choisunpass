@@ -155,6 +155,8 @@ export default function AttendPage() {
                 playBeep(ctx.currentTime)
                 playBeep(ctx.currentTime + 0.5)
                 playBeep(ctx.currentTime + 1.0)
+                // 마지막 비프음 종료 후 AudioContext 정리 (메모리 누수 방지)
+                setTimeout(() => ctx.close(), 2000)
               } catch {}
             }
             else setShowCalledModal(false)
@@ -237,10 +239,27 @@ export default function AttendPage() {
   }
 
   async function handleVisitTypeSelect(visitType: VisitType) {
-    if (!pendingStudentData) return
+    if (!pendingStudentData || loading) return  // loading 중 중복 탭 방지
     setShowVisitTypeModal(false)
     setLoading(true)
     const today = getLocalDateStr()
+
+    // 혹시 이미 등록된 출석이 있는지 한 번 더 확인 (빠른 중복 탭 방지)
+    const { data: existing } = await supabase
+      .from('attendances')
+      .select('*')
+      .eq('student_id', pendingStudentData.id)
+      .eq('date', today)
+      .maybeSingle()
+
+    if (existing) {
+      setAttendance(existing)
+      if (existing.checked_out_at) setPageState('checked_out')
+      else setPageState(existing.status as PageState)
+      setLoading(false)
+      return
+    }
+
     const { data: newAttendance, error: insertError } = await supabase
       .from('attendances')
       .insert({

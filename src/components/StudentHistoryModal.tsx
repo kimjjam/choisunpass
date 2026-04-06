@@ -29,6 +29,7 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
   function handleNoteClick(e: React.MouseEvent, text: string) {
     if (!text) return
     if (popover) { setPopover(null); return }
+    // getBoundingClientRect()는 뷰포트 기준 → 스크롤과 무관하게 정확한 위치
     const rect = (e.target as HTMLElement).getBoundingClientRect()
     setPopover({ text, x: rect.left, y: rect.bottom + 6 })
   }
@@ -46,7 +47,7 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
           <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-800 rotate-45" />
         </div>
       )}
-      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()} onScroll={() => setPopover(null)}>
         {/* 헤더 */}
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
           <div>

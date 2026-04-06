@@ -1,10 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const DISCORD_WEBHOOK_URL = Deno.env.get('DISCORD_WEBHOOK_URL')!
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const DISCORD_WEBHOOK_URL = Deno.env.get('DISCORD_WEBHOOK_URL')
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 Deno.serve(async () => {
+  // 환경변수 검증
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('필수 환경변수 누락: SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY')
+    return new Response(JSON.stringify({ error: '환경변수 누락' }), { status: 500 })
+  }
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
   // 한국 시간 기준 오늘 날짜
@@ -48,18 +54,34 @@ Deno.serve(async () => {
   }
 
   // Discord 알림 전송
-  const nameList = targets
-    .map(t => `• ${(t.students as { name: string }).name} → 재등원: ${nextWeek}`)
-    .join('\n')
+  if (DISCORD_WEBHOOK_URL) {
+    const nameList = targets
+      .map(t => {
+        const student = t.students as { name: string } | null
+        const name = student?.name ?? '(이름 없음)'
+        return `• ${name} → 재등원: ${nextWeek}`
+      })
+      .join('\n')
 
-  await fetch(DISCORD_WEBHOOK_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      content: `🏫 **자동 하원 처리 완료** (${targets.length}명)\n${nameList}`,
-    }),
-  })
+    try {
+      const discordRes = await fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: `🏫 **자동 하원 처리 완료** (${targets.length}명)\n${nameList}`,
+        }),
+      })
+      if (!discordRes.ok) {
+        console.error('Discord 알림 실패:', discordRes.status, await discordRes.text())
+      }
+    } catch (discordErr) {
+      console.error('Discord 알림 오류:', discordErr)
+      // Discord 실패해도 하원 처리는 완료된 것으로 처리
+    }
+  } else {
+    console.warn('DISCORD_WEBHOOK_URL 미설정 - 알림 생략')
+  }
 
-  console.log(`자동 하원 처리: ${targets.length}명`)
+  console.log(`자동 하원 처리 완료: ${targets.length}명`)
   return new Response(JSON.stringify({ processed: targets.length }), { status: 200 })
 })

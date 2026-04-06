@@ -175,7 +175,10 @@ export default function AdminPage() {
   }
 
   async function fetchNoShowData() {
-    // 직전 주 월요일 계산
+    // 직전 주 월요일 계산 (로컬 날짜 기준 — toISOString은 UTC라 오전 9시 전 하루 오차)
+    function localDateStr(d: Date) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
     const today = new Date()
     const day = today.getDay()
     const diff = day === 0 ? -6 : 1 - day
@@ -185,8 +188,8 @@ export default function AdminPage() {
     lastMonday.setDate(thisMonday.getDate() - 7)
     const lastFriday = new Date(lastMonday)
     lastFriday.setDate(lastMonday.getDate() + 4)
-    const weekStart = lastMonday.toISOString().split('T')[0]
-    const weekEnd = lastFriday.toISOString().split('T')[0]
+    const weekStart = localDateStr(lastMonday)
+    const weekEnd = localDateStr(lastFriday)
     setAbsenceWeek(weekStart)
 
     // 지난주 출석한 학생 id 목록
@@ -204,7 +207,7 @@ export default function AdminPage() {
     }
 
     // 미재등원: next_clinic_date가 오늘 이전이고 그 이후 출석이 없는 경우
-    const todayStr = today.toISOString().split('T')[0]
+    const todayStr = localDateStr(today)
     const { data: overdueData } = await supabase
       .from('attendances')
       .select('*, students(*)')
@@ -225,16 +228,21 @@ export default function AdminPage() {
   async function handleAddAbsence(studentId: string, type: '미실시' | '미재등원') {
     if (!absenceReasonModal || !selectedTermId) return
     setAbsenceLoading(true)
-    await supabase.from('clinic_absences').insert({
+    const { error } = await supabase.from('clinic_absences').insert({
       student_id: studentId,
       term_id: selectedTermId,
       week_start_date: absenceWeek,
       type,
       reason: absenceReason.trim() || null,
     })
+    setAbsenceLoading(false)
+    if (error) {
+      console.error('결석 사유 저장 실패:', error)
+      alert('저장에 실패했습니다. 다시 시도해주세요.')
+      return
+    }
     setAbsenceReasonModal(null)
     setAbsenceReason('')
-    setAbsenceLoading(false)
     fetchAbsences()
     fetchNoShowData()
   }
