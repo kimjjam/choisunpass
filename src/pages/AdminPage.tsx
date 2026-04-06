@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import * as XLSX from 'xlsx'
 import { useNavigate } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 import type { Student, AttendanceWithStudent, Term, ClinicAbsenceWithStudent } from '../lib/database.types'
 import EditStudentModal from '../components/EditStudentModal'
+import StudentHistoryModal from '../components/StudentHistoryModal'
 
 type AdminTab = 'students' | 'weekly' | 'stats' | 'absence'
 
@@ -1208,111 +1208,13 @@ export default function AdminPage() {
 
       {/* 학생 히스토리 모달 */}
       {historyTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-800 text-lg">{historyTarget.name}</h3>
-                <p className="text-xs text-gray-400">{historyTarget.school} · {historyTarget.class} · 코드: {historyTarget.code}</p>
-              </div>
-              <button onClick={() => setHistoryTarget(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
-            </div>
-            <div className="p-6 space-y-6">
-              {/* 출석 히스토리 */}
-              <div>
-                <h4 className="font-semibold text-gray-700 text-sm mb-3">출석 기록 ({historyRecords.length}건)</h4>
-                {historyRecords.length === 0 ? <p className="text-sm text-gray-400">기록 없음</p> : (
-                  <table className="w-full text-xs">
-                    <thead><tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="px-3 py-2 text-left text-gray-500">날짜</th>
-                      <th className="px-2 py-2 text-center text-gray-500">구분</th>
-                      <th className="px-2 py-2 text-center text-gray-500">상태</th>
-                      <th className="px-2 py-2 text-center text-gray-500">단어</th>
-                      <th className="px-2 py-2 text-center text-gray-500">클리닉</th>
-                      <th className="px-2 py-2 text-center text-gray-500">구두</th>
-                      <th className="px-2 py-2 text-left text-gray-500">다음 예정</th>
-                    </tr></thead>
-                    <tbody>
-                      {historyRecords.map(r => (
-                        <tr key={r.id} className="border-b border-gray-50">
-                          <td className="px-3 py-2 text-gray-700">{r.date}</td>
-                          <td className="px-2 py-2 text-center">
-                            <span className={`px-1.5 py-0.5 rounded text-xs ${r.visit_type === 'class_clinic' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
-                              {r.visit_type === 'class_clinic' ? '수업+클리닉' : '클리닉'}
-                            </span>
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            {r.status === 'approved' ? <span className="text-green-600">✓</span> : r.status === 'rejected' ? <span className="text-red-400">✕</span> : <span className="text-yellow-500">대기</span>}
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            {r.word_score
-                              ? <span className={(r.word_score === '00' || r.word_score === '--') ? 'text-orange-500 font-semibold text-xs' : 'text-gray-700 text-xs'}>{r.word_score}</span>
-                              : <span className="text-gray-300 text-xs">-</span>}
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            {r.clinic_score
-                              ? <span className={(r.clinic_score === '00' || r.clinic_score === '--') ? 'text-orange-500 font-semibold text-xs' : 'text-gray-700 text-xs'}>{r.clinic_score}</span>
-                              : <span className="text-gray-300 text-xs">-</span>}
-                          </td>
-                          <td className="px-2 py-2 text-center">
-                            {r.oral_status === 'pass' ? <span className="text-green-500">P</span> : r.oral_status === 'fail' ? <span className="text-red-400">F</span> : r.oral_status === 'delay' ? <span className="text-yellow-500">D</span> : <span className="text-gray-300">-</span>}
-                          </td>
-                          <td className="px-2 py-2 text-blue-500">{r.next_clinic_date || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-
-              {/* 성적 차트 */}
-              {historyRecords.filter(r => r.word_score || r.clinic_score).length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-gray-700 text-sm mb-3">성적 히스토리</h4>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={[...historyRecords].filter(r => r.word_score || r.clinic_score).reverse().map(r => ({
-                      date: r.date.slice(5),
-                      단어: r.word_score ? Number(r.word_score) : null,
-                      클리닉: r.clinic_score ? Number(r.clinic_score) : null,
-                    }))}>
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="단어" fill="#3b82f6" radius={[3,3,0,0]} />
-                      <Bar dataKey="클리닉" fill="#8b5cf6" radius={[3,3,0,0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* 결석 사유 기록 */}
-              {historyAbsences.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-gray-700 text-sm mb-3">결석 사유 기록</h4>
-                  <table className="w-full text-xs">
-                    <thead><tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="px-3 py-2 text-left text-gray-500">주차</th>
-                      <th className="px-2 py-2 text-center text-gray-500">구분</th>
-                      <th className="px-2 py-2 text-left text-gray-500">사유</th>
-                    </tr></thead>
-                    <tbody>
-                      {historyAbsences.map(a => (
-                        <tr key={a.id} className="border-b border-gray-50">
-                          <td className="px-3 py-2 text-gray-700">{a.week_start_date}</td>
-                          <td className="px-2 py-2 text-center">
-                            <span className={`px-1.5 py-0.5 rounded text-xs ${a.type === '미실시' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>{a.type}</span>
-                          </td>
-                          <td className="px-2 py-2 text-gray-500">{a.reason || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <StudentHistoryModal
+          student={historyTarget}
+          records={historyRecords}
+          onClose={() => setHistoryTarget(null)}
+          showChart={true}
+          absences={historyAbsences}
+        />
       )}
 
       {/* 학생 수정 모달 */}

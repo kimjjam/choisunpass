@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useCurrentUser } from '../hooks/useCurrentUser'
-import type { AttendanceWithStudent, MissionStatus, OralQueueWithStudent } from '../lib/database.types'
+import type { AttendanceWithStudent, MissionStatus, OralQueueWithStudent, Student } from '../lib/database.types'
+import StudentHistoryModal from '../components/StudentHistoryModal'
 
 type Tab = 'pending' | 'clinic' | 'class_clinic' | 'checked_out' | 'overview' | 'oral' | 'rejected'
 
@@ -21,6 +22,8 @@ export default function DashboardPage() {
   const [checkoutConfirmModal, setCheckoutConfirmModal] = useState<{ id: string; name: string } | null>(null)
   const [cancelCheckoutModal, setCancelCheckoutModal] = useState<{ id: string; name: string } | null>(null)
   const [cancelNextClinicModal, setCancelNextClinicModal] = useState<{ id: string; name: string } | null>(null)
+  const [historyTarget, setHistoryTarget] = useState<Student | null>(null)
+  const [historyRecords, setHistoryRecords] = useState<AttendanceWithStudent[]>([])
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
@@ -143,6 +146,16 @@ export default function DashboardPage() {
   async function handleRemoveFromQueue(queueId: string) {
     await supabase.from('oral_queue').delete().eq('id', queueId)
     fetchOralQueue()
+  }
+
+  async function openHistory(student: Student) {
+    setHistoryTarget(student)
+    const { data } = await supabase
+      .from('attendances')
+      .select('*, students(*)')
+      .eq('student_id', student.id)
+      .order('date', { ascending: false })
+    if (data) setHistoryRecords(data as AttendanceWithStudent[])
   }
 
   async function handleCancelNextClinic(id: string) {
@@ -611,6 +624,7 @@ export default function DashboardPage() {
             onCheckOut={(r) => handleCheckOut(r.id)}
             onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
             onMission={handleMission}
+            onNameClick={(r) => openHistory(r.students)}
           />
         )}
 
@@ -663,6 +677,7 @@ export default function DashboardPage() {
               onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
               onMission={handleMission}
               onAdminForceCheckout={(r) => { setForceCheckoutDate(''); setForceCheckoutModal({ id: r.id, name: r.students.name, record: r }) }}
+              onNameClick={(r) => openHistory(r.students)}
             />
           </div>
         )}
@@ -690,6 +705,7 @@ export default function DashboardPage() {
             onCheckOut={(r) => handleCheckOut(r.id)}
             onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
             onMission={handleMission}
+            onNameClick={(r) => openHistory(r.students)}
           />
           </div>
         )}
@@ -1017,6 +1033,15 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* 학생 히스토리 모달 */}
+      {historyTarget && (
+        <StudentHistoryModal
+          student={historyTarget}
+          records={historyRecords}
+          onClose={() => setHistoryTarget(null)}
+        />
+      )}
     </div>
   )
 }
@@ -1024,7 +1049,7 @@ export default function DashboardPage() {
 // ─── 서브 컴포넌트 ────────────────────────────────────────
 
 function AttendanceTable({
-  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout,
+  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick,
 }: {
   list: AttendanceWithStudent[]
   loading: boolean
@@ -1037,6 +1062,7 @@ function AttendanceTable({
   onCancelCheckOut: (r: AttendanceWithStudent) => void
   onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
   onAdminForceCheckout?: (r: AttendanceWithStudent) => void
+  onNameClick?: (r: AttendanceWithStudent) => void
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1073,6 +1099,7 @@ function AttendanceTable({
                 onCancelCheckOut={() => onCancelCheckOut(record)}
                 onMission={onMission}
                 onAdminForceCheckout={onAdminForceCheckout ? () => onAdminForceCheckout(record) : undefined}
+                onNameClick={onNameClick ? () => onNameClick(record) : undefined}
               />
             ))}
           </tbody>
@@ -1107,6 +1134,7 @@ function AttendanceRow({
   onCancelCheckOut,
   onMission,
   onAdminForceCheckout,
+  onNameClick,
 }: {
   record: AttendanceWithStudent
   onApprove: () => void
@@ -1117,6 +1145,7 @@ function AttendanceRow({
   onCancelCheckOut: () => void
   onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
   onAdminForceCheckout?: () => void
+  onNameClick?: () => void
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
   const [wordScore, setWordScore] = useState(record.word_score ?? '')
@@ -1181,7 +1210,12 @@ function AttendanceRow({
     <tr className={`hover:bg-blue-50/30 transition-colors ${rowBg[record.status]}`}>
       {/* 이름 */}
       <td className="px-4 py-3">
-        <div className="font-medium text-gray-900">{record.students.name}</div>
+        <div
+          className={`font-medium text-gray-900 ${onNameClick ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
+          onClick={onNameClick}
+        >
+          {record.students.name}
+        </div>
         {record.students.oral_type && <div className="text-xs text-blue-500">{record.students.oral_type}</div>}
       </td>
       {/* 학교·반 */}
