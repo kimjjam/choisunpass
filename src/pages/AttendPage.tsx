@@ -36,6 +36,11 @@ export default function AttendPage() {
   const [showCalledModal, setShowCalledModal] = useState(false)
   const [showReCheckInModal, setShowReCheckInModal] = useState(false)
 
+  // 미완료 항목 모달
+  type IncompleteWeek = { label: string; fields: string[] }
+  const [incompleteModal, setIncompleteModal] = useState<IncompleteWeek[] | null>(null)
+  const prevPageState = useRef<PageState>('input')
+
   useEffect(() => { oralQueueRef.current = oralQueue }, [oralQueue])
 
   // 새로고침 후 상태 복원
@@ -65,6 +70,84 @@ export default function AttendPage() {
   useEffect(() => {
     if (attendance) localStorage.setItem('attendance_id', attendance.id)
   }, [attendance?.id])
+
+  // pending → approved 전환 시 미완료 항목 체크
+  useEffect(() => {
+    const wasApproved = prevPageState.current === 'approved'
+    prevPageState.current = pageState
+    if (pageState !== 'approved' || wasApproved || !student) return
+    checkIncompleteItems(student.id, !!attendance?.rechecked_in_at)
+  }, [pageState])
+
+  function localDateStr(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  function getWeekRange(date: Date) {
+    const day = date.getDay()
+    const diff = day === 0 ? -6 : 1 - day
+    const monday = new Date(date)
+    monday.setDate(date.getDate() + diff)
+    const friday = new Date(monday)
+    friday.setDate(monday.getDate() + 4)
+    return { start: localDateStr(monday), end: localDateStr(friday) }
+  }
+
+  function getIncompleteFields(r: { word_score?: string | null; clinic_score?: string | null; oral_status?: string | null; homework?: string | null }): string[] {
+    const fields: string[] = []
+    const blank = (v: string | null | undefined) => !v?.trim() || v === '00' || v === '--'
+    if (blank(r.word_score)) fields.push('단어 점수')
+    if (blank(r.clinic_score)) fields.push('클리닉 점수')
+    if (r.oral_status === 'fail') fields.push('구두 (Fail)')
+    else if (r.oral_status === 'delay' || !r.oral_status) fields.push('구두 (미완료)')
+    if (r.homework === 'fail') fields.push('과제 (Fail)')
+    else if (r.homework === 'delay' || !r.homework) fields.push('과제 (미완료)')
+    return fields
+  }
+
+  async function checkIncompleteItems(studentId: string, isReCheckIn: boolean) {
+    const today = new Date()
+    const lastWeek = getWeekRange(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7))
+    const thisWeek = getWeekRange(today)
+    const todayStr = localDateStr(today)
+
+    const result: IncompleteWeek[] = []
+
+    // 지난주 미완료
+    const { data: lastWeekData } = await supabase
+      .from('attendances')
+      .select('word_score, clinic_score, oral_status, homework')
+      .eq('student_id', studentId)
+      .eq('status', 'approved')
+      .gte('date', lastWeek.start)
+      .lte('date', lastWeek.end)
+      .limit(1)
+      .maybeSingle()
+    if (lastWeekData) {
+      const fields = getIncompleteFields(lastWeekData)
+      if (fields.length > 0) result.push({ label: '지난주', fields })
+    }
+
+    // 재등원이면 이번주도 체크 (오늘 제외)
+    if (isReCheckIn) {
+      const { data: thisWeekData } = await supabase
+        .from('attendances')
+        .select('word_score, clinic_score, oral_status, homework')
+        .eq('student_id', studentId)
+        .eq('status', 'approved')
+        .gte('date', thisWeek.start)
+        .lte('date', thisWeek.end)
+        .neq('date', todayStr)
+        .limit(1)
+        .maybeSingle()
+      if (thisWeekData) {
+        const fields = getIncompleteFields(thisWeekData)
+        if (fields.length > 0) result.push({ label: '이번주', fields })
+      }
+    }
+
+    if (result.length > 0) setIncompleteModal(result)
+  }
 
   // 출석 상태 실시간 구독
   useEffect(() => {
@@ -640,6 +723,42 @@ export default function AttendPage() {
                 네, 방문했어요
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 미완료 항목 안내 모달 */}
+      {incompleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl">
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <h3 className="font-bold text-gray-800 text-center mb-1">미완료 항목 안내</h3>
+            <p className="text-xs text-gray-400 text-center mb-4">아직 완료되지 않은 항목이 있어요</p>
+            <div className="space-y-3">
+              {incompleteModal.map((week) => (
+                <div key={week.label} className="bg-orange-50 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-orange-600 mb-1.5">{week.label}</p>
+                  <ul className="space-y-0.5">
+                    {week.fields.map((f) => (
+                      <li key={f} className="text-xs text-gray-600 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setIncompleteModal(null)}
+              className="w-full mt-4 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors"
+            >
+              확인했어요
+            </button>
           </div>
         </div>
       )}
