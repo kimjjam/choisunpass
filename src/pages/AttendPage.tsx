@@ -615,9 +615,13 @@ export default function AttendPage() {
             >
               하원할게요
             </button>
-            {!attendance?.next_clinic_date && (
+            {/* 다음에 올게요: next_clinic_date 없을 때 + 하원취소로 인해 class_clinic인데 next_clinic_date만 남은 비정상 상태도 포함 */}
+            {(!attendance?.next_clinic_date || (attendance.visit_type === 'class_clinic' && !attendance.checked_out_at)) && (
               <button
-                onClick={() => setShowNextClinicModal(true)}
+                onClick={() => {
+                  if (attendance?.next_clinic_date) setNextClinicDate(attendance.next_clinic_date)
+                  setShowNextClinicModal(true)
+                }}
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-3 rounded-xl transition-colors text-sm mb-3"
               >
                 다음에 올게요
