@@ -95,7 +95,7 @@ export default function AttendPage() {
 
   function getIncompleteFields(r: { word_score?: string | null; clinic_score?: string | null; oral_status?: string | null; homework?: string | null }): string[] {
     const fields: string[] = []
-    const blank = (v: string | null | undefined) => !v?.trim() || v === '00' || v === '--'
+    const blank = (v: string | null | undefined) => !v?.trim() || v === '00' || v === '--' || v === '-'
     if (blank(r.word_score)) fields.push('단어 점수')
     if (blank(r.clinic_score)) fields.push('클리닉 점수')
     if (r.oral_status === 'fail') fields.push('구두 (Fail)')
