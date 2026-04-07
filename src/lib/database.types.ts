@@ -40,6 +40,8 @@ export interface Attendance {
   reject_reason: string | null
   homework: string | null
   notes: string | null
+  oral_memo: string | null
+  homework_memo: string | null
 }
 
 export interface AttendanceWithStudent extends Attendance {
@@ -74,6 +76,8 @@ export type AttendanceInsert = {
   reject_reason?: string | null
   homework?: string | null
   notes?: string | null
+  oral_memo?: string | null
+  homework_memo?: string | null
 }
 
 export interface ClinicAbsence {

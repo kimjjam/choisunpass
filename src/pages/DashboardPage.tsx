@@ -1396,11 +1396,15 @@ function AttendanceRow({
   onSetNextClinic?: () => void
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
+  const [oralMemo, setOralMemo] = useState(record.oral_memo ?? '')
+  const [homeworkMemo, setHomeworkMemo] = useState(record.homework_memo ?? '')
   const [wordScore, setWordScore] = useState(record.word_score ?? '')
   const [clinicScore, setClinicScore] = useState(record.clinic_score ?? '')
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showNotesModal, setShowNotesModal] = useState(false)
   const [modalNotes, setModalNotes] = useState('')
+  const [modalOralMemo, setModalOralMemo] = useState('')
+  const [modalHomeworkMemo, setModalHomeworkMemo] = useState('')
 
   const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass']
   const homeworkVal = validStatuses.includes(record.homework as string) ? record.homework as MissionStatus : null
@@ -1431,20 +1435,27 @@ function AttendanceRow({
     rejected: 'opacity-60',
   }
 
-  async function saveNotes(value: string) {
-    await supabase.from('attendances').update({ notes: value || null }).eq('id', record.id)
+  async function saveNotes(n: string, om: string, hm: string) {
+    await supabase.from('attendances').update({
+      notes: n || null,
+      oral_memo: om || null,
+      homework_memo: hm || null,
+    }).eq('id', record.id)
   }
-
 
   function openNotesModal() {
     setModalNotes(notes)
+    setModalOralMemo(oralMemo)
+    setModalHomeworkMemo(homeworkMemo)
     setShowNotesModal(true)
   }
 
   async function handleSaveModal() {
     setNotes(modalNotes)
+    setOralMemo(modalOralMemo)
+    setHomeworkMemo(modalHomeworkMemo)
     if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
-    await saveNotes(modalNotes)
+    await saveNotes(modalNotes, modalOralMemo, modalHomeworkMemo)
     setShowNotesModal(false)
   }
 
@@ -1525,27 +1536,52 @@ function AttendanceRow({
             onClick={openNotesModal}
             className="flex items-center gap-1 max-w-[100px] group"
           >
-            {notes ? (
-              <span className="text-xs text-gray-600 truncate max-w-[70px]">{notes}</span>
+            {(oralMemo || homeworkMemo || notes) ? (
+              <span className="text-xs text-gray-600 truncate max-w-[70px]">{oralMemo || homeworkMemo || notes}</span>
             ) : (
               <span className="text-xs text-gray-300">메모...</span>
             )}
-            <span className={`text-xs flex-shrink-0 ${notes ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
+            <span className={`text-xs flex-shrink-0 ${(oralMemo || homeworkMemo || notes) ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
           </button>
         )}
         {showNotesModal && createPortal(
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+            <div className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl">
               <h3 className="font-semibold text-gray-800 mb-1">{record.students.name} 학생</h3>
-              <p className="text-xs text-gray-400 mb-3">기타 메모</p>
-              <textarea
-                value={modalNotes}
-                onChange={(e) => setModalNotes(e.target.value)}
-                autoFocus
-                rows={5}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 resize-none mb-4"
-                placeholder="메모를 입력하세요..."
-              />
+              <p className="text-xs text-gray-400 mb-4">메모</p>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div>
+                  <label className="block text-xs font-medium text-blue-500 mb-1.5">구두 메모</label>
+                  <textarea
+                    value={modalOralMemo}
+                    onChange={(e) => setModalOralMemo(e.target.value)}
+                    autoFocus
+                    rows={5}
+                    className="w-full border border-blue-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 resize-none"
+                    placeholder="구두 관련 메모..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-purple-500 mb-1.5">과제 메모</label>
+                  <textarea
+                    value={modalHomeworkMemo}
+                    onChange={(e) => setModalHomeworkMemo(e.target.value)}
+                    rows={5}
+                    className="w-full border border-purple-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-400 resize-none"
+                    placeholder="과제 관련 메모..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1.5">기타 메모</label>
+                  <textarea
+                    value={modalNotes}
+                    onChange={(e) => setModalNotes(e.target.value)}
+                    rows={5}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-gray-400 resize-none"
+                    placeholder="기타 메모..."
+                  />
+                </div>
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowNotesModal(false)}
