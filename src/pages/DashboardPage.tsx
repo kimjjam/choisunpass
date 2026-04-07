@@ -22,6 +22,8 @@ export default function DashboardPage() {
   const [checkoutConfirmModal, setCheckoutConfirmModal] = useState<{ id: string; name: string } | null>(null)
   const [cancelCheckoutModal, setCancelCheckoutModal] = useState<{ id: string; name: string } | null>(null)
   const [cancelNextClinicModal, setCancelNextClinicModal] = useState<{ id: string; name: string } | null>(null)
+  const [nextClinicSetModal, setNextClinicSetModal] = useState<{ id: string; name: string; currentDate: string | null } | null>(null)
+  const [nextClinicDateInput, setNextClinicDateInput] = useState('')
   const [historyTarget, setHistoryTarget] = useState<Student | null>(null)
   const [historyRecords, setHistoryRecords] = useState<AttendanceWithStudent[]>([])
   const [rejectReason, setRejectReason] = useState('')
@@ -173,6 +175,15 @@ export default function DashboardPage() {
       .eq('student_id', student.id)
       .order('date', { ascending: false })
     if (data) setHistoryRecords(data as AttendanceWithStudent[])
+  }
+
+  async function handleSetNextClinicDate(id: string, date: string) {
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, next_clinic_date: date } : r))
+    const { error } = await supabase.from('attendances').update({ next_clinic_date: date }).eq('id', id)
+    if (error) { console.error('재등원 날짜 설정 실패:', error); setRecords(prev); return }
+    setNextClinicSetModal(null)
+    setNextClinicDateInput('')
   }
 
   async function handleCancelNextClinic(id: string) {
@@ -709,6 +720,7 @@ export default function DashboardPage() {
               onMission={handleMission}
               onAdminForceCheckout={(r) => { setForceCheckoutDate(''); setForceCheckoutModal({ id: r.id, name: r.students.name, record: r }) }}
               onNameClick={(r) => openHistory(r.students)}
+              onSetNextClinic={(r) => { setNextClinicDateInput(r.next_clinic_date ?? ''); setNextClinicSetModal({ id: r.id, name: r.students.name, currentDate: r.next_clinic_date ?? null }) }}
             />
           </div>
         )}
@@ -908,6 +920,41 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* 재등원 날짜 설정 모달 */}
+      {nextClinicSetModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-1 text-center">{nextClinicSetModal.name} 학생</h3>
+            <p className="text-sm text-gray-500 text-center mb-4">재등원 예정일을 설정하세요</p>
+            <input
+              type="date"
+              value={nextClinicDateInput}
+              onChange={(e) => setNextClinicDateInput(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 mb-4"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setNextClinicSetModal(null); setNextClinicDateInput('') }}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => handleSetNextClinicDate(nextClinicSetModal.id, nextClinicDateInput)}
+                disabled={!nextClinicDateInput}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  nextClinicDateInput
+                    ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                }`}
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 강제하원 모달 */}
       {forceCheckoutModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -1080,7 +1127,7 @@ export default function DashboardPage() {
 // ─── 서브 컴포넌트 ────────────────────────────────────────
 
 function AttendanceTable({
-  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick,
+  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic,
 }: {
   list: AttendanceWithStudent[]
   loading: boolean
@@ -1094,6 +1141,7 @@ function AttendanceTable({
   onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
   onAdminForceCheckout?: (r: AttendanceWithStudent) => void
   onNameClick?: (r: AttendanceWithStudent) => void
+  onSetNextClinic?: (r: AttendanceWithStudent) => void
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1131,6 +1179,7 @@ function AttendanceTable({
                 onMission={onMission}
                 onAdminForceCheckout={onAdminForceCheckout ? () => onAdminForceCheckout(record) : undefined}
                 onNameClick={onNameClick ? () => onNameClick(record) : undefined}
+                onSetNextClinic={onSetNextClinic ? () => onSetNextClinic(record) : undefined}
               />
             ))}
           </tbody>
@@ -1166,6 +1215,7 @@ function AttendanceRow({
   onMission,
   onAdminForceCheckout,
   onNameClick,
+  onSetNextClinic,
 }: {
   record: AttendanceWithStudent
   onApprove: () => void
@@ -1177,6 +1227,7 @@ function AttendanceRow({
   onMission: (id: string, field: 'word_status' | 'oral_status' | 'homework', value: MissionStatus) => void
   onAdminForceCheckout?: () => void
   onNameClick?: () => void
+  onSetNextClinic?: () => void
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
   const [wordScore, setWordScore] = useState(record.word_score ?? '')
@@ -1394,9 +1445,23 @@ function AttendanceRow({
           </div>
         )}
         {record.status === 'approved' && (
-          <button onClick={onCancelApprove} className="text-xs text-gray-400 hover:text-orange-500 transition-colors whitespace-nowrap">
-            승인 취소
-          </button>
+          <div className="flex flex-col items-center gap-1">
+            <button onClick={onCancelApprove} className="text-xs text-gray-400 hover:text-orange-500 transition-colors whitespace-nowrap">
+              승인 취소
+            </button>
+            {onSetNextClinic && !record.checked_out_at && (
+              <button
+                onClick={onSetNextClinic}
+                className={`text-xs px-2 py-0.5 rounded-md transition-colors whitespace-nowrap ${
+                  record.next_clinic_date
+                    ? 'text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'text-gray-400 hover:text-blue-500 border border-dashed border-gray-300 hover:border-blue-400'
+                }`}
+              >
+                {record.next_clinic_date ? `📅 ${record.next_clinic_date}` : '재등원 날짜'}
+              </button>
+            )}
+          </div>
         )}
         {record.status === 'rejected' && (
           <div className="space-y-1">
