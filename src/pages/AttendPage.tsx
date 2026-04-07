@@ -99,6 +99,8 @@ export default function AttendPage() {
     if (blank(r.word_score)) fields.push('단어 점수')
     if (blank(r.clinic_score)) fields.push('클리닉 점수')
     if (r.oral_status === 'fail') fields.push('구두 (Fail)')
+    else if (r.oral_status === 'word_pass') fields.push('구두 (단어Pass만)')
+    else if (r.oral_status === 'sentence_pass') fields.push('구두 (문장Pass만)')
     else if (r.oral_status === 'delay' || !r.oral_status) fields.push('구두 (미완료)')
     if (r.homework === 'fail') fields.push('과제 (Fail)')
     else if (r.homework === 'delay' || !r.homework) fields.push('과제 (미완료)')
@@ -393,7 +395,7 @@ export default function AttendPage() {
     setNextClinicLoading(false)
   }
 
-  const validStatuses = ['pass', 'fail', 'delay']
+  const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass']
   const allDone =
     !!attendance?.word_score?.trim() &&
     !!attendance?.clinic_score?.trim() &&

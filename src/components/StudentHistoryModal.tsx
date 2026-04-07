@@ -20,6 +20,8 @@ function StatusBadge({ value }: { value: string | null }) {
   if (value === 'pass') return <span className="text-green-500 font-medium">P</span>
   if (value === 'fail') return <span className="text-red-400 font-medium">F</span>
   if (value === 'delay') return <span className="text-yellow-500 font-medium">D</span>
+  if (value === 'word_pass') return <span className="text-orange-500 font-medium">단어P</span>
+  if (value === 'sentence_pass') return <span className="text-orange-500 font-medium">문장P</span>
   return <span className="text-gray-300">-</span>
 }
 
