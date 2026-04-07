@@ -129,7 +129,7 @@ export default function DashboardPage() {
 
   const [oralQueue, setOralQueue] = useState<OralQueueWithStudent[]>([])
   const [callerModal, setCallerModal] = useState<string | null>(null) // queueId 저장
-  const CALLERS = ['김재민조교', '조은채조교', '신수현조교', '이채연조교']
+  const CALLERS = ['김재민조교', '조은채조교', '신수현조교', '이채연조교', '박성우조교']
 
   async function fetchOralQueue() {
     const { data } = await supabase
