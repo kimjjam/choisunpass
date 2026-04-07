@@ -131,6 +131,8 @@ export default function DashboardPage() {
 
   const [oralQueue, setOralQueue] = useState<OralQueueWithStudent[]>([])
   const [callerModal, setCallerModal] = useState<string | null>(null) // queueId 저장
+  const [oralDoneModal, setOralDoneModal] = useState<{ queueId: string; attendanceId: string; studentName: string } | null>(null)
+  const [oralDoneForm, setOralDoneForm] = useState<{ wordScore: string; clinicScore: string; oralStatus: MissionStatus; homework: MissionStatus; notes: string }>({ wordScore: '', clinicScore: '', oralStatus: null, homework: null, notes: '' })
   const CALLERS = ['김재민조교', '조은채조교', '신수현조교', '이채연조교', '박성우조교']
 
   async function fetchOralQueue() {
@@ -157,9 +159,33 @@ export default function DashboardPage() {
     fetchOralQueue()
   }
 
-  async function handleDoneStudent(queueId: string) {
+  async function openOralDoneModal(q: OralQueueWithStudent) {
+    // 기존 성적 pre-fill
+    const { data } = await supabase.from('attendances').select('word_score, clinic_score, oral_status, homework, notes').eq('id', q.attendance_id).maybeSingle()
+    setOralDoneForm({
+      wordScore: data?.word_score ?? '',
+      clinicScore: data?.clinic_score ?? '',
+      oralStatus: (data?.oral_status as MissionStatus) ?? null,
+      homework: (data?.homework as MissionStatus) ?? null,
+      notes: data?.notes ?? '',
+    })
+    setOralDoneModal({ queueId: q.id, attendanceId: q.attendance_id, studentName: q.students.name })
+  }
+
+  async function handleOralDoneSubmit() {
+    if (!oralDoneModal) return
+    const { attendanceId, queueId } = oralDoneModal
+    await supabase.from('attendances').update({
+      word_score: oralDoneForm.wordScore.trim() || null,
+      clinic_score: oralDoneForm.clinicScore.trim() || null,
+      oral_status: oralDoneForm.oralStatus,
+      homework: oralDoneForm.homework,
+      notes: oralDoneForm.notes.trim() || null,
+    }).eq('id', attendanceId)
     await supabase.from('oral_queue').delete().eq('id', queueId)
+    setOralDoneModal(null)
     fetchOralQueue()
+    fetchRecords()
   }
 
   async function handleRemoveFromQueue(queueId: string) {
@@ -632,7 +658,7 @@ export default function DashboardPage() {
                           )}
                           {q.status === 'called' && (
                             <button
-                              onClick={() => handleDoneStudent(q.id)}
+                              onClick={() => openOralDoneModal(q)}
                               className="text-xs bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg transition-colors"
                             >
                               완료
@@ -1108,6 +1134,107 @@ export default function DashboardPage() {
             >
               취소
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 구두 완료 성적 입력 모달 */}
+      {oralDoneModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800">{oralDoneModal.studentName} 학생</h3>
+                <p className="text-xs text-gray-400 mt-0.5">구두 완료 처리</p>
+              </div>
+              <button onClick={() => setOralDoneModal(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              {/* 점수 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">단어 점수</label>
+                  <input
+                    value={oralDoneForm.wordScore}
+                    onChange={(e) => setOralDoneForm(f => ({ ...f, wordScore: e.target.value }))}
+                    placeholder="예: 85"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">클리닉 점수</label>
+                  <input
+                    value={oralDoneForm.clinicScore}
+                    onChange={(e) => setOralDoneForm(f => ({ ...f, clinicScore: e.target.value }))}
+                    placeholder="예: 90"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+              </div>
+              {/* 구두 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">구두</label>
+                <div className="flex gap-2">
+                  {(['pass', 'fail', 'delay'] as MissionStatus[]).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setOralDoneForm(f => ({ ...f, oralStatus: f.oralStatus === v ? null : v }))}
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                        oralDoneForm.oralStatus === v
+                          ? v === 'pass' ? 'bg-green-500 text-white' : v === 'fail' ? 'bg-red-400 text-white' : 'bg-yellow-400 text-white'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      {v === 'pass' ? 'Pass' : v === 'fail' ? 'Fail' : 'Delay'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* 과제 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">과제</label>
+                <div className="flex gap-2">
+                  {(['pass', 'fail', 'delay'] as MissionStatus[]).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setOralDoneForm(f => ({ ...f, homework: f.homework === v ? null : v }))}
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                        oralDoneForm.homework === v
+                          ? v === 'pass' ? 'bg-green-500 text-white' : v === 'fail' ? 'bg-red-400 text-white' : 'bg-yellow-400 text-white'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      {v === 'pass' ? 'Pass' : v === 'fail' ? 'Fail' : 'Delay'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* 기타 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">기타 메모 (선택)</label>
+                <textarea
+                  value={oralDoneForm.notes}
+                  onChange={(e) => setOralDoneForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="메모를 입력하세요..."
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-400"
+                />
+              </div>
+            </div>
+            <div className="px-6 pb-5 flex gap-2">
+              <button
+                onClick={() => setOralDoneModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleOralDoneSubmit}
+                className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
+              >
+                저장 & 완료
+              </button>
+            </div>
           </div>
         </div>
       )}
