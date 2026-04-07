@@ -6,7 +6,7 @@ export interface Term {
   start_date: string
   created_at: string
 }
-export type MissionStatus = 'pass' | 'fail' | 'delay' | 'word_pass' | 'sentence_pass' | null
+export type MissionStatus = 'pass' | 'fail' | 'delay' | 'word_pass' | 'sentence_pass' | 'partial_pass' | null
 
 export interface Student {
   id: string

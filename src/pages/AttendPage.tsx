@@ -103,6 +103,7 @@ export default function AttendPage() {
     else if (r.oral_status === 'sentence_pass') fields.push('구두 (문장Pass만)')
     else if (r.oral_status === 'delay' || !r.oral_status) fields.push('구두 (미완료)')
     if (r.homework === 'fail') fields.push('과제 (Fail)')
+    else if (r.homework === 'partial_pass') fields.push('과제 (일부Pass)')
     else if (r.homework === 'delay' || !r.homework) fields.push('과제 (미완료)')
     return fields
   }
@@ -395,7 +396,7 @@ export default function AttendPage() {
     setNextClinicLoading(false)
   }
 
-  const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass']
+  const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass']
   const allDone =
     !!attendance?.word_score?.trim() &&
     !!attendance?.clinic_score?.trim() &&
