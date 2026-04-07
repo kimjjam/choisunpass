@@ -1345,12 +1345,12 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
       <td className="px-3 py-2.5 text-center text-xs text-indigo-500 whitespace-nowrap">{checkoutTime}</td>
       <td className="px-3 py-2.5 text-center text-xs">
         {record.word_score
-          ? <span className={(record.word_score === '00' || record.word_score === '--') ? 'text-orange-500 font-semibold' : 'text-gray-700'}>{record.word_score}</span>
+          ? <span className={(['00', '--', '-'].includes(record.word_score ?? '')) ? 'text-orange-500 font-semibold' : 'text-gray-700'}>{record.word_score}</span>
           : <span className="text-gray-300">-</span>}
       </td>
       <td className="px-3 py-2.5 text-center text-xs">
         {record.clinic_score
-          ? <span className={(record.clinic_score === '00' || record.clinic_score === '--') ? 'text-orange-500 font-semibold' : 'text-gray-700'}>{record.clinic_score}</span>
+          ? <span className={(['00', '--', '-'].includes(record.clinic_score ?? '')) ? 'text-orange-500 font-semibold' : 'text-gray-700'}>{record.clinic_score}</span>
           : <span className="text-gray-300">-</span>}
       </td>
       <td className="px-3 py-2.5 text-center"><MissionBadge value={record.oral_status} /></td>

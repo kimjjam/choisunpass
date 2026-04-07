@@ -1283,8 +1283,9 @@ function AttendanceRow({
   }
 
   function scoreStyle(val: string) {
-    if (!val.trim()) return 'border-gray-200'
-    if (val.trim() === '00' || val.trim() === '--') return 'border-orange-300 bg-orange-50 text-orange-600'
+    const v = val.trim()
+    if (!v) return 'border-gray-200'
+    if (v === '00' || v === '--' || v === '-') return 'border-orange-300 bg-orange-50 text-orange-600'
     return 'border-green-300 bg-green-50'
   }
 
