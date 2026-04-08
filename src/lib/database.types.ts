@@ -101,6 +101,7 @@ export interface OralQueue {
   attendance_id: string
   student_id: string
   status: 'waiting' | 'called' | 'done'
+  type: 'oral' | 'homework_check'
   caller: string | null
   created_at: string
 }

@@ -30,12 +30,13 @@ export default function AttendPage() {
   const [nextClinicLoading, setNextClinicLoading] = useState(false)
   const [showNextClinicActionModal, setShowNextClinicActionModal] = useState(false)
 
-  // 구두 대기
+  // 구두/숙검 대기
   const [oralQueue, setOralQueue] = useState<OralQueue | null>(null)
   const oralQueueRef = useRef<OralQueue | null>(null)
   const [queuePosition, setQueuePosition] = useState<number>(0)
   const [showCalledModal, setShowCalledModal] = useState(false)
   const [showReCheckInModal, setShowReCheckInModal] = useState(false)
+  const [showQueueTypeModal, setShowQueueTypeModal] = useState(false)
 
   // 미완료 항목 모달
   type IncompleteWeek = { label: string; fields: string[] }
@@ -455,11 +456,12 @@ export default function AttendPage() {
     }
   }
 
-  async function handleJoinQueue() {
+  async function handleJoinQueue(type: 'oral' | 'homework_check') {
     if (!attendance || !student) return
+    setShowQueueTypeModal(false)
     const { data } = await supabase
       .from('oral_queue')
-      .insert({ attendance_id: attendance.id, student_id: student.id, status: 'waiting' })
+      .insert({ attendance_id: attendance.id, student_id: student.id, status: 'waiting', type })
       .select()
       .single()
     if (data) setOralQueue(data as OralQueue)
@@ -589,20 +591,22 @@ export default function AttendPage() {
               </p>
             )}
 
-            {/* 구두 대기 */}
+            {/* 대기 등록 */}
             {!oralQueue && (
               <button
-                onClick={handleJoinQueue}
+                onClick={() => setShowQueueTypeModal(true)}
                 className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-xl transition-colors text-base mb-3"
               >
-                구두 대기 등록
+                대기 등록
               </button>
             )}
             {oralQueue && oralQueue.status === 'waiting' && (
-              <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 mb-3">
-                <p className="text-sm text-purple-600 font-medium mb-1">구두 대기 중</p>
-                <p className="text-3xl font-bold text-purple-700 mb-1">{queuePosition}번째</p>
-                <p className="text-xs text-purple-400 mb-3">호출되면 알려드릴게요</p>
+              <div className={`border rounded-xl p-4 mb-3 ${oralQueue.type === 'homework_check' ? 'bg-pink-50 border-pink-100' : 'bg-purple-50 border-purple-100'}`}>
+                <p className={`text-sm font-medium mb-1 ${oralQueue.type === 'homework_check' ? 'text-pink-600' : 'text-purple-600'}`}>
+                  {oralQueue.type === 'homework_check' ? '숙제검사 대기 중' : '구두 대기 중'}
+                </p>
+                <p className={`text-3xl font-bold mb-1 ${oralQueue.type === 'homework_check' ? 'text-pink-700' : 'text-purple-700'}`}>{queuePosition}번째</p>
+                <p className={`text-xs mb-3 ${oralQueue.type === 'homework_check' ? 'text-pink-400' : 'text-purple-400'}`}>호출되면 알려드릴게요</p>
                 <button
                   onClick={handleLeaveQueue}
                   className="text-xs text-gray-400 hover:text-red-400 underline transition-colors"
@@ -811,6 +815,36 @@ export default function AttendPage() {
             <button
               onClick={() => { setShowVisitTypeModal(false); setStudent(null); setPendingStudentData(null) }}
               className="w-full mt-3 py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 대기 타입 선택 모달 */}
+      {showQueueTypeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl text-center">
+            <h3 className="font-bold text-gray-800 text-lg mb-1">대기 등록</h3>
+            <p className="text-sm text-gray-400 mb-6">어떤 대기를 등록할까요?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleJoinQueue('oral')}
+                className="flex-1 py-4 rounded-2xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-base transition-colors"
+              >
+                구두
+              </button>
+              <button
+                onClick={() => handleJoinQueue('homework_check')}
+                className="flex-1 py-4 rounded-2xl bg-pink-500 hover:bg-pink-600 text-white font-bold text-base transition-colors"
+              >
+                숙제검사
+              </button>
+            </div>
+            <button
+              onClick={() => setShowQueueTypeModal(false)}
+              className="mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
               취소
             </button>

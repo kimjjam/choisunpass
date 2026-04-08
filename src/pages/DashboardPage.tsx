@@ -679,18 +679,25 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {oralQueue.map((q, idx) => (
-                    <tr key={q.id} className={`border-b border-gray-50 ${q.status === 'called' ? 'bg-purple-50' : ''}`}>
+                  {oralQueue.map((q, idx) => {
+                    const isHomework = q.type === 'homework_check'
+                    return (
+                    <tr key={q.id} className={`border-b border-gray-50 ${q.status === 'called' ? (isHomework ? 'bg-pink-50' : 'bg-purple-50') : ''}`}>
                       <td className="px-4 py-3 font-bold text-gray-500">{idx + 1}</td>
-                      <td className="px-4 py-3 font-medium text-gray-800">{q.students.name}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-gray-800">{q.students.name}</div>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${isHomework ? 'bg-pink-100 text-pink-600' : 'bg-purple-100 text-purple-600'}`}>
+                          {isHomework ? '숙제검사' : '구두'}
+                        </span>
+                      </td>
                       <td className="px-3 py-3 text-gray-500 text-xs">{q.students.school}<br /><span className="text-blue-400">{q.students.class}</span></td>
                       <td className="px-3 py-3 text-center">
                         {q.status === 'waiting' ? (
                           <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">대기 중</span>
                         ) : (
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full animate-pulse">호출됨</span>
-                            {q.caller && <span className="text-xs text-purple-500 font-medium">{q.caller}</span>}
+                            <span className={`text-xs px-2 py-0.5 rounded-full animate-pulse ${isHomework ? 'bg-pink-100 text-pink-700' : 'bg-purple-100 text-purple-700'}`}>호출됨</span>
+                            {q.caller && <span className={`text-xs font-medium ${isHomework ? 'text-pink-500' : 'text-purple-500'}`}>{q.caller}</span>}
                           </div>
                         )}
                       </td>
@@ -699,7 +706,7 @@ export default function DashboardPage() {
                           {q.status === 'waiting' && (
                             <button
                               onClick={() => setCallerModal(q.id)}
-                              className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1 rounded-lg transition-colors"
+                              className={`text-xs text-white px-2.5 py-1 rounded-lg transition-colors ${isHomework ? 'bg-pink-500 hover:bg-pink-600' : 'bg-purple-600 hover:bg-purple-700'}`}
                             >
                               호출
                             </button>
@@ -721,7 +728,7 @@ export default function DashboardPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             )}
