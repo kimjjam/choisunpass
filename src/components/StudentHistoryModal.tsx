@@ -44,6 +44,30 @@ function weekLabel(monday: string): string {
   return `${fmt(mon)}~${fmt(fri)}`
 }
 
+// 같은 주차 기록들에서 비어있는 필드를 채워 반환 (주간 누적 표시)
+function fillWeekValues(record: AttendanceWithStudent, weekRecords: AttendanceWithStudent[]): AttendanceWithStudent {
+  const pick = (field: keyof AttendanceWithStudent): string | null => {
+    const own = record[field] as string | null
+    if (own?.trim()) return own
+    for (const r of weekRecords) {
+      const v = r[field] as string | null
+      if (v?.trim()) return v
+    }
+    return null
+  }
+  return {
+    ...record,
+    word_score: pick('word_score'),
+    clinic_score: pick('clinic_score'),
+    oral_status: pick('oral_status') as AttendanceWithStudent['oral_status'],
+    homework: pick('homework') as AttendanceWithStudent['homework'],
+    oral_memo: pick('oral_memo'),
+    homework_memo: pick('homework_memo'),
+    notes: pick('notes'),
+    next_clinic_date: pick('next_clinic_date'),
+  }
+}
+
 export default function StudentHistoryModal({ student, records, onClose, showChart = false, absences }: Props) {
   const [popover, setPopover] = useState<{ text: string; x: number; y: number } | null>(null)
 
@@ -51,6 +75,15 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
   const weeks = [...new Set(records.map(r => getWeekMonday(r.date)))].sort((a, b) => b.localeCompare(a))
   const [selectedWeek, setSelectedWeek] = useState<string | 'all'>('all')
   const filteredRecords = selectedWeek === 'all' ? records : records.filter(r => getWeekMonday(r.date) === selectedWeek)
+
+  // 주차별 누적값 적용: 각 행에 같은 주 다른 날 값 채워넣기
+  const weekGroupMap = new Map<string, AttendanceWithStudent[]>()
+  for (const r of records) {
+    const w = getWeekMonday(r.date)
+    if (!weekGroupMap.has(w)) weekGroupMap.set(w, [])
+    weekGroupMap.get(w)!.push(r)
+  }
+  const displayRecords = filteredRecords.map(r => fillWeekValues(r, weekGroupMap.get(getWeekMonday(r.date)) ?? [r]))
 
   function handleNoteClick(e: React.MouseEvent, text: string) {
     if (!text) return
@@ -90,7 +123,7 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
               <h4 className="font-semibold text-gray-700 text-sm">출석 기록 ({records.length}건)</h4>
             </div>
             {/* 주차 탭 */}
-            {weeks.length > 1 && (
+            {weeks.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
                 <button
                   onClick={() => setSelectedWeek('all')}
@@ -128,7 +161,7 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map(r => (
+                    {displayRecords.map(r => (
                       <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50">
                         <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{r.date}</td>
                         <td className="px-2 py-2 text-center">
@@ -174,11 +207,11 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
           </div>
 
           {/* 성적 차트 (optional) */}
-          {showChart && filteredRecords.filter(r => r.word_score || r.clinic_score).length > 0 && (
+          {showChart && displayRecords.filter(r => r.word_score || r.clinic_score).length > 0 && (
             <div>
               <h4 className="font-semibold text-gray-700 text-sm mb-3">성적 히스토리</h4>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={[...filteredRecords].filter(r => r.word_score || r.clinic_score).reverse().map(r => ({
+                <BarChart data={[...displayRecords].filter(r => r.word_score || r.clinic_score).reverse().map(r => ({
                   date: r.date.slice(5),
                   단어: r.word_score ? Number(r.word_score) : null,
                   클리닉: r.clinic_score ? Number(r.clinic_score) : null,
