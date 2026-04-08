@@ -132,7 +132,7 @@ export default function DashboardPage() {
   const [oralQueue, setOralQueue] = useState<OralQueueWithStudent[]>([])
   const [callerModal, setCallerModal] = useState<string | null>(null) // queueId 저장
   const [oralDoneModal, setOralDoneModal] = useState<{ queueId: string; attendanceId: string; studentName: string } | null>(null)
-  const [oralDoneForm, setOralDoneForm] = useState<{ wordScore: string; clinicScore: string; oralStatus: MissionStatus; homework: MissionStatus; notes: string }>({ wordScore: '', clinicScore: '', oralStatus: null, homework: null, notes: '' })
+  const [oralDoneForm, setOralDoneForm] = useState<{ wordScore: string; clinicScore: string; oralStatus: MissionStatus; homework: MissionStatus; oralMemo: string; homeworkMemo: string; notes: string }>({ wordScore: '', clinicScore: '', oralStatus: null, homework: null, oralMemo: '', homeworkMemo: '', notes: '' })
   const CALLERS = ['김재민조교', '조은채조교', '신수현조교', '이채연조교', '박성우조교']
 
   async function fetchOralQueue() {
@@ -161,12 +161,14 @@ export default function DashboardPage() {
 
   async function openOralDoneModal(q: OralQueueWithStudent) {
     // 기존 성적 pre-fill
-    const { data } = await supabase.from('attendances').select('word_score, clinic_score, oral_status, homework, notes').eq('id', q.attendance_id).maybeSingle()
+    const { data } = await supabase.from('attendances').select('word_score, clinic_score, oral_status, homework, oral_memo, homework_memo, notes').eq('id', q.attendance_id).maybeSingle()
     setOralDoneForm({
       wordScore: data?.word_score ?? '',
       clinicScore: data?.clinic_score ?? '',
       oralStatus: (data?.oral_status as MissionStatus) ?? null,
       homework: (data?.homework as MissionStatus) ?? null,
+      oralMemo: data?.oral_memo ?? '',
+      homeworkMemo: data?.homework_memo ?? '',
       notes: data?.notes ?? '',
     })
     setOralDoneModal({ queueId: q.id, attendanceId: q.attendance_id, studentName: q.students.name })
@@ -180,6 +182,8 @@ export default function DashboardPage() {
       clinic_score: oralDoneForm.clinicScore.trim() || null,
       oral_status: oralDoneForm.oralStatus,
       homework: oralDoneForm.homework,
+      oral_memo: oralDoneForm.oralMemo.trim() || null,
+      homework_memo: oralDoneForm.homeworkMemo.trim() || null,
       notes: oralDoneForm.notes.trim() || null,
     }).eq('id', attendanceId)
     if (attError) {
@@ -1262,15 +1266,37 @@ export default function DashboardPage() {
                 </div>
               </div>
               {/* 기타 */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">기타 메모 (선택)</label>
-                <textarea
-                  value={oralDoneForm.notes}
-                  onChange={(e) => setOralDoneForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="메모를 입력하세요..."
-                  rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-400"
-                />
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-blue-500 mb-1">구두 메모</label>
+                  <textarea
+                    value={oralDoneForm.oralMemo}
+                    onChange={(e) => setOralDoneForm(f => ({ ...f, oralMemo: e.target.value }))}
+                    placeholder="구두 관련..."
+                    rows={2}
+                    className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-purple-500 mb-1">과제 메모</label>
+                  <textarea
+                    value={oralDoneForm.homeworkMemo}
+                    onChange={(e) => setOralDoneForm(f => ({ ...f, homeworkMemo: e.target.value }))}
+                    placeholder="과제 관련..."
+                    rows={2}
+                    className="w-full border border-purple-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">기타 메모</label>
+                  <textarea
+                    value={oralDoneForm.notes}
+                    onChange={(e) => setOralDoneForm(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="기타..."
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-gray-400"
+                  />
+                </div>
               </div>
             </div>
             <div className="px-6 pb-5 flex gap-2">
