@@ -26,8 +26,31 @@ function StatusBadge({ value }: { value: string | null }) {
   return <span className="text-gray-300">-</span>
 }
 
+// 날짜 → 해당 주 월요일 (YYYY-MM-DD)
+function getWeekMonday(dateStr: string): string {
+  const d = new Date(dateStr)
+  const day = d.getDay() // 0=일, 1=월 ...
+  const diff = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + diff)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// 월요일 기준으로 "MM/DD~MM/DD" 레이블 생성
+function weekLabel(monday: string): string {
+  const mon = new Date(monday)
+  const fri = new Date(monday)
+  fri.setDate(mon.getDate() + 4)
+  const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`
+  return `${fmt(mon)}~${fmt(fri)}`
+}
+
 export default function StudentHistoryModal({ student, records, onClose, showChart = false, absences }: Props) {
   const [popover, setPopover] = useState<{ text: string; x: number; y: number } | null>(null)
+
+  // 주차 탭: 기록에서 고유 주차 추출 (최신순)
+  const weeks = [...new Set(records.map(r => getWeekMonday(r.date)))].sort((a, b) => b.localeCompare(a))
+  const [selectedWeek, setSelectedWeek] = useState<string | 'all'>('all')
+  const filteredRecords = selectedWeek === 'all' ? records : records.filter(r => getWeekMonday(r.date) === selectedWeek)
 
   function handleNoteClick(e: React.MouseEvent, text: string) {
     if (!text) return
@@ -63,7 +86,29 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
         <div className="p-6 space-y-6">
           {/* 출석 기록 */}
           <div>
-            <h4 className="font-semibold text-gray-700 text-sm mb-3">출석 기록 ({records.length}건)</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold text-gray-700 text-sm">출석 기록 ({records.length}건)</h4>
+            </div>
+            {/* 주차 탭 */}
+            {weeks.length > 1 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                <button
+                  onClick={() => setSelectedWeek('all')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${selectedWeek === 'all' ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                >
+                  전체
+                </button>
+                {weeks.map(w => (
+                  <button
+                    key={w}
+                    onClick={() => setSelectedWeek(w)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${selectedWeek === w ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                  >
+                    {weekLabel(w)}
+                  </button>
+                ))}
+              </div>
+            )}
             {records.length === 0 ? (
               <p className="text-sm text-gray-400">기록 없음</p>
             ) : (
@@ -83,7 +128,7 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map(r => (
+                    {filteredRecords.map(r => (
                       <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50">
                         <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{r.date}</td>
                         <td className="px-2 py-2 text-center">
@@ -129,11 +174,11 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
           </div>
 
           {/* 성적 차트 (optional) */}
-          {showChart && records.filter(r => r.word_score || r.clinic_score).length > 0 && (
+          {showChart && filteredRecords.filter(r => r.word_score || r.clinic_score).length > 0 && (
             <div>
               <h4 className="font-semibold text-gray-700 text-sm mb-3">성적 히스토리</h4>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={[...records].filter(r => r.word_score || r.clinic_score).reverse().map(r => ({
+                <BarChart data={[...filteredRecords].filter(r => r.word_score || r.clinic_score).reverse().map(r => ({
                   date: r.date.slice(5),
                   단어: r.word_score ? Number(r.word_score) : null,
                   클리닉: r.clinic_score ? Number(r.clinic_score) : null,
