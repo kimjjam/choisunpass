@@ -28,6 +28,7 @@ export default function AttendPage() {
   const [showNextClinicModal, setShowNextClinicModal] = useState(false)
   const [nextClinicDate, setNextClinicDate] = useState('')
   const [nextClinicLoading, setNextClinicLoading] = useState(false)
+  const [showNextClinicActionModal, setShowNextClinicActionModal] = useState(false)
 
   // 구두 대기
   const [oralQueue, setOralQueue] = useState<OralQueue | null>(null)
@@ -373,14 +374,18 @@ export default function AttendPage() {
     if (!attendance || !nextClinicDate) return
     setNextClinicLoading(true)
     if (attendance.visit_type === 'class_clinic') {
-      // class_clinic: 조교확인 없이 바로 하원
+      // class_clinic: 날짜 저장 후 수업/하원 선택 모달
       const { data } = await supabase
         .from('attendances')
-        .update({ next_clinic_date: nextClinicDate, checked_out_at: new Date().toISOString(), force_next_clinic: false })
+        .update({ next_clinic_date: nextClinicDate, force_next_clinic: false })
         .eq('id', attendance.id)
         .select()
         .single()
-      if (data) { setAttendance(data); setPageState('checked_out') }
+      if (data) setAttendance(data)
+      setShowNextClinicModal(false)
+      setNextClinicDate('')
+      setNextClinicLoading(false)
+      setShowNextClinicActionModal(true)
     } else {
       // clinic: next_clinic_date 저장 후 조교 확인 대기
       const { data } = await supabase
@@ -390,10 +395,22 @@ export default function AttendPage() {
         .select()
         .single()
       if (data) setAttendance(data)
+      setShowNextClinicModal(false)
+      setNextClinicDate('')
+      setNextClinicLoading(false)
     }
-    setShowNextClinicModal(false)
-    setNextClinicDate('')
-    setNextClinicLoading(false)
+  }
+
+  async function handleNextClinicCheckOut() {
+    if (!attendance) return
+    const { data } = await supabase
+      .from('attendances')
+      .update({ checked_out_at: new Date().toISOString() })
+      .eq('id', attendance.id)
+      .select()
+      .single()
+    if (data) { setAttendance(data); setPageState('checked_out') }
+    setShowNextClinicActionModal(false)
   }
 
   const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass']
@@ -402,6 +419,7 @@ export default function AttendPage() {
     !!attendance?.clinic_score?.trim() &&
     validStatuses.includes(attendance?.oral_status as string) &&
     validStatuses.includes(attendance?.homework as string)
+  const canCheckOut = allDone || (attendance?.visit_type === 'class_clinic' && !!attendance?.next_clinic_date)
 
   async function handleCheckOut() {
     if (!attendance) return
@@ -602,16 +620,16 @@ export default function AttendPage() {
               </div>
             )}
 
-            {!allDone && !attendance?.next_clinic_date && (
+            {!canCheckOut && (
               <p className="text-xs text-orange-500 bg-orange-50 rounded-xl py-2 px-3 mb-3">
                 조교 선생님의 확인이 완료되면 하원 버튼이 활성화됩니다.
               </p>
             )}
             <button
               onClick={handleCheckOut}
-              disabled={!allDone}
+              disabled={!canCheckOut}
               className={`w-full font-semibold py-3.5 rounded-xl transition-colors text-base mb-3 ${
-                allDone
+                canCheckOut
                   ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
@@ -831,6 +849,30 @@ export default function AttendPage() {
                 className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-sm font-semibold transition-colors"
               >
                 {nextClinicLoading ? '처리 중...' : '확인'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 수업/하원 선택 모달 (class_clinic 다음에 올게요 후) */}
+      {showNextClinicActionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl text-center">
+            <h3 className="font-bold text-gray-800 text-lg mb-1">오늘 어떻게 하실 건가요?</h3>
+            <p className="text-sm text-gray-400 mb-6">클리닉 날짜가 저장되었습니다</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowNextClinicActionModal(false)}
+                className="flex-1 py-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-base transition-colors"
+              >
+                수업할게요
+              </button>
+              <button
+                onClick={handleNextClinicCheckOut}
+                className="flex-1 py-4 rounded-2xl bg-gray-700 hover:bg-gray-800 text-white font-bold text-base transition-colors"
+              >
+                하원할게요
               </button>
             </div>
           </div>
