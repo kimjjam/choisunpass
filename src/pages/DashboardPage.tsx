@@ -734,7 +734,7 @@ export default function DashboardPage() {
             onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
             onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
             onCheckOut={(r) => handleCheckOut(r.id)}
-            onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
+            onCancelCheckOut={(r) => setCancelCheckoutModal({ id: r.id, name: r.students.name })}
             onMission={handleMission}
             onNameClick={(r) => openHistory(r.students)}
           />
@@ -786,7 +786,7 @@ export default function DashboardPage() {
               onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
               onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
               onCheckOut={(r) => setCheckoutConfirmModal({ id: r.id, name: r.students.name })}
-              onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
+              onCancelCheckOut={(r) => setCancelCheckoutModal({ id: r.id, name: r.students.name })}
               onMission={handleMission}
               onAdminForceCheckout={(r) => { setForceCheckoutDate(''); setForceCheckoutModal({ id: r.id, name: r.students.name, record: r }) }}
               onNameClick={(r) => openHistory(r.students)}
@@ -816,7 +816,7 @@ export default function DashboardPage() {
             onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
             onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
             onCheckOut={(r) => handleCheckOut(r.id)}
-            onCancelCheckOut={(r) => handleCancelCheckOut(r.id)}
+            onCancelCheckOut={(r) => setCancelCheckoutModal({ id: r.id, name: r.students.name })}
             onMission={handleMission}
             onNameClick={(r) => openHistory(r.students)}
           />
