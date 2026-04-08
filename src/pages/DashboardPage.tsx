@@ -175,14 +175,23 @@ export default function DashboardPage() {
   async function handleOralDoneSubmit() {
     if (!oralDoneModal) return
     const { attendanceId, queueId } = oralDoneModal
-    await supabase.from('attendances').update({
+    const { error: attError } = await supabase.from('attendances').update({
       word_score: oralDoneForm.wordScore.trim() || null,
       clinic_score: oralDoneForm.clinicScore.trim() || null,
       oral_status: oralDoneForm.oralStatus,
       homework: oralDoneForm.homework,
       notes: oralDoneForm.notes.trim() || null,
     }).eq('id', attendanceId)
-    await supabase.from('oral_queue').delete().eq('id', queueId)
+    if (attError) {
+      console.error('구두 성적 저장 실패:', attError)
+      alert('성적 저장에 실패했습니다. 다시 시도해주세요.')
+      return
+    }
+    const { error: queueError } = await supabase.from('oral_queue').delete().eq('id', queueId)
+    if (queueError) {
+      console.error('구두 대기열 삭제 실패:', queueError)
+      alert('대기열 삭제에 실패했습니다. 성적은 저장됐으니 대기열을 수동으로 제거해주세요.')
+    }
     setOralDoneModal(null)
     fetchOralQueue()
     fetchRecords()

@@ -214,13 +214,24 @@ export default function AdminPage() {
       .not('next_clinic_date', 'is', null)
       .lt('next_clinic_date', todayStr)
     if (overdueData) {
-      // next_clinic_date 이후 출석이 없는 경우만 필터
-      const overdue = (overdueData as AttendanceWithStudent[]).filter(r => {
-        const hasLaterAttendance = (overdueData as AttendanceWithStudent[]).some(
-          r2 => r2.student_id === r.student_id && r2.date > r.next_clinic_date!
-        )
-        return !hasLaterAttendance
-      })
+      // 각 학생의 next_clinic_date 이후 실제 출석이 DB 전체에 있는지 확인
+      const studentIds = [...new Set((overdueData as AttendanceWithStudent[]).map(r => r.student_id))]
+      const { data: laterData } = await supabase
+        .from('attendances')
+        .select('student_id, date')
+        .in('student_id', studentIds)
+        .gte('date', todayStr)
+      const laterSet = new Set((laterData || []).map((r: { student_id: string; date: string }) => r.student_id))
+
+      // 각 학생별로 가장 최근 next_clinic_date 기록만 남기고, 그 이후 출석 없는 경우만 표시
+      const latestPerStudent = new Map<string, AttendanceWithStudent>()
+      for (const r of overdueData as AttendanceWithStudent[]) {
+        const existing = latestPerStudent.get(r.student_id)
+        if (!existing || r.next_clinic_date! > existing.next_clinic_date!) {
+          latestPerStudent.set(r.student_id, r)
+        }
+      }
+      const overdue = [...latestPerStudent.values()].filter(r => !laterSet.has(r.student_id))
       setOverdueStudents(overdue)
     }
   }
