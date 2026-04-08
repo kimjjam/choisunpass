@@ -866,7 +866,7 @@ export default function AttendPage() {
                 onClick={() => setShowNextClinicActionModal(false)}
                 className="flex-1 py-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-base transition-colors"
               >
-                수업할게요
+                수업있어요
               </button>
               <button
                 onClick={handleNextClinicCheckOut}
