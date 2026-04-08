@@ -384,7 +384,7 @@ export default function AdminPage() {
       '과제(미완료과제입력)': r.homework ?? '',
       '단어점수': r.word_score ?? '',
       '클리닉점수': r.clinic_score ?? '',
-      '구두': r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : '',
+      '구두': r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : r.oral_status === 'word_pass' ? '단어Pass' : r.oral_status === 'sentence_pass' ? '문장Pass' : r.oral_status === 'exempt' ? '면제' : '',
       '기타': r.notes ?? '',
     }))
 
@@ -419,7 +419,7 @@ export default function AdminPage() {
           : '',
         score: [r.word_score, r.clinic_score].filter(Boolean).join(' / '),
         homework: r.homework ?? '',
-        oral: r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : '',
+        oral: r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : r.oral_status === 'word_pass' ? '단어Pass' : r.oral_status === 'sentence_pass' ? '문장Pass' : r.oral_status === 'exempt' ? '면제' : '',
         notes: r.notes ?? '',
         next_clinic_date: r.next_clinic_date ?? '',
       })
@@ -1250,7 +1250,7 @@ export default function AdminPage() {
 
 // ── 주차별 행 (과제/기타 인라인 편집) ──────────────────────
 
-const VALID_STATUSES = ['pass', 'fail', 'delay']
+const VALID_STATUSES = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass', 'exempt']
 
 function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithStudent; onUpdate: () => void; onNameClick?: () => void }) {
   const [notes, setNotes] = useState(record.notes ?? '')
@@ -1356,12 +1356,12 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
       <td className="px-3 py-2.5 text-center text-xs text-indigo-500 whitespace-nowrap">{checkoutTime}</td>
       <td className="px-3 py-2.5 text-center text-xs">
         {record.word_score
-          ? <span className={(['00', '--', '-'].includes(record.word_score ?? '')) ? 'text-orange-500 font-semibold' : 'text-gray-700'}>{record.word_score}</span>
+          ? <span className={['00', '--', '-'].includes(record.word_score ?? '') ? 'text-orange-500 font-semibold' : ['.', '..'].includes(record.word_score ?? '') ? 'text-teal-600 font-medium' : 'text-gray-700'}>{record.word_score}</span>
           : <span className="text-gray-300">-</span>}
       </td>
       <td className="px-3 py-2.5 text-center text-xs">
         {record.clinic_score
-          ? <span className={(['00', '--', '-'].includes(record.clinic_score ?? '')) ? 'text-orange-500 font-semibold' : 'text-gray-700'}>{record.clinic_score}</span>
+          ? <span className={['00', '--', '-'].includes(record.clinic_score ?? '') ? 'text-orange-500 font-semibold' : ['.', '..'].includes(record.clinic_score ?? '') ? 'text-teal-600 font-medium' : 'text-gray-700'}>{record.clinic_score}</span>
           : <span className="text-gray-300">-</span>}
       </td>
       <td className="px-3 py-2.5 text-center"><MissionBadge value={record.oral_status} /></td>
@@ -1456,6 +1456,9 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                   >
                     <option value="">-</option>
                     <option value="pass">Pass</option>
+                    <option value="word_pass">단어Pass</option>
+                    <option value="sentence_pass">문장Pass</option>
+                    <option value="exempt">면제</option>
                     <option value="fail">Fail</option>
                     <option value="delay">Delay</option>
                   </select>
@@ -1469,6 +1472,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                   >
                     <option value="">-</option>
                     <option value="pass">Pass</option>
+                    <option value="partial_pass">일부Pass</option>
                     <option value="fail">Fail</option>
                     <option value="delay">Delay</option>
                   </select>
@@ -1553,11 +1557,15 @@ function MissionBadge({ value }: { value: string | null }) {
     pass: 'bg-green-100 text-green-700',
     fail: 'bg-red-100 text-red-700',
     delay: 'bg-orange-100 text-orange-600',
+    word_pass: 'bg-orange-100 text-orange-600',
+    sentence_pass: 'bg-orange-100 text-orange-600',
+    partial_pass: 'bg-orange-100 text-orange-600',
+    exempt: 'bg-teal-100 text-teal-700',
   }
-  const labels: Record<string, string> = { pass: 'Pass', fail: 'Fail', delay: 'Delay' }
+  const labels: Record<string, string> = { pass: 'Pass', fail: 'Fail', delay: 'Delay', word_pass: '단어P', sentence_pass: '문장P', partial_pass: '일부P', exempt: '면제' }
   return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[value]}`}>
-      {labels[value]}
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[value] ?? 'bg-gray-100 text-gray-500'}`}>
+      {labels[value] ?? value}
     </span>
   )
 }

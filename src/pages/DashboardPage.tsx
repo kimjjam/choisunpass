@@ -241,7 +241,7 @@ export default function DashboardPage() {
     if (!forceCheckoutModal || !forceCheckoutDate) return
     const { id, record } = forceCheckoutModal
     const now = new Date().toISOString()
-    const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass']
+    const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass', 'exempt']
     const updates: Record<string, unknown> = {
       checked_out_at: now,
       next_clinic_date: forceCheckoutDate,
@@ -258,7 +258,7 @@ export default function DashboardPage() {
     setForceCheckoutDate('')
   }
 
-  const VALID = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass']
+  const VALID = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass', 'exempt']
   function isAllDone(r: AttendanceWithStudent) {
     return !!r.word_score?.trim() && !!r.clinic_score?.trim() &&
       VALID.includes(r.oral_status as string) && VALID.includes(r.homework as string)
@@ -542,8 +542,8 @@ export default function DashboardPage() {
                   {checkedOutList.map((r, idx) => {
                     const missionBadge = (v: string | null) => {
                       if (!v) return <span className="text-gray-300">-</span>
-                      const map: Record<string, string> = { pass: 'bg-green-100 text-green-700', fail: 'bg-red-100 text-red-600', delay: 'bg-yellow-100 text-yellow-700', word_pass: 'bg-orange-100 text-orange-600', sentence_pass: 'bg-orange-100 text-orange-600', partial_pass: 'bg-orange-100 text-orange-600' }
-                      const label: Record<string, string> = { pass: 'Pass', fail: 'Fail', delay: 'Delay', word_pass: '단어P', sentence_pass: '문장P', partial_pass: '일부P' }
+                      const map: Record<string, string> = { pass: 'bg-green-100 text-green-700', fail: 'bg-red-100 text-red-600', delay: 'bg-yellow-100 text-yellow-700', word_pass: 'bg-orange-100 text-orange-600', sentence_pass: 'bg-orange-100 text-orange-600', partial_pass: 'bg-orange-100 text-orange-600', exempt: 'bg-teal-100 text-teal-700' }
+                      const label: Record<string, string> = { pass: 'Pass', fail: 'Fail', delay: 'Delay', word_pass: '단어P', sentence_pass: '문장P', partial_pass: '일부P', exempt: '면제' }
                       return <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${map[v] ?? 'bg-gray-100 text-gray-500'}`}>{label[v] ?? v}</span>
                     }
                     return (
@@ -619,8 +619,8 @@ export default function DashboardPage() {
                   {overviewList.map(r => {
                     const missionBadge = (v: string | null) => {
                       if (!v) return <span className="text-gray-300">-</span>
-                      const map: Record<string, string> = { pass: 'bg-green-100 text-green-700', fail: 'bg-red-100 text-red-600', delay: 'bg-yellow-100 text-yellow-700', word_pass: 'bg-orange-100 text-orange-600', sentence_pass: 'bg-orange-100 text-orange-600', partial_pass: 'bg-orange-100 text-orange-600' }
-                      const label: Record<string, string> = { pass: 'Pass', fail: 'Fail', delay: 'Delay', word_pass: '단어P', sentence_pass: '문장P', partial_pass: '일부P' }
+                      const map: Record<string, string> = { pass: 'bg-green-100 text-green-700', fail: 'bg-red-100 text-red-600', delay: 'bg-yellow-100 text-yellow-700', word_pass: 'bg-orange-100 text-orange-600', sentence_pass: 'bg-orange-100 text-orange-600', partial_pass: 'bg-orange-100 text-orange-600', exempt: 'bg-teal-100 text-teal-700' }
+                      const label: Record<string, string> = { pass: 'Pass', fail: 'Fail', delay: 'Delay', word_pass: '단어P', sentence_pass: '문장P', partial_pass: '일부P', exempt: '면제' }
                       return <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${map[v] ?? 'bg-gray-100 text-gray-500'}`}>{label[v] ?? v}</span>
                     }
                     return (
@@ -1223,6 +1223,7 @@ export default function DashboardPage() {
                     { v: 'pass' as MissionStatus, label: 'Pass', active: 'bg-green-500 text-white' },
                     { v: 'word_pass' as MissionStatus, label: '단어Pass', active: 'bg-orange-400 text-white' },
                     { v: 'sentence_pass' as MissionStatus, label: '문장Pass', active: 'bg-orange-400 text-white' },
+                    { v: 'exempt' as MissionStatus, label: '면제', active: 'bg-teal-500 text-white' },
                     { v: 'fail' as MissionStatus, label: 'Fail', active: 'bg-red-400 text-white' },
                     { v: 'delay' as MissionStatus, label: 'Delay', active: 'bg-yellow-400 text-white' },
                   ]).map(({ v, label, active }) => (
@@ -1418,7 +1419,7 @@ function AttendanceRow({
   const [modalOralMemo, setModalOralMemo] = useState('')
   const [modalHomeworkMemo, setModalHomeworkMemo] = useState('')
 
-  const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass']
+  const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass', 'exempt']
   const homeworkVal = validStatuses.includes(record.homework as string) ? record.homework as MissionStatus : null
   const allDone =
     wordScore.trim() !== '' &&
@@ -1475,6 +1476,7 @@ function AttendanceRow({
     const v = val.trim()
     if (!v) return 'border-gray-200'
     if (v === '00' || v === '--' || v === '-') return 'border-orange-300 bg-orange-50 text-orange-600'
+    if (v === '.' || v === '..') return 'border-teal-300 bg-teal-50 text-teal-600'
     return 'border-green-300 bg-green-50'
   }
 
@@ -1731,16 +1733,18 @@ function MissionCycleButton({ value, onChange, variant = 'oral' }: { value: Miss
     'word_pass': 'bg-orange-100 text-orange-600',
     'sentence_pass': 'bg-orange-100 text-orange-600',
     'partial_pass': 'bg-orange-100 text-orange-600',
+    'exempt': 'bg-teal-100 text-teal-700',
   }
   const labels: Record<string, string> = {
     'null': '—', 'pass': 'Pass', 'fail': 'Fail', 'delay': 'Delay',
-    'word_pass': '단어P', 'sentence_pass': '문장P', 'partial_pass': '일부P',
+    'word_pass': '단어P', 'sentence_pass': '문장P', 'partial_pass': '일부P', 'exempt': '면제',
   }
 
   const oralOptions: { value: MissionStatus; label: string; style: string }[] = [
     { value: 'pass', label: 'Pass', style: 'hover:bg-green-50 text-green-700' },
     { value: 'word_pass', label: '단어Pass', style: 'hover:bg-orange-50 text-orange-600' },
     { value: 'sentence_pass', label: '문장Pass', style: 'hover:bg-orange-50 text-orange-600' },
+    { value: 'exempt', label: '면제', style: 'hover:bg-teal-50 text-teal-700' },
     { value: 'fail', label: 'Fail', style: 'hover:bg-red-50 text-red-700' },
     { value: 'delay', label: 'Delay', style: 'hover:bg-orange-50 text-orange-600' },
     { value: null, label: '초기화', style: 'hover:bg-gray-50 text-gray-400' },

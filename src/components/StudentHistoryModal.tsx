@@ -12,8 +12,9 @@ interface Props {
 
 function ScoreBadge({ value }: { value: string | null }) {
   if (!value) return <span className="text-gray-300">-</span>
-  const isDelay = value === '00' || value === '--'
-  return <span className={isDelay ? 'text-orange-500 font-semibold' : 'text-gray-700'}>{value}</span>
+  if (value === '00' || value === '--') return <span className="text-orange-500 font-semibold">{value}</span>
+  if (value === '.' || value === '..') return <span className="text-teal-600 font-medium">{value}</span>
+  return <span className="text-gray-700">{value}</span>
 }
 
 function StatusBadge({ value }: { value: string | null }) {
@@ -23,6 +24,7 @@ function StatusBadge({ value }: { value: string | null }) {
   if (value === 'word_pass') return <span className="text-orange-500 font-medium">단어P</span>
   if (value === 'sentence_pass') return <span className="text-orange-500 font-medium">문장P</span>
   if (value === 'partial_pass') return <span className="text-orange-500 font-medium">일부P</span>
+  if (value === 'exempt') return <span className="text-teal-600 font-medium">면제</span>
   return <span className="text-gray-300">-</span>
 }
 

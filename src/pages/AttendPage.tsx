@@ -413,7 +413,7 @@ export default function AttendPage() {
     setShowNextClinicActionModal(false)
   }
 
-  const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass']
+  const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass', 'exempt']
   const allDone =
     !!attendance?.word_score?.trim() &&
     !!attendance?.clinic_score?.trim() &&
