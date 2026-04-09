@@ -1867,7 +1867,7 @@ function AttendanceRow({
 
 function MissionCycleButton({ value, onChange, variant = 'oral' }: { value: MissionStatus; onChange: (v: MissionStatus) => void; variant?: 'oral' | 'homework' }) {
   const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const [pos, setPos] = useState({ top: 0, left: 0, upward: false })
   const btnRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -1889,7 +1889,15 @@ function MissionCycleButton({ value, onChange, variant = 'oral' }: { value: Miss
   function handleOpen() {
     if (btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
-      setPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 })
+      const optionCount = variant === 'homework' ? 5 : 7
+      const estimatedHeight = optionCount * 36 + 8
+      const spaceBelow = window.innerHeight - rect.bottom
+      const upward = spaceBelow < estimatedHeight + 8
+      setPos({
+        top: upward ? rect.top - estimatedHeight - 4 : rect.bottom + 4,
+        left: rect.left + rect.width / 2,
+        upward,
+      })
     }
     setOpen((o) => !o)
   }
@@ -1943,7 +1951,7 @@ function MissionCycleButton({ value, onChange, variant = 'oral' }: { value: Miss
         <div
           ref={dropdownRef}
           style={{ position: 'fixed', top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
-          className="z-50 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[80px]"
+          className={`z-50 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[80px] ${pos.upward ? 'flex flex-col-reverse' : ''}`}
         >
           {options.map((opt) => (
             <button
