@@ -1513,10 +1513,10 @@ function AttendanceRow({
   const homeworkDisplay = homeworkVal ?? (inheritedValues?.homework as MissionStatus ?? null)
 
   const allDone =
-    wordScore.trim() !== '' &&
-    clinicScore.trim() !== '' &&
-    validStatuses.includes(record.oral_status as string) &&
-    validStatuses.includes(record.homework as string)
+    wordDisplay.trim() !== '' &&
+    clinicDisplay.trim() !== '' &&
+    validStatuses.includes((oralDisplay ?? '') as string) &&
+    validStatuses.includes((homeworkDisplay ?? '') as string)
 
   async function saveScore(field: 'word_score' | 'clinic_score', value: string) {
     await supabase.from('attendances').update({ [field]: value || null }).eq('id', record.id)
