@@ -28,10 +28,19 @@ export default function DashboardPage() {
   const [historyRecords, setHistoryRecords] = useState<AttendanceWithStudent[]>([])
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
+  const [weekValuesMap, setWeekValuesMap] = useState<Map<string, Record<string, string | null>>>(new Map())
 
   // 한국 로컬 날짜 기준 — 매 조회 시점에 계산 (자정 넘어가도 갱신됨)
   function getToday() {
     const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  function getThisWeekMonday() {
+    const d = new Date()
+    const day = d.getDay()
+    const diff = day === 0 ? -6 : 1 - day
+    d.setDate(d.getDate() + diff)
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }
 
@@ -42,7 +51,35 @@ export default function DashboardPage() {
       .select('*, students(*)')
       .eq('date', today)
       .order('checked_in_at', { ascending: true })
-    if (!error && data) setRecords(data as AttendanceWithStudent[])
+    if (!error && data) {
+      setRecords(data as AttendanceWithStudent[])
+
+      // 이번 주 월~어제 데이터 조회 → 상속값 Map 생성
+      const weekMonday = getThisWeekMonday()
+      if (weekMonday < today && data.length > 0) {
+        const studentIds = (data as AttendanceWithStudent[]).map(r => r.student_id)
+        const { data: weekData } = await supabase
+          .from('attendances')
+          .select('student_id, word_score, clinic_score, oral_status, homework, oral_memo, homework_memo, notes, next_clinic_date')
+          .in('student_id', studentIds)
+          .gte('date', weekMonday)
+          .lt('date', today)
+          .eq('status', 'approved')
+        const map = new Map<string, Record<string, string | null>>()
+        for (const r of (weekData || []) as Record<string, string | null>[]) {
+          const sid = r.student_id as string
+          const acc = map.get(sid) || {}
+          const pick = (f: string) => { if (!acc[f] && (r[f] as string)?.trim()) acc[f] = r[f] }
+          pick('word_score'); pick('clinic_score'); pick('oral_memo'); pick('homework_memo'); pick('notes')
+          if (!acc.oral_status && r.oral_status) acc.oral_status = r.oral_status
+          if (!acc.homework && r.homework) acc.homework = r.homework
+          map.set(sid, acc)
+        }
+        setWeekValuesMap(map)
+      } else {
+        setWeekValuesMap(new Map())
+      }
+    }
     setLoading(false)
   }
 
@@ -802,6 +839,7 @@ export default function DashboardPage() {
               onAdminForceCheckout={(r) => { setForceCheckoutDate(''); setForceCheckoutModal({ id: r.id, name: r.students.name, record: r }) }}
               onNameClick={(r) => openHistory(r.students)}
               onSetNextClinic={(r) => { setNextClinicDateInput(r.next_clinic_date ?? ''); setNextClinicSetModal({ id: r.id, name: r.students.name, currentDate: r.next_clinic_date ?? null }) }}
+              weekValuesMap={weekValuesMap}
             />
           </div>
         )}
@@ -830,6 +868,7 @@ export default function DashboardPage() {
             onCancelCheckOut={(r) => setCancelCheckoutModal({ id: r.id, name: r.students.name })}
             onMission={handleMission}
             onNameClick={(r) => openHistory(r.students)}
+            weekValuesMap={weekValuesMap}
           />
           </div>
         )}
@@ -1339,7 +1378,7 @@ export default function DashboardPage() {
 // ─── 서브 컴포넌트 ────────────────────────────────────────
 
 function AttendanceTable({
-  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic,
+  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic, weekValuesMap,
 }: {
   list: AttendanceWithStudent[]
   loading: boolean
@@ -1354,6 +1393,7 @@ function AttendanceTable({
   onAdminForceCheckout?: (r: AttendanceWithStudent) => void
   onNameClick?: (r: AttendanceWithStudent) => void
   onSetNextClinic?: (r: AttendanceWithStudent) => void
+  weekValuesMap?: Map<string, Record<string, string | null>>
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1392,6 +1432,7 @@ function AttendanceTable({
                 onAdminForceCheckout={onAdminForceCheckout ? () => onAdminForceCheckout(record) : undefined}
                 onNameClick={onNameClick ? () => onNameClick(record) : undefined}
                 onSetNextClinic={onSetNextClinic ? () => onSetNextClinic(record) : undefined}
+                inheritedValues={weekValuesMap?.get(record.student_id)}
               />
             ))}
           </tbody>
@@ -1428,6 +1469,7 @@ function AttendanceRow({
   onAdminForceCheckout,
   onNameClick,
   onSetNextClinic,
+  inheritedValues,
 }: {
   record: AttendanceWithStudent
   onApprove: () => void
@@ -1440,6 +1482,7 @@ function AttendanceRow({
   onAdminForceCheckout?: () => void
   onNameClick?: () => void
   onSetNextClinic?: () => void
+  inheritedValues?: Record<string, string | null>
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
   const [oralMemo, setOralMemo] = useState(record.oral_memo ?? '')
@@ -1454,6 +1497,18 @@ function AttendanceRow({
 
   const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass', 'exempt']
   const homeworkVal = validStatuses.includes(record.homework as string) ? record.homework as MissionStatus : null
+  const oralVal = validStatuses.includes(record.oral_status as string) ? record.oral_status as MissionStatus : null
+
+  // 이번 주 상속값 (오늘 값 없을 때만)
+  const iWordInherited = !record.word_score?.trim() && !!inheritedValues?.word_score
+  const iClinicInherited = !record.clinic_score?.trim() && !!inheritedValues?.clinic_score
+  const iOralInherited = !oralVal && !!inheritedValues?.oral_status
+  const iHomeworkInherited = !homeworkVal && !!inheritedValues?.homework
+  const wordDisplay = wordScore !== '' ? wordScore : (inheritedValues?.word_score ?? '')
+  const clinicDisplay = clinicScore !== '' ? clinicScore : (inheritedValues?.clinic_score ?? '')
+  const oralDisplay = oralVal ?? (inheritedValues?.oral_status as MissionStatus ?? null)
+  const homeworkDisplay = homeworkVal ?? (inheritedValues?.homework as MissionStatus ?? null)
+
   const allDone =
     wordScore.trim() !== '' &&
     clinicScore.trim() !== '' &&
@@ -1544,11 +1599,11 @@ function AttendanceRow({
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
           ? <input
-              value={wordScore}
+              value={wordDisplay}
               onChange={(e) => setWordScore(e.target.value)}
-              onBlur={(e) => saveScore('word_score', e.target.value)}
+              onBlur={() => saveScore('word_score', wordScore)}
               placeholder="단어"
-              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${scoreStyle(wordScore)}`}
+              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iWordInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(wordScore)}`}
             />
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
@@ -1556,24 +1611,28 @@ function AttendanceRow({
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
           ? <input
-              value={clinicScore}
+              value={clinicDisplay}
               onChange={(e) => setClinicScore(e.target.value)}
-              onBlur={(e) => saveScore('clinic_score', e.target.value)}
+              onBlur={() => saveScore('clinic_score', clinicScore)}
               placeholder="클리닉"
-              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${scoreStyle(clinicScore)}`}
+              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iClinicInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(clinicScore)}`}
             />
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
       {/* 구두 */}
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
-          ? <MissionCycleButton value={record.oral_status} onChange={(v) => onMission(record.id, 'oral_status', v)} />
+          ? <div className={iOralInherited ? 'ring-2 ring-dashed ring-red-400 rounded-lg inline-block' : 'inline-block'}>
+              <MissionCycleButton value={oralDisplay} onChange={(v) => onMission(record.id, 'oral_status', v)} />
+            </div>
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
       {/* 과제 */}
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
-          ? <MissionCycleButton value={homeworkVal} onChange={(v) => onMission(record.id, 'homework', v)} variant="homework" />
+          ? <div className={iHomeworkInherited ? 'ring-2 ring-dashed ring-red-400 rounded-lg inline-block' : 'inline-block'}>
+              <MissionCycleButton value={homeworkDisplay} onChange={(v) => onMission(record.id, 'homework', v)} variant="homework" />
+            </div>
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
       {/* 기타 */}
