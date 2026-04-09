@@ -1494,6 +1494,9 @@ function AttendanceRow({
   const [modalNotes, setModalNotes] = useState('')
   const [modalOralMemo, setModalOralMemo] = useState('')
   const [modalHomeworkMemo, setModalHomeworkMemo] = useState('')
+  const [confirmEdit, setConfirmEdit] = useState<{ field: string; pendingValue?: string } | null>(null)
+  const wordInputRef = useRef<HTMLInputElement>(null)
+  const clinicInputRef = useRef<HTMLInputElement>(null)
 
   const validStatuses = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', 'partial_pass', 'exempt']
   const homeworkVal = validStatuses.includes(record.homework as string) ? record.homework as MissionStatus : null
@@ -1517,6 +1520,22 @@ function AttendanceRow({
 
   async function saveScore(field: 'word_score' | 'clinic_score', value: string) {
     await supabase.from('attendances').update({ [field]: value || null }).eq('id', record.id)
+  }
+
+  function handleConfirmEdit() {
+    if (!confirmEdit) return
+    if (confirmEdit.field === 'word_score') {
+      setWordScore(inheritedValues?.word_score ?? '')
+      setTimeout(() => wordInputRef.current?.focus(), 0)
+    } else if (confirmEdit.field === 'clinic_score') {
+      setClinicScore(inheritedValues?.clinic_score ?? '')
+      setTimeout(() => clinicInputRef.current?.focus(), 0)
+    } else if (confirmEdit.field === 'oral_status') {
+      onMission(record.id, 'oral_status', confirmEdit.pendingValue as MissionStatus)
+    } else if (confirmEdit.field === 'homework') {
+      onMission(record.id, 'homework', confirmEdit.pendingValue as MissionStatus)
+    }
+    setConfirmEdit(null)
   }
 
   function formatTimeWithDay(isoStr: string) {
@@ -1599,8 +1618,10 @@ function AttendanceRow({
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
           ? <input
+              ref={wordInputRef}
               value={wordDisplay}
               onChange={(e) => setWordScore(e.target.value)}
+              onFocus={() => { if (iWordInherited) { wordInputRef.current?.blur(); setConfirmEdit({ field: 'word_score' }) } }}
               onBlur={() => saveScore('word_score', wordScore)}
               placeholder="단어"
               className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iWordInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(wordScore)}`}
@@ -1611,8 +1632,10 @@ function AttendanceRow({
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
           ? <input
+              ref={clinicInputRef}
               value={clinicDisplay}
               onChange={(e) => setClinicScore(e.target.value)}
+              onFocus={() => { if (iClinicInherited) { clinicInputRef.current?.blur(); setConfirmEdit({ field: 'clinic_score' }) } }}
               onBlur={() => saveScore('clinic_score', clinicScore)}
               placeholder="클리닉"
               className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iClinicInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(clinicScore)}`}
@@ -1623,7 +1646,10 @@ function AttendanceRow({
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
           ? <div className={iOralInherited ? 'ring-2 ring-dashed ring-red-400 rounded-lg inline-block' : 'inline-block'}>
-              <MissionCycleButton value={oralDisplay} onChange={(v) => onMission(record.id, 'oral_status', v)} />
+              <MissionCycleButton value={oralDisplay} onChange={(v) => {
+                if (iOralInherited) { setConfirmEdit({ field: 'oral_status', pendingValue: v as string }) }
+                else { onMission(record.id, 'oral_status', v) }
+              }} />
             </div>
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
@@ -1631,7 +1657,10 @@ function AttendanceRow({
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
           ? <div className={iHomeworkInherited ? 'ring-2 ring-dashed ring-red-400 rounded-lg inline-block' : 'inline-block'}>
-              <MissionCycleButton value={homeworkDisplay} onChange={(v) => onMission(record.id, 'homework', v)} variant="homework" />
+              <MissionCycleButton value={homeworkDisplay} onChange={(v) => {
+                if (iHomeworkInherited) { setConfirmEdit({ field: 'homework', pendingValue: v as string }) }
+                else { onMission(record.id, 'homework', v) }
+              }} variant="homework" />
             </div>
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
@@ -1700,6 +1729,29 @@ function AttendanceRow({
                   className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors"
                 >
                   저장
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+        {confirmEdit && createPortal(
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+              <p className="font-semibold text-gray-800 mb-2">상속값 수정</p>
+              <p className="text-sm text-gray-500 mb-6">이 값은 이번 주 다른 날 기록에서 가져온 값입니다.<br />정말 수정하시겠습니까?</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setConfirmEdit(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleConfirmEdit}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors"
+                >
+                  수정
                 </button>
               </div>
             </div>
