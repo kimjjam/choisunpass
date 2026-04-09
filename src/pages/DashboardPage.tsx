@@ -264,8 +264,8 @@ export default function DashboardPage() {
 
   async function handleCancelNextClinic(id: string) {
     const prev = records
-    setRecords(p => p.map(r => r.id === id ? { ...r, next_clinic_date: null } : r))
-    const { error } = await supabase.from('attendances').update({ next_clinic_date: null }).eq('id', id)
+    setRecords(p => p.map(r => r.id === id ? { ...r, next_clinic_date: null, checkout_requested: false } : r))
+    const { error } = await supabase.from('attendances').update({ next_clinic_date: null, checkout_requested: false }).eq('id', id)
     if (error) { console.error('재등원취소 실패:', error); setRecords(prev) }
     setCancelNextClinicModal(null)
   }
@@ -1522,6 +1522,19 @@ function AttendanceRow({
     await supabase.from('attendances').update({ [field]: value || null }).eq('id', record.id)
   }
 
+  async function handleCheckOutClick() {
+    // 상속값 중 오늘 미저장 값 자동 저장 후 하원 처리
+    const updates: Record<string, unknown> = {}
+    if (iWordInherited && inheritedValues?.word_score) updates.word_score = inheritedValues.word_score
+    if (iClinicInherited && inheritedValues?.clinic_score) updates.clinic_score = inheritedValues.clinic_score
+    if (iOralInherited && inheritedValues?.oral_status) updates.oral_status = inheritedValues.oral_status
+    if (iHomeworkInherited && inheritedValues?.homework) updates.homework = inheritedValues.homework
+    if (Object.keys(updates).length > 0) {
+      await supabase.from('attendances').update(updates).eq('id', record.id)
+    }
+    onCheckOut()
+  }
+
   async function handleConfirmEdit() {
     if (!confirmEdit) return
     const { field, editValue } = confirmEdit
@@ -1737,8 +1750,8 @@ function AttendanceRow({
           document.body
         )}
         {confirmEdit && createPortal(
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setConfirmEdit(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
               <p className="font-semibold text-gray-800 mb-1">상속값 수정</p>
               <p className="text-xs text-gray-400 mb-4">이번 주 다른 날 기록에서 가져온 값입니다.<br />수정하면 오늘 기록에 저장됩니다.</p>
               <div className="mb-5">
@@ -1791,7 +1804,7 @@ function AttendanceRow({
           !record.checked_out_at ? (
             <div className="flex flex-col items-center gap-1">
               <button
-                onClick={onCheckOut}
+                onClick={handleCheckOutClick}
                 disabled={!allDone}
                 title={!allDone ? '단어·구두·과제 완료 후 하원 가능' : ''}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
