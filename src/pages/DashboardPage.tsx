@@ -1494,7 +1494,7 @@ function AttendanceRow({
   const [modalNotes, setModalNotes] = useState('')
   const [modalOralMemo, setModalOralMemo] = useState('')
   const [modalHomeworkMemo, setModalHomeworkMemo] = useState('')
-  const [confirmEdit, setConfirmEdit] = useState<{ field: string; pendingValue?: string } | null>(null)
+  const [confirmEdit, setConfirmEdit] = useState<{ field: string; editValue: string } | null>(null)
   const wordInputRef = useRef<HTMLInputElement>(null)
   const clinicInputRef = useRef<HTMLInputElement>(null)
 
@@ -1502,9 +1502,9 @@ function AttendanceRow({
   const homeworkVal = validStatuses.includes(record.homework as string) ? record.homework as MissionStatus : null
   const oralVal = validStatuses.includes(record.oral_status as string) ? record.oral_status as MissionStatus : null
 
-  // 이번 주 상속값 (오늘 값 없을 때만)
-  const iWordInherited = !record.word_score?.trim() && !!inheritedValues?.word_score
-  const iClinicInherited = !record.clinic_score?.trim() && !!inheritedValues?.clinic_score
+  // 이번 주 상속값 (오늘 값 없을 때만, 로컬 state도 체크)
+  const iWordInherited = !record.word_score?.trim() && wordScore === '' && !!inheritedValues?.word_score
+  const iClinicInherited = !record.clinic_score?.trim() && clinicScore === '' && !!inheritedValues?.clinic_score
   const iOralInherited = !oralVal && !!inheritedValues?.oral_status
   const iHomeworkInherited = !homeworkVal && !!inheritedValues?.homework
   const wordDisplay = wordScore !== '' ? wordScore : (inheritedValues?.word_score ?? '')
@@ -1522,18 +1522,19 @@ function AttendanceRow({
     await supabase.from('attendances').update({ [field]: value || null }).eq('id', record.id)
   }
 
-  function handleConfirmEdit() {
+  async function handleConfirmEdit() {
     if (!confirmEdit) return
-    if (confirmEdit.field === 'word_score') {
-      setWordScore(inheritedValues?.word_score ?? '')
-      setTimeout(() => wordInputRef.current?.focus(), 0)
-    } else if (confirmEdit.field === 'clinic_score') {
-      setClinicScore(inheritedValues?.clinic_score ?? '')
-      setTimeout(() => clinicInputRef.current?.focus(), 0)
-    } else if (confirmEdit.field === 'oral_status') {
-      onMission(record.id, 'oral_status', confirmEdit.pendingValue as MissionStatus)
-    } else if (confirmEdit.field === 'homework') {
-      onMission(record.id, 'homework', confirmEdit.pendingValue as MissionStatus)
+    const { field, editValue } = confirmEdit
+    if (field === 'word_score') {
+      setWordScore(editValue)
+      await saveScore('word_score', editValue)
+    } else if (field === 'clinic_score') {
+      setClinicScore(editValue)
+      await saveScore('clinic_score', editValue)
+    } else if (field === 'oral_status') {
+      onMission(record.id, 'oral_status', editValue as MissionStatus)
+    } else if (field === 'homework') {
+      onMission(record.id, 'homework', editValue as MissionStatus)
     }
     setConfirmEdit(null)
   }
@@ -1621,7 +1622,7 @@ function AttendanceRow({
               ref={wordInputRef}
               value={wordDisplay}
               onChange={(e) => setWordScore(e.target.value)}
-              onFocus={() => { if (iWordInherited) { wordInputRef.current?.blur(); setConfirmEdit({ field: 'word_score' }) } }}
+              onFocus={() => { if (iWordInherited) { wordInputRef.current?.blur(); setConfirmEdit({ field: 'word_score', editValue: inheritedValues?.word_score ?? '' }) } }}
               onBlur={() => saveScore('word_score', wordScore)}
               placeholder="단어"
               className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iWordInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(wordScore)}`}
@@ -1635,7 +1636,7 @@ function AttendanceRow({
               ref={clinicInputRef}
               value={clinicDisplay}
               onChange={(e) => setClinicScore(e.target.value)}
-              onFocus={() => { if (iClinicInherited) { clinicInputRef.current?.blur(); setConfirmEdit({ field: 'clinic_score' }) } }}
+              onFocus={() => { if (iClinicInherited) { clinicInputRef.current?.blur(); setConfirmEdit({ field: 'clinic_score', editValue: inheritedValues?.clinic_score ?? '' }) } }}
               onBlur={() => saveScore('clinic_score', clinicScore)}
               placeholder="클리닉"
               className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iClinicInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(clinicScore)}`}
@@ -1647,7 +1648,7 @@ function AttendanceRow({
         {record.status === 'approved'
           ? <div className={iOralInherited ? 'ring-2 ring-dashed ring-red-400 rounded-lg inline-block' : 'inline-block'}>
               <MissionCycleButton value={oralDisplay} onChange={(v) => {
-                if (iOralInherited) { setConfirmEdit({ field: 'oral_status', pendingValue: v as string }) }
+                if (iOralInherited) { setConfirmEdit({ field: 'oral_status', editValue: v as string }) }
                 else { onMission(record.id, 'oral_status', v) }
               }} />
             </div>
@@ -1658,7 +1659,7 @@ function AttendanceRow({
         {record.status === 'approved'
           ? <div className={iHomeworkInherited ? 'ring-2 ring-dashed ring-red-400 rounded-lg inline-block' : 'inline-block'}>
               <MissionCycleButton value={homeworkDisplay} onChange={(v) => {
-                if (iHomeworkInherited) { setConfirmEdit({ field: 'homework', pendingValue: v as string }) }
+                if (iHomeworkInherited) { setConfirmEdit({ field: 'homework', editValue: v as string }) }
                 else { onMission(record.id, 'homework', v) }
               }} variant="homework" />
             </div>
@@ -1738,8 +1739,33 @@ function AttendanceRow({
         {confirmEdit && createPortal(
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
-              <p className="font-semibold text-gray-800 mb-2">상속값 수정</p>
-              <p className="text-sm text-gray-500 mb-6">이 값은 이번 주 다른 날 기록에서 가져온 값입니다.<br />정말 수정하시겠습니까?</p>
+              <p className="font-semibold text-gray-800 mb-1">상속값 수정</p>
+              <p className="text-xs text-gray-400 mb-4">이번 주 다른 날 기록에서 가져온 값입니다.<br />수정하면 오늘 기록에 저장됩니다.</p>
+              <div className="mb-5">
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  {{ word_score: '단어 점수', clinic_score: '클리닉 점수', oral_status: '구두', homework: '과제' }[confirmEdit.field]}
+                </label>
+                {(confirmEdit.field === 'word_score' || confirmEdit.field === 'clinic_score') ? (
+                  <input
+                    autoFocus
+                    value={confirmEdit.editValue}
+                    onChange={(e) => setConfirmEdit(prev => prev ? { ...prev, editValue: e.target.value } : null)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  />
+                ) : (
+                  <select
+                    autoFocus
+                    value={confirmEdit.editValue}
+                    onChange={(e) => setConfirmEdit(prev => prev ? { ...prev, editValue: e.target.value } : null)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  >
+                    {confirmEdit.field === 'oral_status'
+                      ? [['pass','Pass'],['fail','Fail'],['delay','Delay'],['word_pass','단어Pass'],['sentence_pass','문장Pass'],['exempt','면제']].map(([v,l]) => <option key={v} value={v}>{l}</option>)
+                      : [['pass','Pass'],['fail','Fail'],['delay','Delay'],['partial_pass','일부Pass']].map(([v,l]) => <option key={v} value={v}>{l}</option>)
+                    }
+                  </select>
+                )}
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setConfirmEdit(null)}
