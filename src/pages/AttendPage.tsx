@@ -388,10 +388,10 @@ export default function AttendPage() {
       setNextClinicLoading(false)
       setShowNextClinicActionModal(true)
     } else {
-      // clinic: next_clinic_date 저장 후 조교 확인 대기
+      // clinic: next_clinic_date 저장 + checkout_requested 플래그 → 조교 확인 대기
       const { data } = await supabase
         .from('attendances')
-        .update({ next_clinic_date: nextClinicDate })
+        .update({ next_clinic_date: nextClinicDate, checkout_requested: true })
         .eq('id', attendance.id)
         .select()
         .single()

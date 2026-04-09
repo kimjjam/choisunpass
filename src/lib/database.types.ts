@@ -33,6 +33,7 @@ export interface Attendance {
   rechecked_in_at: string | null
   next_clinic_date: string | null
   force_next_clinic: boolean
+  checkout_requested: boolean
   word_status: MissionStatus
   oral_status: MissionStatus
   word_score: string | null
@@ -69,6 +70,7 @@ export type AttendanceInsert = {
   checked_out_at?: string | null
   rechecked_in_at?: string | null
   next_clinic_date?: string | null
+  checkout_requested?: boolean
   word_status?: MissionStatus
   oral_status?: MissionStatus
   word_score?: string | null

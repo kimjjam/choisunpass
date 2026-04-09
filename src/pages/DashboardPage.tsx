@@ -273,8 +273,8 @@ export default function DashboardPage() {
   async function handleForceCheckOut(id: string) {
     const now = new Date().toISOString()
     const prev = records
-    setRecords(p => p.map(r => r.id === id ? { ...r, checked_out_at: now } : r))
-    const { error } = await supabase.from('attendances').update({ checked_out_at: now }).eq('id', id)
+    setRecords(p => p.map(r => r.id === id ? { ...r, checked_out_at: now, checkout_requested: false } : r))
+    const { error } = await supabase.from('attendances').update({ checked_out_at: now, checkout_requested: false }).eq('id', id)
     if (error) { console.error('강제하원 실패:', error); setRecords(prev) }
   }
 
@@ -350,9 +350,9 @@ export default function DashboardPage() {
     .filter(r => !schoolFilter.length || schoolFilter.includes(r.students.school))
     .sort((a, b) => a.students.name.localeCompare(b.students.name, 'ko'))
 
-  // 강제하원 요청 (clinic + next_clinic_date 있는데 미하원)
+  // 학생이 직접 "다음에 올게요" 요청한 경우만 (조교가 날짜만 입력한 경우 제외)
   const forceCheckOutList = records.filter(
-    r => r.visit_type === 'clinic' && r.next_clinic_date && !r.checked_out_at && r.status === 'approved'
+    r => r.visit_type === 'clinic' && r.checkout_requested && !r.checked_out_at && r.status === 'approved'
   )
 
   const checkedOutList = records
