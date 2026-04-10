@@ -79,6 +79,9 @@ export default function AdminPage() {
   const [historyRecords, setHistoryRecords] = useState<AttendanceWithStudent[]>([])
   const [historyAbsences, setHistoryAbsences] = useState<ClinicAbsenceWithStudent[]>([])
 
+  // 전체 주차 기타 모달
+  const [pivotNotesModal, setPivotNotesModal] = useState<{ name: string; week: string; notes: string } | null>(null)
+
   // 학기 관리
   const [terms, setTerms] = useState<Term[]>([])
   const [selectedTermId, setSelectedTermId] = useState<string>('')
@@ -824,7 +827,12 @@ export default function AdminPage() {
                                         <td key={`${ws}-oral`} className={`px-2 py-2 text-center whitespace-nowrap border-r border-gray-100 ${oddBg}`}>
                                           <span className={oral === 'Pass' ? 'text-green-600 font-medium' : oral === 'Fail' ? 'text-red-500' : oral === 'Delay' ? 'text-yellow-600' : 'text-gray-600'}>{oral}</span>
                                         </td>
-                                        <td key={`${ws}-notes`} className={`px-2 py-2 text-gray-500 max-w-[80px] truncate border-r border-gray-100 ${oddBg}`}>{r.notes || '-'}</td>
+                                        <td key={`${ws}-notes`} className={`px-2 py-2 border-r border-gray-100 ${oddBg}`}>
+                                          {r.notes
+                                            ? <button onClick={() => setPivotNotesModal({ name: student.name, week: weekLabel(ws, selectedTerm?.start_date ?? ws), notes: r.notes! })} className="text-blue-500 hover:text-blue-700 text-xs truncate max-w-[80px] block text-left transition-colors" title={r.notes}>{r.notes}</button>
+                                            : <span className="text-gray-300 text-xs">-</span>
+                                          }
+                                        </td>
                                         <td key={`${ws}-next`} className={`px-2 py-2 text-center text-gray-500 whitespace-nowrap border-r border-gray-200 ${oddBg}`}>{r.next_clinic_date || '-'}</td>
                                       </>
                                     )
@@ -839,6 +847,27 @@ export default function AdminPage() {
                   </div>
                 )
               })()}
+
+              {/* 전체 주차 기타 모달 */}
+              {pivotNotesModal && createPortal(
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setPivotNotesModal(null)}>
+                  <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold text-gray-800">{pivotNotesModal.name} 학생</h3>
+                      <button onClick={() => setPivotNotesModal(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-4">{pivotNotesModal.week} · 기타 메모</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 rounded-xl px-4 py-3 leading-relaxed">{pivotNotesModal.notes}</p>
+                    <button
+                      onClick={() => setPivotNotesModal(null)}
+                      className="w-full mt-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 font-medium transition-colors"
+                    >
+                      닫기
+                    </button>
+                  </div>
+                </div>,
+                document.body
+              )}
 
               {/* 주차 헤더 + 엑셀 버튼 */}
               {selectedWeek && selectedWeek !== 'all' && (
