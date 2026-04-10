@@ -681,6 +681,16 @@ export default function AdminPage() {
             <>
               {/* 주차 선택 */}
               <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setSelectedWeek('all')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    selectedWeek === 'all'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-purple-300'
+                  }`}
+                >
+                  전체 주차
+                </button>
                 {weekStarts.map((ws) => (
                   <button
                     key={ws}
@@ -697,8 +707,139 @@ export default function AdminPage() {
                 ))}
               </div>
 
+              {/* ── 전체 주차 피벗 뷰 ── */}
+              {selectedWeek === 'all' && (() => {
+                const filteredAll = termRecords
+                  .filter(r => r.students.name.includes(search.trim()))
+                  .filter(r => !dayFilter || r.students.clinic_day === dayFilter)
+                  .filter(r => !schoolFilter || r.students.school === schoolFilter)
+                  .filter(r => !classFilter || r.students.class === classFilter)
+
+                // 학생별 { student, records: { weekStart → record } } 피벗
+                const studentMap: Record<string, { student: AttendanceWithStudent['students']; records: Record<string, AttendanceWithStudent> }> = {}
+                filteredAll.forEach(r => {
+                  if (!studentMap[r.student_id]) studentMap[r.student_id] = { student: r.students, records: {} }
+                  const ws = getWeekStart(r.date)
+                  // 같은 주에 여러 기록이면 최신 것으로
+                  if (!studentMap[r.student_id].records[ws] || r.date > studentMap[r.student_id].records[ws].date) {
+                    studentMap[r.student_id].records[ws] = r
+                  }
+                })
+
+                // 반별 그룹핑 후 가나다 정렬
+                const grouped: Record<string, typeof studentMap[string][]> = {}
+                Object.values(studentMap).forEach(s => {
+                  const key = `${s.student.school} (${s.student.class})`
+                  if (!grouped[key]) grouped[key] = []
+                  grouped[key].push(s)
+                })
+                Object.values(grouped).forEach(arr => arr.sort((a, b) => a.student.name.localeCompare(b.student.name, 'ko')))
+                const sortedGroups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b, 'ko'))
+
+                const WEEK_COLS = 8
+
+                return (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="text-xs border-collapse" style={{ minWidth: 'max-content' }}>
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-200">
+                            <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-r border-gray-200 sticky left-0 bg-gray-50 z-10" rowSpan={2}>이름</th>
+                            <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-r border-gray-200 whitespace-nowrap" rowSpan={2}>구두 방식</th>
+                            <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-r border-gray-200" rowSpan={2}>요일</th>
+                            {weekStarts.map(ws => (
+                              <th key={ws} colSpan={WEEK_COLS} className="px-3 py-2 text-center font-bold text-blue-700 border-r border-blue-200 bg-blue-50 whitespace-nowrap">
+                                {weekLabel(ws, selectedTerm?.start_date ?? ws)}
+                                <span className="ml-1.5 text-xs font-normal text-blue-400">{ws}</span>
+                              </th>
+                            ))}
+                          </tr>
+                          <tr className="bg-gray-50 border-b border-gray-200">
+                            {weekStarts.map(ws => (
+                              <>
+                                <th key={`${ws}-1`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">클리닉</th>
+                                <th key={`${ws}-2`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">등원</th>
+                                <th key={`${ws}-3`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">하원</th>
+                                <th key={`${ws}-4`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">단어/클리닉</th>
+                                <th key={`${ws}-5`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">과제</th>
+                                <th key={`${ws}-6`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">구두</th>
+                                <th key={`${ws}-7`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">기타</th>
+                                <th key={`${ws}-8`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-200 whitespace-nowrap">다음클리닉</th>
+                              </>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedGroups.map(([classKey, rows]) => (
+                            <>
+                              <tr key={classKey + '-hdr'} className="bg-purple-50 border-y border-purple-100">
+                                <td
+                                  colSpan={3 + weekStarts.length * WEEK_COLS}
+                                  className="px-3 py-2 font-semibold text-purple-800 text-xs sticky left-0"
+                                >
+                                  {classKey}
+                                  <span className="ml-2 font-normal text-purple-400">{rows.length}명</span>
+                                </td>
+                              </tr>
+                              {rows.map(({ student, records }) => (
+                                <tr key={student.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                  <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap border-r border-gray-100 sticky left-0 bg-white">
+                                    {student.name}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-500 whitespace-nowrap border-r border-gray-100">{student.oral_type || '-'}</td>
+                                  <td className="px-3 py-2 text-center text-gray-500 border-r border-gray-100">{student.clinic_day || '-'}</td>
+                                  {weekStarts.map(ws => {
+                                    const r = records[ws]
+                                    if (!r) return (
+                                      <>
+                                        {Array.from({ length: WEEK_COLS }).map((_, i) => (
+                                          <td key={`${ws}-empty-${i}`} className={`px-2 py-2 border-r ${i === WEEK_COLS - 1 ? 'border-gray-200' : 'border-gray-50'} bg-gray-50/30`} />
+                                        ))}
+                                      </>
+                                    )
+                                    const checkinTime = r.approved_at
+                                      ? new Date(r.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+                                      : '-'
+                                    const checkoutTime = r.checked_out_at
+                                      ? new Date(r.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+                                      : '-'
+                                    const score = [r.word_score, r.clinic_score].filter(Boolean).join(' / ') || '-'
+                                    const hwLabel: Record<string, string> = { pass: 'Pass', fail: 'Fail', delay: 'Delay', partial_pass: '일부P', exempt: '면제', word_pass: '단어P', sentence_pass: '문장P' }
+                                    const hw = r.homework ? (hwLabel[r.homework] ?? r.homework) : '-'
+                                    const oralLabel: Record<string, string> = { pass: 'Pass', fail: 'Fail', delay: 'Delay', partial_pass: '일부P', exempt: '면제', word_pass: '단어P', sentence_pass: '문장P' }
+                                    const oral = r.oral_status ? (oralLabel[r.oral_status] ?? r.oral_status) : '-'
+                                    return (
+                                      <>
+                                        <td key={`${ws}-att`} className="px-2 py-2 text-center border-r border-gray-100">
+                                          {r.status === 'approved' ? <span className="text-green-600 font-bold">○</span> : <span className="text-gray-300">-</span>}
+                                        </td>
+                                        <td key={`${ws}-in`} className="px-2 py-2 text-center text-gray-600 whitespace-nowrap border-r border-gray-100">{checkinTime}</td>
+                                        <td key={`${ws}-out`} className="px-2 py-2 text-center text-gray-600 whitespace-nowrap border-r border-gray-100">{checkoutTime}</td>
+                                        <td key={`${ws}-score`} className="px-2 py-2 text-center text-gray-700 whitespace-nowrap border-r border-gray-100">{score}</td>
+                                        <td key={`${ws}-hw`} className="px-2 py-2 text-center whitespace-nowrap border-r border-gray-100">
+                                          <span className={hw === 'Pass' ? 'text-green-600 font-medium' : hw === 'Fail' ? 'text-red-500' : hw === 'Delay' ? 'text-yellow-600' : 'text-gray-600'}>{hw}</span>
+                                        </td>
+                                        <td key={`${ws}-oral`} className="px-2 py-2 text-center whitespace-nowrap border-r border-gray-100">
+                                          <span className={oral === 'Pass' ? 'text-green-600 font-medium' : oral === 'Fail' ? 'text-red-500' : oral === 'Delay' ? 'text-yellow-600' : 'text-gray-600'}>{oral}</span>
+                                        </td>
+                                        <td key={`${ws}-notes`} className="px-2 py-2 text-gray-500 max-w-[80px] truncate border-r border-gray-100">{r.notes || '-'}</td>
+                                        <td key={`${ws}-next`} className="px-2 py-2 text-center text-gray-500 whitespace-nowrap border-r border-gray-200">{r.next_clinic_date || '-'}</td>
+                                      </>
+                                    )
+                                  })}
+                                </tr>
+                              ))}
+                            </>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* 주차 헤더 + 엑셀 버튼 */}
-              {selectedWeek && (
+              {selectedWeek && selectedWeek !== 'all' && (
                 <>
                   <div className="flex items-center justify-between">
                     <h2 className="font-bold text-gray-800">
