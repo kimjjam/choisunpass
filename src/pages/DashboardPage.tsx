@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -44,7 +44,7 @@ export default function DashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }
 
-  async function fetchRecords() {
+  const fetchRecords = useCallback(async function fetchRecords() {
     const today = getToday()
     const { data, error } = await supabase
       .from('attendances')
@@ -81,10 +81,13 @@ export default function DashboardPage() {
       }
     }
     setLoading(false)
-  }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchRecordsRef = useRef(fetchRecords)
+  useEffect(() => { fetchRecordsRef.current = fetchRecords }, [fetchRecords])
 
   useEffect(() => {
-    fetchRecords()
+    fetchRecordsRef.current()
     const channel = supabase
       .channel('dashboard-attendances')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'attendances' }, (payload) => {
@@ -98,13 +101,13 @@ export default function DashboardPage() {
           setRecords(prev => prev.map(r => r.id === (payload.new as Record<string, unknown>).id ? { ...r, ...payload.new } : r))
         } else {
           // INSERT / DELETE는 전체 재조회 (students 관계 데이터 필요)
-          fetchRecords()
+          fetchRecordsRef.current()
         }
       })
       .subscribe()
 
-    // 리얼타임이 이벤트를 놓칠 경우를 대비한 10초 폴링 백업
-    const pollInterval = setInterval(fetchRecords, 10000)
+    // 리얼타임이 이벤트를 놓칠 경우를 대비한 5초 폴링 백업
+    const pollInterval = setInterval(() => fetchRecordsRef.current(), 5000)
 
     return () => {
       supabase.removeChannel(channel)
