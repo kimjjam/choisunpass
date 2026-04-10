@@ -338,24 +338,30 @@ export default function DashboardPage() {
   const [search, setSearch] = useState('')
   const [schoolFilter, setSchoolFilter] = useState<string[]>([])
   const [schoolDropdownOpen, setSchoolDropdownOpen] = useState(false)
+  const [classFilter, setClassFilter] = useState<string[]>([])
+  const [classDropdownOpen, setClassDropdownOpen] = useState(false)
 
   const schools = [...new Set(records.map(r => r.students.school).filter(Boolean))].sort()
+  const classes = [...new Set(records.map(r => r.students.class).filter(Boolean))].sort()
 
   const pendingList = records
     .filter(r => r.status === 'pending')
     .filter(r => !search || r.students.name.includes(search.trim()))
     .filter(r => !schoolFilter.length || schoolFilter.includes(r.students.school))
+    .filter(r => !classFilter.length || classFilter.includes(r.students.class))
 
   const clinicList = records
     .filter(r => r.visit_type === 'clinic' && r.status === 'approved')
     .filter(r => !search || r.students.name.includes(search.trim()))
     .filter(r => !schoolFilter.length || schoolFilter.includes(r.students.school))
+    .filter(r => !classFilter.length || classFilter.includes(r.students.class))
     .sort((a, b) => a.students.name.localeCompare(b.students.name, 'ko'))
 
   const classClinicList = records
     .filter(r => r.visit_type === 'class_clinic' && r.status === 'approved')
     .filter(r => !search || r.students.name.includes(search.trim()))
     .filter(r => !schoolFilter.length || schoolFilter.includes(r.students.school))
+    .filter(r => !classFilter.length || classFilter.includes(r.students.class))
     .sort((a, b) => a.students.name.localeCompare(b.students.name, 'ko'))
 
   // 학생이 직접 "다음에 올게요" 요청한 경우만 (조교가 날짜만 입력한 경우 제외)
@@ -367,6 +373,7 @@ export default function DashboardPage() {
     .filter(r => r.status === 'approved' && !!r.checked_out_at)
     .filter(r => !search || r.students.name.includes(search.trim()))
     .filter(r => !schoolFilter.length || schoolFilter.includes(r.students.school))
+    .filter(r => !classFilter.length || classFilter.includes(r.students.class))
     .sort((a, b) => (b.checked_out_at ?? '').localeCompare(a.checked_out_at ?? ''))
 
   const overviewList = [
@@ -374,12 +381,14 @@ export default function DashboardPage() {
   ]
     .filter(r => !search || r.students.name.includes(search.trim()))
     .filter(r => !schoolFilter.length || schoolFilter.includes(r.students.school))
+    .filter(r => !classFilter.length || classFilter.includes(r.students.class))
     .sort((a, b) => (a.checked_in_at ?? '').localeCompare(b.checked_in_at ?? ''))
 
   const rejectedList = records
     .filter(r => r.status === 'rejected')
     .filter(r => !search || r.students.name.includes(search.trim()))
     .filter(r => !schoolFilter.length || schoolFilter.includes(r.students.school))
+    .filter(r => !classFilter.length || classFilter.includes(r.students.class))
     .sort((a, b) => a.students.name.localeCompare(b.students.name, 'ko'))
 
   const stats = {
@@ -486,6 +495,49 @@ export default function DashboardPage() {
             )}
             {schoolDropdownOpen && (
               <div className="fixed inset-0 z-20" onClick={() => setSchoolDropdownOpen(false)} />
+            )}
+          </div>
+          {/* 선생님 필터 */}
+          <div className="relative">
+            <button
+              onClick={() => setClassDropdownOpen(o => !o)}
+              className={`border rounded-lg px-3 py-2 text-sm text-left min-w-[120px] flex items-center gap-2 transition-colors ${
+                classFilter.length ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              <span className="flex-1 truncate">
+                {classFilter.length === 0 ? '전체 선생님' : classFilter.length === 1 ? classFilter[0] : `${classFilter[0]} 외 ${classFilter.length - 1}명`}
+              </span>
+              <svg className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${classDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {classDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 min-w-[140px] py-1">
+                <button
+                  onClick={() => { setClassFilter([]); setClassDropdownOpen(false) }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${classFilter.length === 0 ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
+                >
+                  전체 선생님
+                </button>
+                <div className="border-t border-gray-100 my-1" />
+                {classes.map(c => (
+                  <label key={c} className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={classFilter.includes(c)}
+                      onChange={() => setClassFilter(prev =>
+                        prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
+                      )}
+                      className="w-3.5 h-3.5 accent-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{c}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {classDropdownOpen && (
+              <div className="fixed inset-0 z-20" onClick={() => setClassDropdownOpen(false)} />
             )}
           </div>
           <div className="flex gap-1 ml-2">

@@ -55,6 +55,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState('')
   const [dayFilter, setDayFilter] = useState<string>('')
   const [schoolFilter, setSchoolFilter] = useState<string>('')
+  const [classFilter, setClassFilter] = useState<string>('')
 
   // 주차별 탭에서 선택된 주차
   const [selectedWeek, setSelectedWeek] = useState<string>('')
@@ -461,13 +462,16 @@ export default function AdminPage() {
     .filter((r) => r.students.name.includes(search.trim()))
     .filter((r) => !dayFilter || r.students.clinic_day === dayFilter)
     .filter((r) => !schoolFilter || r.students.school === schoolFilter)
+    .filter((r) => !classFilter || r.students.class === classFilter)
 
   const schools = [...new Set(students.map(s => s.school))].filter(Boolean).sort()
+  const classes = [...new Set(students.map(s => s.class))].filter(Boolean).sort()
 
   const filteredStudents = students
     .filter((s) => s.name.includes(search.trim()))
     .filter((s) => !dayFilter || s.clinic_day === dayFilter)
     .filter((s) => !schoolFilter || s.school === schoolFilter)
+    .filter((s) => !classFilter || s.class === classFilter)
 
   // 반별로 그룹핑
   const groupedByClass = weekRecords.reduce<Record<string, AttendanceWithStudent[]>>((acc, r) => {
@@ -500,6 +504,14 @@ export default function AdminPage() {
           >
             <option value="">전체 학교</option>
             {schools.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32"
+          >
+            <option value="">전체 선생님</option>
+            {classes.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <div className="flex gap-1">
             {['', '월', '화', '수', '목', '금'].map((d) => (
