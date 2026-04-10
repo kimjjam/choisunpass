@@ -386,6 +386,25 @@ export default function ParentsPage() {
           </div>
         </div>
       )}
+      {/* 홈화면 추가 버튼 */}
+      <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-40">
+        {installPrompt && (
+          <button
+            onClick={handleInstall}
+            className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-full border border-gray-200 bg-white/80 backdrop-blur-sm transition-colors"
+          >
+            + 홈화면에 추가
+          </button>
+        )}
+        {showIosGuide && (
+          <button
+            onClick={() => setShowIosGuide(true)}
+            className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-full border border-gray-200 bg-white/80 backdrop-blur-sm transition-colors"
+          >
+            + 홈화면에 추가
+          </button>
+        )}
+      </div>
     </div>
   )
 }
