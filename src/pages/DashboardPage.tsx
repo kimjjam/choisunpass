@@ -46,11 +46,13 @@ export default function DashboardPage() {
 
   async function fetchRecords() {
     const today = getToday()
+    console.log('[fetchRecords] today:', today)
     const { data, error } = await supabase
       .from('attendances')
       .select('*, students(*)')
       .eq('date', today)
       .order('checked_in_at', { ascending: true })
+    console.log('[fetchRecords] data count:', data?.length, 'error:', error)
     if (!error && data) {
       setRecords(data as AttendanceWithStudent[])
 
