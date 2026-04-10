@@ -313,6 +313,34 @@ export default function DashboardPage() {
       VALID.includes(r.oral_status as string) && VALID.includes(r.homework as string)
   }
 
+  async function handleCall(r: AttendanceWithStudent) {
+    const { data } = await supabase
+      .from('attendances')
+      .select('push_subscription')
+      .eq('id', r.id)
+      .single()
+    if (!data?.push_subscription) {
+      alert('학생 기기에 알림 설정이 없습니다.\n학생이 출석 페이지에서 알림을 허용해야 합니다.')
+      return
+    }
+    try {
+      const res = await fetch('/api/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription: data.push_subscription,
+          title: '📢 조교 호출',
+          body: `${r.students.name} 학생, 조교에게 와주세요!`,
+        }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      alert(`${r.students.name} 학생에게 알림을 보냈습니다!`)
+    } catch (e) {
+      console.error('push failed', e)
+      alert('알림 전송에 실패했습니다.')
+    }
+  }
+
   async function handleBulkCheckOut() {
     const now = new Date().toISOString()
     const targets = classClinicList.filter(r => !r.checked_out_at)
@@ -900,6 +928,7 @@ export default function DashboardPage() {
               onNameClick={(r) => openHistory(r.students)}
               onSetNextClinic={(r) => { setNextClinicDateInput(r.next_clinic_date ?? ''); setNextClinicSetModal({ id: r.id, name: r.students.name, currentDate: r.next_clinic_date ?? null }) }}
               weekValuesMap={weekValuesMap}
+              onCall={(r) => handleCall(r)}
             />
           </div>
         )}
@@ -929,6 +958,7 @@ export default function DashboardPage() {
             onMission={handleMission}
             onNameClick={(r) => openHistory(r.students)}
             weekValuesMap={weekValuesMap}
+            onCall={(r) => handleCall(r)}
           />
           </div>
         )}
@@ -1438,7 +1468,7 @@ export default function DashboardPage() {
 // ─── 서브 컴포넌트 ────────────────────────────────────────
 
 function AttendanceTable({
-  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic, weekValuesMap,
+  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic, weekValuesMap, onCall,
 }: {
   list: AttendanceWithStudent[]
   loading: boolean
@@ -1454,6 +1484,7 @@ function AttendanceTable({
   onNameClick?: (r: AttendanceWithStudent) => void
   onSetNextClinic?: (r: AttendanceWithStudent) => void
   weekValuesMap?: Map<string, Record<string, string | null>>
+  onCall?: (r: AttendanceWithStudent) => void
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1492,6 +1523,7 @@ function AttendanceTable({
                 onAdminForceCheckout={onAdminForceCheckout ? () => onAdminForceCheckout(record) : undefined}
                 onNameClick={onNameClick ? () => onNameClick(record) : undefined}
                 onSetNextClinic={onSetNextClinic ? () => onSetNextClinic(record) : undefined}
+                onCall={onCall ? () => onCall(record) : undefined}
                 inheritedValues={weekValuesMap?.get(record.student_id)}
               />
             ))}
@@ -1529,6 +1561,7 @@ function AttendanceRow({
   onAdminForceCheckout,
   onNameClick,
   onSetNextClinic,
+  onCall,
   inheritedValues,
 }: {
   record: AttendanceWithStudent
@@ -1542,6 +1575,7 @@ function AttendanceRow({
   onAdminForceCheckout?: () => void
   onNameClick?: () => void
   onSetNextClinic?: () => void
+  onCall?: () => void
   inheritedValues?: Record<string, string | null>
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
@@ -1919,6 +1953,15 @@ function AttendanceRow({
                 }`}
               >
                 {record.next_clinic_date ? `📅 ${record.next_clinic_date}` : '재등원 날짜'}
+              </button>
+            )}
+            {onCall && !record.checked_out_at && (
+              <button
+                onClick={onCall}
+                className="text-xs px-2 py-0.5 rounded-md bg-orange-50 hover:bg-orange-100 text-orange-500 hover:text-orange-700 transition-colors whitespace-nowrap"
+                title="학생 기기로 호출 알림 전송"
+              >
+                🔔 호출
               </button>
             )}
           </div>

@@ -112,13 +112,34 @@ export default function AttendPage() {
     if (attendance) localStorage.setItem('attendance_id', attendance.id)
   }, [attendance?.id])
 
-  // pending → approved 전환 시 미완료 항목 체크
+  // pending → approved 전환 시 미완료 항목 체크 + push 구독
   useEffect(() => {
     const wasApproved = prevPageState.current === 'approved'
     prevPageState.current = pageState
     if (pageState !== 'approved' || wasApproved || !student) return
     checkIncompleteItems(student.id, !!attendance?.rechecked_in_at)
+    // push 구독 등록
+    if (attendance?.id) subscribePush(attendance.id)
   }, [pageState])
+
+  async function subscribePush(attendanceId: string) {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+      const reg = await navigator.serviceWorker.ready
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') return
+      const existing = await reg.pushManager.getSubscription()
+      const sub = existing ?? await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
+      })
+      await supabase.from('attendances').update({
+        push_subscription: sub.toJSON(),
+      }).eq('id', attendanceId)
+    } catch (e) {
+      console.warn('push subscribe failed', e)
+    }
+  }
 
   function localDateStr(d: Date) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`

@@ -1,0 +1,36 @@
+/// <reference lib="webworker" />
+import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+
+declare const self: ServiceWorkerGlobalScope
+
+cleanupOutdatedCaches()
+precacheAndRoute(self.__WB_MANIFEST)
+
+// 푸시 알림 수신
+self.addEventListener('push', (event) => {
+  if (!event.data) return
+
+  const data = event.data.json() as { title: string; body?: string }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body ?? '',
+      icon: '/icon.svg',
+      badge: '/icon.svg',
+      requireInteraction: false,
+    })
+  )
+})
+
+// 알림 클릭 시 앱 열기
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus()
+      }
+      return self.clients.openWindow('/attend')
+    })
+  )
+})
