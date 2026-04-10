@@ -104,7 +104,9 @@ export default function DashboardPage() {
           fetchRecordsRef.current()
         }
       })
-      .subscribe()
+      .subscribe((status, err) => {
+        console.log('[Realtime] status:', status, err ?? '')
+      })
 
     // 리얼타임이 이벤트를 놓칠 경우를 대비한 5초 폴링 백업
     const pollInterval = setInterval(() => fetchRecordsRef.current(), 5000)
