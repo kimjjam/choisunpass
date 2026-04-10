@@ -1,6 +1,12 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { AttendanceWithStudent } from '../lib/database.types'
+
+// PWA 설치 이벤트 타입
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
 
 function getToday() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
@@ -22,6 +28,54 @@ export default function ParentsPage() {
   const [loading, setLoading] = useState(false)
   const [record, setRecord] = useState<AttendanceWithStudent | null | 'notfound'>(null)
   const [error, setError] = useState('')
+
+  // PWA 설치 프롬프트
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [showIosGuide, setShowIosGuide] = useState(false)
+  const [installBannerDismissed, setInstallBannerDismissed] = useState(false)
+
+  useEffect(() => {
+    // 이미 설치된 경우 (standalone 모드) → 배너 안 띄움
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    if (isStandalone) return
+
+    // 이미 닫은 적 있으면 → 안 띄움
+    if (localStorage.getItem('pwa-install-dismissed')) return
+
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+
+    if (isIos) {
+      // iOS: 커스텀 안내 배너
+      setShowIosGuide(true)
+    } else {
+      // Android: beforeinstallprompt 이벤트 캐치
+      const handler = (e: Event) => {
+        e.preventDefault()
+        setInstallPrompt(e as BeforeInstallPromptEvent)
+      }
+      window.addEventListener('beforeinstallprompt', handler)
+      return () => window.removeEventListener('beforeinstallprompt', handler)
+    }
+  }, [])
+
+  function dismissInstallBanner() {
+    localStorage.setItem('pwa-install-dismissed', '1')
+    setInstallPrompt(null)
+    setShowIosGuide(false)
+    setInstallBannerDismissed(true)
+  }
+
+  async function handleInstall() {
+    if (!installPrompt) return
+    await installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') {
+      localStorage.setItem('pwa-install-dismissed', '1')
+    }
+    setInstallPrompt(null)
+  }
+
   const inputRefs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -91,6 +145,47 @@ export default function ParentsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center justify-center px-4 py-10">
+
+      {/* Android 설치 배너 */}
+      {installPrompt && !installBannerDismissed && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-4 flex items-center gap-3 max-w-sm mx-auto">
+            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-lg">최</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-800">홈 화면에 추가</p>
+              <p className="text-xs text-gray-400">앱처럼 빠르게 열 수 있어요</p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={dismissInstallBanner} className="text-xs text-gray-400 px-2 py-1.5">나중에</button>
+              <button onClick={handleInstall} className="text-xs bg-blue-600 text-white font-semibold px-3 py-1.5 rounded-xl">추가</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* iOS 설치 안내 배너 */}
+      {showIosGuide && !installBannerDismissed && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-4 max-w-sm mx-auto">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-bold text-gray-800">홈 화면에 추가하기</p>
+              <button onClick={dismissInstallBanner} className="text-gray-400 text-lg leading-none">✕</button>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              하단의 <span className="inline-flex items-center gap-0.5 text-blue-500 font-semibold">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l-1.5 4.5H4l5.5 4-2 5.5L12 13l4.5 3-2-5.5 5.5-4h-6.5z"/></svg>
+                공유
+              </span> 버튼을 누른 후<br/>
+              <span className="font-semibold text-gray-700">"홈 화면에 추가"</span>를 선택해주세요
+            </p>
+            <div className="mt-3 flex justify-center">
+              <svg className="w-6 h-6 text-blue-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 로고 영역 */}
       <div className="mb-8 text-center">
