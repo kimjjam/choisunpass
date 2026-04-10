@@ -9,6 +9,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
+      registerType: 'autoUpdate',
       manifest: false,
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,ico,webmanifest}'],
