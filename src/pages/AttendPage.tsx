@@ -80,6 +80,7 @@ export default function AttendPage() {
   // 미완료 항목 모달
   type IncompleteWeek = { label: string; fields: string[] }
   const [incompleteModal, setIncompleteModal] = useState<IncompleteWeek[] | null>(null)
+  const [incompleteItems, setIncompleteItems] = useState<IncompleteWeek[] | null>(null)
   const prevPageState = useRef<PageState>('input')
 
   useEffect(() => { oralQueueRef.current = oralQueue }, [oralQueue])
@@ -117,7 +118,7 @@ export default function AttendPage() {
     const wasApproved = prevPageState.current === 'approved'
     prevPageState.current = pageState
     if (pageState !== 'approved' || wasApproved || !student) return
-    checkIncompleteItems(student.id, !!attendance?.rechecked_in_at)
+    checkIncompleteItems(student.id, !!attendance?.rechecked_in_at, attendance?.id)
     // push 구독 등록
     if (attendance?.id) subscribePush(attendance.id)
   }, [pageState])
@@ -192,7 +193,7 @@ export default function AttendPage() {
     return fields
   }
 
-  async function checkIncompleteItems(studentId: string, isReCheckIn: boolean) {
+  async function checkIncompleteItems(studentId: string, isReCheckIn: boolean, attendanceId?: string) {
     const today = new Date()
     const lastWeek = getWeekRange(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7))
     const thisWeek = getWeekRange(today)
@@ -233,7 +234,15 @@ export default function AttendPage() {
       }
     }
 
-    if (result.length > 0) setIncompleteModal(result)
+    if (result.length > 0) {
+      setIncompleteItems(result)
+      // 오늘 이미 본 적 없으면 자동 팝업
+      const shownKey = `incomplete-shown-${attendanceId ?? studentId}`
+      if (!localStorage.getItem(shownKey)) {
+        setIncompleteModal(result)
+        localStorage.setItem(shownKey, '1')
+      }
+    }
   }
 
   // 출석 상태 폴링 백업 (5초마다 - Realtime 미수신 대비)
@@ -739,6 +748,17 @@ export default function AttendPage() {
                   <span className="block text-blue-400">재등원: {new Date(attendance.rechecked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
                 )}
               </p>
+            )}
+
+            {/* 미완료 항목 버튼 */}
+            {incompleteItems && (
+              <button
+                onClick={() => setIncompleteModal(incompleteItems)}
+                className="w-full flex items-center justify-center gap-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 text-sm font-medium py-2.5 rounded-xl transition-colors mb-3"
+              >
+                <span className="text-base">⚠️</span>
+                미완료 항목 확인
+              </button>
             )}
 
             {/* 대기 등록 */}
