@@ -3,7 +3,7 @@
   "short_name": "알림장",
   "description": "최선패스 학부모 알림장",
   "theme_color": "#2563EB",
-  "background_color": "#EFF6FF",
+  "background_color": "#ffffff",
   "display": "standalone",
   "orientation": "portrait",
   "start_url": "/parents",
@@ -13,7 +13,7 @@
       "src": "/icon-parents.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
