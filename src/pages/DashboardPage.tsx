@@ -175,7 +175,7 @@ export default function DashboardPage() {
   }
 
   const [oralQueue, setOralQueue] = useState<OralQueueWithStudent[]>([])
-  const [callerModal, setCallerModal] = useState<string | null>(null) // queueId 저장
+  const [callerModal, setCallerModal] = useState<{ queueId: string; attendanceId: string; studentName: string } | null>(null)
   const [oralDoneModal, setOralDoneModal] = useState<{ queueId: string; attendanceId: string; studentName: string } | null>(null)
   const [oralDoneForm, setOralDoneForm] = useState<{ wordScore: string; clinicScore: string; oralStatus: MissionStatus; homework: MissionStatus; oralMemo: string; homeworkMemo: string; notes: string }>({ wordScore: '', clinicScore: '', oralStatus: null, homework: null, oralMemo: '', homeworkMemo: '', notes: '' })
   const CALLERS = ['김재민조교', '조은채조교', '신수현조교', '이채연조교', '박성우조교' , '김민준조교']
@@ -198,10 +198,23 @@ export default function DashboardPage() {
     return () => { supabase.removeChannel(ch) }
   }, [])
 
-  async function handleCallStudent(queueId: string, caller: string) {
+  async function handleCallStudent(queueId: string, attendanceId: string, studentName: string, caller: string) {
     await supabase.from('oral_queue').update({ status: 'called', caller }).eq('id', queueId)
     setCallerModal(null)
     fetchOralQueue()
+    // 푸쉬 알림 전송
+    const { data } = await supabase.from('attendances').select('push_subscription').eq('id', attendanceId).single()
+    if (data?.push_subscription) {
+      fetch('/api/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription: data.push_subscription,
+          title: '📢 조교 호출',
+          body: `${studentName} 학생, ${caller}님이 호출했습니다. 조교에게 와주세요!`,
+        }),
+      }).catch(e => console.warn('push failed', e))
+    }
   }
 
   async function openOralDoneModal(q: OralQueueWithStudent) {
@@ -830,7 +843,7 @@ export default function DashboardPage() {
                         <div className="flex justify-center gap-1">
                           {q.status === 'waiting' && (
                             <button
-                              onClick={() => setCallerModal(q.id)}
+                              onClick={() => setCallerModal({ queueId: q.id, attendanceId: q.attendance_id, studentName: q.students.name })}
                               className={`text-xs text-white px-2.5 py-1 rounded-lg transition-colors ${isHomework ? 'bg-pink-500 hover:bg-pink-600' : 'bg-purple-600 hover:bg-purple-700'}`}
                             >
                               호출
@@ -1305,7 +1318,7 @@ export default function DashboardPage() {
               {CALLERS.map((t) => (
                 <button
                   key={t}
-                  onClick={() => handleCallStudent(callerModal, t)}
+                  onClick={() => handleCallStudent(callerModal.queueId, callerModal.attendanceId, callerModal.studentName, t)}
                   className="py-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-sm transition-colors"
                 >
                   {t}
