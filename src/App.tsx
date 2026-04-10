@@ -3,6 +3,7 @@ import AttendPage from './pages/AttendPage'
 import DashboardPage from './pages/DashboardPage'
 import AdminPage from './pages/AdminPage'
 import LoginPage from './pages/LoginPage'
+import ParentsPage from './pages/ParentsPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/attend" replace />} />
         <Route path="/attend" element={<AttendPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/parents" element={<ParentsPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       </Routes>
