@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let failed = 0
 
   for (const att of (attendances ?? [])) {
-    const student = att.students as { id: string; name: string; parent_push_subscription: object | null } | null
+    const student = (att.students as unknown) as { id: string; name: string; parent_push_subscription: object | null } | null
     if (!student?.parent_push_subscription) continue
 
     try {
