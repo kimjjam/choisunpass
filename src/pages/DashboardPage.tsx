@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [checkoutConfirmModal, setCheckoutConfirmModal] = useState<{ id: string; name: string } | null>(null)
   const [cancelCheckoutModal, setCancelCheckoutModal] = useState<{ id: string; name: string } | null>(null)
   const [cancelNextClinicModal, setCancelNextClinicModal] = useState<{ id: string; name: string } | null>(null)
+  const [callConfirmModal, setCallConfirmModal] = useState<AttendanceWithStudent | null>(null)
   const [nextClinicSetModal, setNextClinicSetModal] = useState<{ id: string; name: string; currentDate: string | null } | null>(null)
   const [nextClinicDateInput, setNextClinicDateInput] = useState('')
   const [historyTarget, setHistoryTarget] = useState<Student | null>(null)
@@ -941,7 +942,7 @@ export default function DashboardPage() {
               onNameClick={(r) => openHistory(r.students)}
               onSetNextClinic={(r) => { setNextClinicDateInput(r.next_clinic_date ?? ''); setNextClinicSetModal({ id: r.id, name: r.students.name, currentDate: r.next_clinic_date ?? null }) }}
               weekValuesMap={weekValuesMap}
-              onCall={(r) => handleCall(r)}
+              onCall={(r) => setCallConfirmModal(r)}
             />
           </div>
         )}
@@ -1303,6 +1304,31 @@ export default function DashboardPage() {
                 className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-sm transition-colors"
               >
                 확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔔 호출 확인 모달 */}
+      {callConfirmModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl text-center">
+            <div className="text-3xl mb-3">🔔</div>
+            <h3 className="font-semibold text-gray-800 text-lg mb-1">{callConfirmModal.students.name} 학생</h3>
+            <p className="text-sm text-gray-500 mb-5">학생 기기로 호출 알림을 보내시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCallConfirmModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { const r = callConfirmModal; setCallConfirmModal(null); handleCall(r) }}
+                className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm transition-colors"
+              >
+                호출
               </button>
             </div>
           </div>
