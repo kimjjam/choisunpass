@@ -80,7 +80,7 @@ export default function AdminPage() {
   const [historyAbsences, setHistoryAbsences] = useState<ClinicAbsenceWithStudent[]>([])
 
   // 전체 주차 기타 모달
-  const [pivotNotesModal, setPivotNotesModal] = useState<{ name: string; week: string; notes: string } | null>(null)
+  const [pivotNotesModal, setPivotNotesModal] = useState<{ name: string; week: string; oralMemo: string; homeworkMemo: string; notes: string } | null>(null)
 
   // 학기 관리
   const [terms, setTerms] = useState<Term[]>([])
@@ -739,7 +739,7 @@ export default function AdminPage() {
                 Object.values(grouped).forEach(arr => arr.sort((a, b) => a.student.name.localeCompare(b.student.name, 'ko')))
                 const sortedGroups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b, 'ko'))
 
-                const WEEK_COLS = 8
+                const WEEK_COLS = 10
 
                 return (
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -766,8 +766,10 @@ export default function AdminPage() {
                                 <th key={`${ws}-4`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>단어/클리닉</th>
                                 <th key={`${ws}-5`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>과제</th>
                                 <th key={`${ws}-6`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>구두</th>
-                                <th key={`${ws}-7`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>기타</th>
-                                <th key={`${ws}-8`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-200 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>다음클리닉</th>
+                                <th key={`${ws}-7`} className={`px-2 py-2 text-center font-medium text-blue-400 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>구두메모</th>
+                                <th key={`${ws}-8`} className={`px-2 py-2 text-center font-medium text-purple-400 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>과제메모</th>
+                                <th key={`${ws}-9`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>기타</th>
+                                <th key={`${ws}-10`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-200 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>다음클리닉</th>
                               </>
                             ))}
                           </tr>
@@ -827,9 +829,21 @@ export default function AdminPage() {
                                         <td key={`${ws}-oral`} className={`px-2 py-2 text-center whitespace-nowrap border-r border-gray-100 ${oddBg}`}>
                                           <span className={oral === 'Pass' ? 'text-green-600 font-medium' : oral === 'Fail' ? 'text-red-500' : oral === 'Delay' ? 'text-yellow-600' : 'text-gray-600'}>{oral}</span>
                                         </td>
+                                        <td key={`${ws}-oralmemo`} className={`px-2 py-2 border-r border-gray-100 ${oddBg}`}>
+                                          {r.oral_memo
+                                            ? <button onClick={() => setPivotNotesModal({ name: student.name, week: weekLabel(ws, selectedTerm?.start_date ?? ws), oralMemo: r.oral_memo ?? '', homeworkMemo: r.homework_memo ?? '', notes: r.notes ?? '' })} className="text-blue-500 hover:text-blue-700 text-xs truncate max-w-[80px] block text-left transition-colors" title={r.oral_memo}>{r.oral_memo}</button>
+                                            : <span className="text-gray-300 text-xs">-</span>
+                                          }
+                                        </td>
+                                        <td key={`${ws}-hwmemo`} className={`px-2 py-2 border-r border-gray-100 ${oddBg}`}>
+                                          {r.homework_memo
+                                            ? <button onClick={() => setPivotNotesModal({ name: student.name, week: weekLabel(ws, selectedTerm?.start_date ?? ws), oralMemo: r.oral_memo ?? '', homeworkMemo: r.homework_memo ?? '', notes: r.notes ?? '' })} className="text-purple-500 hover:text-purple-700 text-xs truncate max-w-[80px] block text-left transition-colors" title={r.homework_memo}>{r.homework_memo}</button>
+                                            : <span className="text-gray-300 text-xs">-</span>
+                                          }
+                                        </td>
                                         <td key={`${ws}-notes`} className={`px-2 py-2 border-r border-gray-100 ${oddBg}`}>
                                           {r.notes
-                                            ? <button onClick={() => setPivotNotesModal({ name: student.name, week: weekLabel(ws, selectedTerm?.start_date ?? ws), notes: r.notes! })} className="text-blue-500 hover:text-blue-700 text-xs truncate max-w-[80px] block text-left transition-colors" title={r.notes}>{r.notes}</button>
+                                            ? <button onClick={() => setPivotNotesModal({ name: student.name, week: weekLabel(ws, selectedTerm?.start_date ?? ws), oralMemo: r.oral_memo ?? '', homeworkMemo: r.homework_memo ?? '', notes: r.notes ?? '' })} className="text-gray-500 hover:text-gray-700 text-xs truncate max-w-[80px] block text-left transition-colors" title={r.notes}>{r.notes}</button>
                                             : <span className="text-gray-300 text-xs">-</span>
                                           }
                                         </td>
@@ -856,8 +870,27 @@ export default function AdminPage() {
                       <h3 className="font-semibold text-gray-800">{pivotNotesModal.name} 학생</h3>
                       <button onClick={() => setPivotNotesModal(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
                     </div>
-                    <p className="text-xs text-gray-400 mb-4">{pivotNotesModal.week} · 기타 메모</p>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 rounded-xl px-4 py-3 leading-relaxed">{pivotNotesModal.notes}</p>
+                    <p className="text-xs text-gray-400 mb-4">{pivotNotesModal.week} · 메모</p>
+                    <div className="space-y-3">
+                      {pivotNotesModal.oralMemo && (
+                        <div>
+                          <p className="text-xs font-medium text-blue-500 mb-1">구두 메모</p>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap bg-blue-50 rounded-xl px-4 py-3 leading-relaxed">{pivotNotesModal.oralMemo}</p>
+                        </div>
+                      )}
+                      {pivotNotesModal.homeworkMemo && (
+                        <div>
+                          <p className="text-xs font-medium text-purple-500 mb-1">과제 메모</p>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap bg-purple-50 rounded-xl px-4 py-3 leading-relaxed">{pivotNotesModal.homeworkMemo}</p>
+                        </div>
+                      )}
+                      {pivotNotesModal.notes && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 mb-1">기타 메모</p>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 rounded-xl px-4 py-3 leading-relaxed">{pivotNotesModal.notes}</p>
+                        </div>
+                      )}
+                    </div>
                     <button
                       onClick={() => setPivotNotesModal(null)}
                       className="w-full mt-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 font-medium transition-colors"
@@ -927,6 +960,8 @@ export default function AdminPage() {
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">클리닉</th>
                                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500">구두</th>
                                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">미완료 과제</th>
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-blue-400">구두메모</th>
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-400">과제메모</th>
                                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">기타</th>
                               </tr>
                             </thead>
@@ -1438,9 +1473,13 @@ const VALID_STATUSES = ['pass', 'fail', 'delay', 'word_pass', 'sentence_pass', '
 
 function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithStudent; onUpdate: () => void; onNameClick?: () => void }) {
   const [notes, setNotes] = useState(record.notes ?? '')
+  const [oralMemo, setOralMemo] = useState(record.oral_memo ?? '')
+  const [homeworkMemo, setHomeworkMemo] = useState(record.homework_memo ?? '')
   const [saving, setSaving] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showNotesModal, setShowNotesModal] = useState(false)
+  const [modalOralMemo, setModalOralMemo] = useState('')
+  const [modalHomeworkMemo, setModalHomeworkMemo] = useState('')
   const [modalNotes, setModalNotes] = useState('')
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showEditConfirm, setShowEditConfirm] = useState(false)
@@ -1449,25 +1488,34 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     clinic_score: record.clinic_score ?? '',
     oral_status: record.oral_status ?? '',
     homework: record.homework ?? '',
+    oral_memo: record.oral_memo ?? '',
+    homework_memo: record.homework_memo ?? '',
     notes: record.notes ?? '',
   })
 
-  async function saveNotes(value: string) {
-    await supabase.from('attendances').update({ notes: value || null }).eq('id', record.id)
+  async function saveAllMemos(o: string, h: string, n: string) {
+    await supabase.from('attendances').update({
+      oral_memo: o || null,
+      homework_memo: h || null,
+      notes: n || null,
+    }).eq('id', record.id)
     onUpdate()
   }
 
-
   function openNotesModal() {
+    setModalOralMemo(oralMemo)
+    setModalHomeworkMemo(homeworkMemo)
     setModalNotes(notes)
     setShowNotesModal(true)
   }
 
   async function handleSaveModal() {
+    setOralMemo(modalOralMemo)
+    setHomeworkMemo(modalHomeworkMemo)
     setNotes(modalNotes)
     if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
     setSaving(true)
-    await saveNotes(modalNotes)
+    await saveAllMemos(modalOralMemo, modalHomeworkMemo, modalNotes)
     setSaving(false)
     setShowNotesModal(false)
   }
@@ -1479,6 +1527,8 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
       clinic_score: editForm.clinic_score || null,
       oral_status: VALID_STATUSES.includes(editForm.oral_status) ? editForm.oral_status : null,
       homework: editForm.homework || null,
+      oral_memo: editForm.oral_memo || null,
+      homework_memo: editForm.homework_memo || null,
       notes: editForm.notes || null,
     }).eq('id', record.id)
     setSaving(false)
@@ -1488,6 +1538,8 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     }
     setShowEditConfirm(false)
     setShowEditModal(false)
+    setOralMemo(editForm.oral_memo)
+    setHomeworkMemo(editForm.homework_memo)
     setNotes(editForm.notes)
     onUpdate()
   }
@@ -1512,7 +1564,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
       </td>
       <td className="px-3 py-2.5 text-center">
         <button
-          onClick={() => { setEditForm({ word_score: record.word_score ?? '', clinic_score: record.clinic_score ?? '', oral_status: record.oral_status ?? '', homework: record.homework ?? '', notes: record.notes ?? '' }); setShowEditModal(true) }}
+          onClick={() => { setEditForm({ word_score: record.word_score ?? '', clinic_score: record.clinic_score ?? '', oral_status: record.oral_status ?? '', homework: record.homework ?? '', oral_memo: record.oral_memo ?? '', homework_memo: record.homework_memo ?? '', notes: record.notes ?? '' }); setShowEditModal(true) }}
           className="text-gray-300 hover:text-blue-500 transition-colors"
           title="수정"
         >
@@ -1554,28 +1606,74 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
           ? <MissionBadge value={record.homework} />
           : <span className="text-xs text-gray-400">{record.homework || '-'}</span>}
       </td>
+      {/* 구두메모 */}
       <td className="px-3 py-2.5">
-        <button onClick={openNotesModal} className="flex items-center gap-1 max-w-[100px] group">
+        <button onClick={openNotesModal} className="flex items-center gap-1 max-w-[90px] group">
+          {oralMemo
+            ? <span className="text-xs text-blue-600 truncate max-w-[70px]">{oralMemo}</span>
+            : <span className="text-xs text-gray-300">입력...</span>
+          }
+          <span className={`text-xs flex-shrink-0 ${oralMemo ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
+        </button>
+      </td>
+      {/* 과제메모 */}
+      <td className="px-3 py-2.5">
+        <button onClick={openNotesModal} className="flex items-center gap-1 max-w-[90px] group">
+          {homeworkMemo
+            ? <span className="text-xs text-purple-600 truncate max-w-[70px]">{homeworkMemo}</span>
+            : <span className="text-xs text-gray-300">입력...</span>
+          }
+          <span className={`text-xs flex-shrink-0 ${homeworkMemo ? 'text-purple-400 group-hover:text-purple-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
+        </button>
+      </td>
+      {/* 기타 + 메모 모달 */}
+      <td className="px-3 py-2.5">
+        <button onClick={openNotesModal} className="flex items-center gap-1 max-w-[90px] group">
           {notes
             ? <span className="text-xs text-gray-600 truncate max-w-[70px]">{notes}</span>
             : <span className="text-xs text-gray-300">입력...</span>
           }
-          <span className={`text-xs flex-shrink-0 ${notes ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
+          <span className={`text-xs flex-shrink-0 ${notes ? 'text-gray-400 group-hover:text-gray-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
         </button>
         {showNotesModal && createPortal(
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
               <h3 className="font-semibold text-gray-800 mb-1">{record.students.name} 학생</h3>
-              <p className="text-xs text-gray-400 mb-3">기타 메모</p>
-              <textarea
-                value={modalNotes}
-                onChange={(e) => setModalNotes(e.target.value)}
-                autoFocus
-                rows={5}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 resize-none mb-4"
-                placeholder="메모를 입력하세요..."
-              />
-              <div className="flex gap-2">
+              <p className="text-xs text-gray-400 mb-4">{record.date} · 메모 편집</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-blue-500 mb-1">구두 메모</label>
+                  <textarea
+                    value={modalOralMemo}
+                    onChange={(e) => setModalOralMemo(e.target.value)}
+                    autoFocus
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none"
+                    placeholder="구두 관련 메모..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-purple-500 mb-1">과제 메모</label>
+                  <textarea
+                    value={modalHomeworkMemo}
+                    onChange={(e) => setModalHomeworkMemo(e.target.value)}
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400 resize-none"
+                    placeholder="과제 관련 메모..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1">기타 메모</label>
+                  <textarea
+                    value={modalNotes}
+                    onChange={(e) => setModalNotes(e.target.value)}
+                    rows={2}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-gray-400 resize-none"
+                    placeholder="기타 메모..."
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
                 <button
                   onClick={() => setShowNotesModal(false)}
                   className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
@@ -1663,11 +1761,29 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                 </div>
               </div>
               <div>
+                <label className="block text-xs font-medium text-blue-500 mb-1">구두 메모</label>
+                <input
+                  value={editForm.oral_memo}
+                  onChange={(e) => setEditForm(f => ({ ...f, oral_memo: e.target.value }))}
+                  placeholder="구두 관련 메모..."
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-purple-500 mb-1">과제 메모</label>
+                <input
+                  value={editForm.homework_memo}
+                  onChange={(e) => setEditForm(f => ({ ...f, homework_memo: e.target.value }))}
+                  placeholder="과제 관련 메모..."
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">기타 메모</label>
                 <input
                   value={editForm.notes}
                   onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="메모..."
+                  placeholder="기타 메모..."
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                 />
               </div>
