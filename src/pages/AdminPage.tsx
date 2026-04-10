@@ -747,24 +747,24 @@ export default function AdminPage() {
                             <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-r border-gray-200 sticky left-0 bg-gray-50 z-10" rowSpan={2}>이름</th>
                             <th className="px-3 py-2.5 text-left font-semibold text-gray-600 border-r border-gray-200 whitespace-nowrap" rowSpan={2}>구두 방식</th>
                             <th className="px-3 py-2.5 text-center font-semibold text-gray-600 border-r border-gray-200" rowSpan={2}>요일</th>
-                            {weekStarts.map(ws => (
-                              <th key={ws} colSpan={WEEK_COLS} className="px-3 py-2 text-center font-bold text-blue-700 border-r border-blue-200 bg-blue-50 whitespace-nowrap">
+                            {weekStarts.map((ws, wsIdx) => (
+                              <th key={ws} colSpan={WEEK_COLS} className={`px-3 py-2 text-center font-bold border-r border-blue-200 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-50 text-blue-700'}`}>
                                 {weekLabel(ws, selectedTerm?.start_date ?? ws)}
-                                <span className="ml-1.5 text-xs font-normal text-blue-400">{ws}</span>
+                                <span className="ml-1.5 text-xs font-normal opacity-60">{ws}</span>
                               </th>
                             ))}
                           </tr>
-                          <tr className="bg-gray-50 border-b border-gray-200">
-                            {weekStarts.map(ws => (
+                          <tr className="border-b border-gray-200">
+                            {weekStarts.map((ws, wsIdx) => (
                               <>
-                                <th key={`${ws}-1`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">클리닉</th>
-                                <th key={`${ws}-2`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">등원</th>
-                                <th key={`${ws}-3`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">하원</th>
-                                <th key={`${ws}-4`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">단어/클리닉</th>
-                                <th key={`${ws}-5`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">과제</th>
-                                <th key={`${ws}-6`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">구두</th>
-                                <th key={`${ws}-7`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap">기타</th>
-                                <th key={`${ws}-8`} className="px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-200 whitespace-nowrap">다음클리닉</th>
+                                <th key={`${ws}-1`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>클리닉</th>
+                                <th key={`${ws}-2`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>등원</th>
+                                <th key={`${ws}-3`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>하원</th>
+                                <th key={`${ws}-4`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>단어/클리닉</th>
+                                <th key={`${ws}-5`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>과제</th>
+                                <th key={`${ws}-6`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>구두</th>
+                                <th key={`${ws}-7`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>기타</th>
+                                <th key={`${ws}-8`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-200 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>다음클리닉</th>
                               </>
                             ))}
                           </tr>
@@ -788,12 +788,14 @@ export default function AdminPage() {
                                   </td>
                                   <td className="px-3 py-2 text-gray-500 whitespace-nowrap border-r border-gray-100">{student.oral_type || '-'}</td>
                                   <td className="px-3 py-2 text-center text-gray-500 border-r border-gray-100">{student.clinic_day || '-'}</td>
-                                  {weekStarts.map(ws => {
+                                  {weekStarts.map((ws, wsIdx) => {
+                                    const isOdd = wsIdx % 2 === 0
+                                    const oddBg = isOdd ? 'bg-indigo-50/50' : ''
                                     const r = records[ws]
                                     if (!r) return (
                                       <>
                                         {Array.from({ length: WEEK_COLS }).map((_, i) => (
-                                          <td key={`${ws}-empty-${i}`} className={`px-2 py-2 border-r ${i === WEEK_COLS - 1 ? 'border-gray-200' : 'border-gray-50'} bg-gray-50/30`} />
+                                          <td key={`${ws}-empty-${i}`} className={`px-2 py-2 border-r ${i === WEEK_COLS - 1 ? 'border-gray-200' : 'border-gray-100'} ${isOdd ? 'bg-indigo-50/30' : 'bg-gray-50/20'}`} />
                                         ))}
                                       </>
                                     )
@@ -810,20 +812,20 @@ export default function AdminPage() {
                                     const oral = r.oral_status ? (oralLabel[r.oral_status] ?? r.oral_status) : '-'
                                     return (
                                       <>
-                                        <td key={`${ws}-att`} className="px-2 py-2 text-center border-r border-gray-100">
+                                        <td key={`${ws}-att`} className={`px-2 py-2 text-center border-r border-gray-100 ${oddBg}`}>
                                           {r.status === 'approved' ? <span className="text-green-600 font-bold">○</span> : <span className="text-gray-300">-</span>}
                                         </td>
-                                        <td key={`${ws}-in`} className="px-2 py-2 text-center text-gray-600 whitespace-nowrap border-r border-gray-100">{checkinTime}</td>
-                                        <td key={`${ws}-out`} className="px-2 py-2 text-center text-gray-600 whitespace-nowrap border-r border-gray-100">{checkoutTime}</td>
-                                        <td key={`${ws}-score`} className="px-2 py-2 text-center text-gray-700 whitespace-nowrap border-r border-gray-100">{score}</td>
-                                        <td key={`${ws}-hw`} className="px-2 py-2 text-center whitespace-nowrap border-r border-gray-100">
+                                        <td key={`${ws}-in`} className={`px-2 py-2 text-center text-gray-600 whitespace-nowrap border-r border-gray-100 ${oddBg}`}>{checkinTime}</td>
+                                        <td key={`${ws}-out`} className={`px-2 py-2 text-center text-gray-600 whitespace-nowrap border-r border-gray-100 ${oddBg}`}>{checkoutTime}</td>
+                                        <td key={`${ws}-score`} className={`px-2 py-2 text-center text-gray-700 whitespace-nowrap border-r border-gray-100 ${oddBg}`}>{score}</td>
+                                        <td key={`${ws}-hw`} className={`px-2 py-2 text-center whitespace-nowrap border-r border-gray-100 ${oddBg}`}>
                                           <span className={hw === 'Pass' ? 'text-green-600 font-medium' : hw === 'Fail' ? 'text-red-500' : hw === 'Delay' ? 'text-yellow-600' : 'text-gray-600'}>{hw}</span>
                                         </td>
-                                        <td key={`${ws}-oral`} className="px-2 py-2 text-center whitespace-nowrap border-r border-gray-100">
+                                        <td key={`${ws}-oral`} className={`px-2 py-2 text-center whitespace-nowrap border-r border-gray-100 ${oddBg}`}>
                                           <span className={oral === 'Pass' ? 'text-green-600 font-medium' : oral === 'Fail' ? 'text-red-500' : oral === 'Delay' ? 'text-yellow-600' : 'text-gray-600'}>{oral}</span>
                                         </td>
-                                        <td key={`${ws}-notes`} className="px-2 py-2 text-gray-500 max-w-[80px] truncate border-r border-gray-100">{r.notes || '-'}</td>
-                                        <td key={`${ws}-next`} className="px-2 py-2 text-center text-gray-500 whitespace-nowrap border-r border-gray-200">{r.next_clinic_date || '-'}</td>
+                                        <td key={`${ws}-notes`} className={`px-2 py-2 text-gray-500 max-w-[80px] truncate border-r border-gray-100 ${oddBg}`}>{r.notes || '-'}</td>
+                                        <td key={`${ws}-next`} className={`px-2 py-2 text-center text-gray-500 whitespace-nowrap border-r border-gray-200 ${oddBg}`}>{r.next_clinic_date || '-'}</td>
                                       </>
                                     )
                                   })}
