@@ -179,7 +179,8 @@ export default function DashboardPage() {
   const [callerModal, setCallerModal] = useState<{ queueId: string; attendanceId: string; studentName: string } | null>(null)
   const [oralDoneModal, setOralDoneModal] = useState<{ queueId: string; attendanceId: string; studentName: string } | null>(null)
   const [oralDoneForm, setOralDoneForm] = useState<{ wordScore: string; clinicScore: string; oralStatus: MissionStatus; homework: MissionStatus; oralMemo: string; homeworkMemo: string; notes: string }>({ wordScore: '', clinicScore: '', oralStatus: null, homework: null, oralMemo: '', homeworkMemo: '', notes: '' })
-  const CALLERS = ['김재민조교', '조은채조교', '신수현조교', '이채연조교', '박성우조교' , '김민준조교']
+  const CALLERS = ['김재민조교', '조은채조교', '신수현조교', '이채연조교', '박성우조교', '김민준조교']
+  const TEACHERS = ['고정아', '김지영', '김수연']
 
   async function fetchOralQueue() {
     const { data } = await supabase
@@ -327,7 +328,7 @@ export default function DashboardPage() {
       VALID.includes(r.oral_status as string) && VALID.includes(r.homework as string)
   }
 
-  async function handleCall(r: AttendanceWithStudent) {
+  async function handleCall(r: AttendanceWithStudent, caller: string) {
     const { data } = await supabase
       .from('attendances')
       .select('push_subscription')
@@ -343,12 +344,11 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subscription: data.push_subscription,
-          title: '📢 조교 호출',
-          body: `${r.students.name} 학생, 조교에게 와주세요!`,
+          title: '📢 호출',
+          body: `${r.students.name} 학생, ${caller}님이 호출했습니다!`,
         }),
       })
       if (!res.ok) throw new Error(await res.text())
-      alert(`${r.students.name} 학생에게 알림을 보냈습니다!`)
     } catch (e) {
       console.error('push failed', e)
       alert('알림 전송에 실패했습니다.')
@@ -972,7 +972,7 @@ export default function DashboardPage() {
             onMission={handleMission}
             onNameClick={(r) => openHistory(r.students)}
             weekValuesMap={weekValuesMap}
-            onCall={(r) => handleCall(r)}
+            onCall={(r) => setCallConfirmModal(r)}
           />
           </div>
         )}
@@ -1313,24 +1313,44 @@ export default function DashboardPage() {
       {/* 🔔 호출 확인 모달 */}
       {callConfirmModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl text-center">
-            <div className="text-3xl mb-3">🔔</div>
-            <h3 className="font-semibold text-gray-800 text-lg mb-1">{callConfirmModal.students.name} 학생</h3>
-            <p className="text-sm text-gray-500 mb-5">학생 기기로 호출 알림을 보내시겠습니까?</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCallConfirmModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => { const r = callConfirmModal; setCallConfirmModal(null); handleCall(r) }}
-                className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm transition-colors"
-              >
-                호출
-              </button>
+          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-xl">
+            <div className="text-center mb-4">
+              <div className="text-2xl mb-1">🔔</div>
+              <h3 className="font-semibold text-gray-800 text-base">{callConfirmModal.students.name} 학생 호출</h3>
+              <p className="text-xs text-gray-400 mt-0.5">호출하는 분을 선택하세요</p>
             </div>
+            {/* 선생님 */}
+            <p className="text-xs text-gray-400 mb-1.5 font-medium">선생님</p>
+            <div className="grid grid-cols-3 gap-1.5 mb-3">
+              {TEACHERS.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { const r = callConfirmModal; setCallConfirmModal(null); handleCall(r, t) }}
+                  className="py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm transition-colors"
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            {/* 조교 */}
+            <p className="text-xs text-gray-400 mb-1.5 font-medium">조교</p>
+            <div className="grid grid-cols-2 gap-1.5 mb-4">
+              {CALLERS.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { const r = callConfirmModal; setCallConfirmModal(null); handleCall(r, t) }}
+                  className="py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold text-sm transition-colors"
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCallConfirmModal(null)}
+              className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              취소
+            </button>
           </div>
         </div>
       )}
