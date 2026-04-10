@@ -5,7 +5,13 @@
       "schedule": "22 13 * * *"
     }
   ],
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/attend", "destination": "/attend.html" },
+    { "source": "/attend/(.*)", "destination": "/attend.html" },
+    { "source": "/parents", "destination": "/parents.html" },
+    { "source": "/parents/(.*)", "destination": "/parents.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/index.html",
