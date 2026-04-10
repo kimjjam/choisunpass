@@ -10,7 +10,7 @@ precacheAndRoute(self.__WB_MANIFEST)
 self.addEventListener('push', (event) => {
   if (!event.data) return
 
-  const data = event.data.json() as { title: string; body?: string }
+  const data = event.data.json() as { title: string; body?: string; url?: string }
 
   event.waitUntil(
     self.registration.showNotification(data.title, {
@@ -18,19 +18,21 @@ self.addEventListener('push', (event) => {
       icon: '/icon.svg',
       badge: '/icon.svg',
       requireInteraction: false,
+      data: { url: data.url ?? '/attend' },
     })
   )
 })
 
-// 알림 클릭 시 앱 열기
+// 알림 클릭 시 해당 페이지 열기
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
+  const url = (event.notification.data as { url?: string })?.url ?? '/attend'
   event.waitUntil(
     self.clients.matchAll({ type: 'window' }).then((clientList) => {
       for (const client of clientList) {
         if ('focus' in client) return client.focus()
       }
-      return self.clients.openWindow('/attend')
+      return self.clients.openWindow(url)
     })
   )
 })

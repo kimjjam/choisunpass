@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase'
 import type { AttendanceWithStudent } from '../lib/database.types'
 import { useManifest } from '../hooks/useManifest'
 
-// PWA 설치 이벤트 타입
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
@@ -24,6 +23,13 @@ const STATUS_LABEL: Record<string, string> = {
   partial_pass: '일부 Pass', exempt: '면제',
 }
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
+}
+
 export default function ParentsPage() {
   useManifest('/manifest-parents.webmanifest')
 
@@ -31,6 +37,7 @@ export default function ParentsPage() {
   const [loading, setLoading] = useState(false)
   const [record, setRecord] = useState<AttendanceWithStudent | null | 'notfound'>(null)
   const [error, setError] = useState('')
+  const [savedStudentId, setSavedStudentId] = useState<string | null>(null)
 
   // PWA 설치 프롬프트
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
@@ -38,29 +45,28 @@ export default function ParentsPage() {
   const [installBannerDismissed, setInstallBannerDismissed] = useState(false)
 
   useEffect(() => {
-    // 이미 설치된 경우 (standalone 모드) → 배너 안 띄움
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
       || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
     if (isStandalone) return
-
-    // 이미 닫은 적 있으면 → 안 띄움
     if (localStorage.getItem('pwa-install-dismissed')) return
-
     const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
-
     if (isIos) {
-      // iOS: 커스텀 안내 배너
       setShowIosGuide(true)
     } else {
-      // Android: beforeinstallprompt 이벤트 캐치
-      const handler = (e: Event) => {
-        e.preventDefault()
-        setInstallPrompt(e as BeforeInstallPromptEvent)
-      }
+      const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e as BeforeInstallPromptEvent) }
       window.addEventListener('beforeinstallprompt', handler)
       return () => window.removeEventListener('beforeinstallprompt', handler)
     }
   }, [])
+
+  // 저장된 코드 자동 로드
+  useEffect(() => {
+    const saved = localStorage.getItem('parents-student-code')
+    if (saved && saved.length === 4) {
+      setDigits(saved.split(''))
+      submitCode(saved)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function dismissInstallBanner() {
     localStorage.setItem('pwa-install-dismissed', '1')
@@ -73,9 +79,7 @@ export default function ParentsPage() {
     if (!installPrompt) return
     await installPrompt.prompt()
     const { outcome } = await installPrompt.userChoice
-    if (outcome === 'accepted') {
-      localStorage.setItem('pwa-install-dismissed', '1')
-    }
+    if (outcome === 'accepted') localStorage.setItem('pwa-install-dismissed', '1')
     setInstallPrompt(null)
   }
 
@@ -101,8 +105,7 @@ export default function ParentsPage() {
     }
   }
 
-  async function handleSubmit() {
-    const code = digits.join('')
+  async function submitCode(code: string) {
     if (code.length < 4) { setError('4자리를 모두 입력해주세요'); return }
     setError('')
     setLoading(true)
@@ -120,6 +123,11 @@ export default function ParentsPage() {
       return
     }
 
+    // 코드 저장 + push 구독
+    localStorage.setItem('parents-student-code', code)
+    setSavedStudentId(student.id)
+    subscribePush(student.id)
+
     const today = getToday()
     const { data: att } = await supabase
       .from('attendances')
@@ -135,7 +143,36 @@ export default function ParentsPage() {
     setRecord(att ?? 'notfound')
   }
 
-  function handleReset() {
+  async function handleSubmit() {
+    await submitCode(digits.join(''))
+  }
+
+  async function subscribePush(studentId: string) {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+      const reg = await navigator.serviceWorker.ready
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') return
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) await existing.unsubscribe()
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+      if (!vapidKey) return
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      })
+      await supabase.from('students').update({
+        parent_push_subscription: sub.toJSON(),
+      }).eq('id', studentId)
+    } catch (e) {
+      console.warn('parent push subscribe failed', e)
+    }
+  }
+
+  // 학생코드 입력 (저장 초기화)
+  function handleChangeCode() {
+    localStorage.removeItem('parents-student-code')
+    setSavedStudentId(null)
     setDigits(['', '', '', ''])
     setRecord(null)
     setError('')
@@ -175,22 +212,14 @@ export default function ParentsPage() {
               <button onClick={dismissInstallBanner} className="text-gray-400 text-lg leading-none">✕</button>
             </div>
             <p className="text-xs text-gray-500 leading-relaxed">
-              하단의 <span className="inline-flex items-center gap-0.5 text-blue-500 font-semibold">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l-1.5 4.5H4l5.5 4-2 5.5L12 13l4.5 3-2-5.5 5.5-4h-6.5z"/></svg>
-                공유
-              </span> 버튼을 누른 후<br/>
+              하단의 <span className="inline-flex items-center gap-0.5 text-blue-500 font-semibold">공유</span> 버튼을 누른 후<br/>
               <span className="font-semibold text-gray-700">"홈 화면에 추가"</span>를 선택해주세요
             </p>
-            <div className="mt-3 flex justify-center">
-              <svg className="w-6 h-6 text-blue-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
           </div>
         </div>
       )}
 
-      {/* 로고 영역 */}
+      {/* 로고 */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 shadow-lg mb-4">
           <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,15 +230,23 @@ export default function ParentsPage() {
         <p className="text-sm text-gray-400 mt-1">학부모 알림장</p>
       </div>
 
-      {!record ? (
+      {/* 로딩 */}
+      {loading && (
+        <div className="flex flex-col items-center gap-3 py-10">
+          <svg className="animate-spin w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          <p className="text-sm text-gray-400">불러오는 중...</p>
+        </div>
+      )}
+
+      {!loading && !record && (
         /* 코드 입력 카드 */
         <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8">
           <h2 className="text-lg font-bold text-gray-800 text-center mb-1">오늘 수업 확인</h2>
           <p className="text-sm text-gray-400 text-center mb-8">{today}</p>
-
           <p className="text-sm font-medium text-gray-600 text-center mb-4">학생 코드 4자리를 입력해주세요</p>
-
-          {/* 4자리 입력 */}
           <div className="flex gap-3 justify-center mb-6">
             {digits.map((d, i) => (
               <input
@@ -228,27 +265,18 @@ export default function ParentsPage() {
               />
             ))}
           </div>
-
           {error && <p className="text-red-400 text-sm text-center mb-4">{error}</p>}
-
           <button
             onClick={handleSubmit}
             disabled={loading || digits.join('').length < 4}
             className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold text-base transition-all shadow-md active:scale-95"
           >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                </svg>
-                확인 중...
-              </span>
-            ) : '확인하기'}
+            확인하기
           </button>
         </div>
+      )}
 
-      ) : record === 'notfound' ? (
+      {!loading && record === 'notfound' && (
         /* 결과 없음 */
         <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8 text-center">
           <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
@@ -257,16 +285,21 @@ export default function ParentsPage() {
             </svg>
           </div>
           <h3 className="font-bold text-gray-800 mb-2">오늘 수업 기록이 없어요</h3>
-          <p className="text-sm text-gray-400 mb-6">코드를 다시 확인하거나<br/>수업이 끝난 후 다시 시도해주세요</p>
-          <button onClick={handleReset} className="w-full py-3 rounded-2xl border-2 border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition-colors">
-            다시 입력
+          <p className="text-sm text-gray-400 mb-6">수업이 끝난 후 다시 확인해주세요</p>
+          {savedStudentId && (
+            <button onClick={() => submitCode(localStorage.getItem('parents-student-code') ?? '')} className="w-full py-3 rounded-2xl bg-blue-50 text-blue-600 font-semibold text-sm hover:bg-blue-100 transition-colors mb-3">
+              새로고침
+            </button>
+          )}
+          <button onClick={handleChangeCode} className="w-full py-3 rounded-2xl border-2 border-gray-200 text-gray-500 font-semibold text-sm hover:bg-gray-50 transition-colors">
+            학생코드 입력
           </button>
         </div>
+      )}
 
-      ) : (
+      {!loading && record && record !== 'notfound' && (
         /* 알림장 카드 */
         <div className="w-full max-w-sm">
-          {/* 학생 헤더 */}
           <div className="bg-blue-600 rounded-t-3xl px-6 pt-7 pb-10 text-white text-center relative overflow-hidden">
             <div className="absolute inset-0 opacity-10">
               <div className="absolute -top-4 -right-4 w-32 h-32 rounded-full bg-white"/>
@@ -281,16 +314,13 @@ export default function ParentsPage() {
             </div>
           </div>
 
-          {/* 내용 카드 */}
           <div className="bg-white rounded-b-3xl shadow-xl -mt-4 pt-6 pb-8 px-6 space-y-5">
 
             {/* 등하원 시간 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-green-50 rounded-2xl p-4 text-center">
                 <p className="text-xs text-green-500 font-semibold mb-1">등원</p>
-                <p className="text-lg font-bold text-green-700">
-                  {formatTime(record.approved_at) ?? '-'}
-                </p>
+                <p className="text-lg font-bold text-green-700">{formatTime(record.approved_at) ?? '-'}</p>
               </div>
               <div className="bg-orange-50 rounded-2xl p-4 text-center">
                 <p className="text-xs text-orange-500 font-semibold mb-1">하원</p>
@@ -300,38 +330,16 @@ export default function ParentsPage() {
               </div>
             </div>
 
-            {/* 구분선 */}
             <div className="border-t border-gray-100"/>
 
             {/* 학습 결과 */}
             <div className="space-y-3">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">학습 결과</p>
-
               {[
-                {
-                  label: '단어',
-                  value: record.word_score,
-                  icon: '📖',
-                  color: 'blue',
-                },
-                {
-                  label: '클리닉',
-                  value: record.clinic_score,
-                  icon: '📝',
-                  color: 'indigo',
-                },
-                {
-                  label: '구두',
-                  value: record.oral_status ? STATUS_LABEL[record.oral_status] ?? record.oral_status : null,
-                  icon: '🗣️',
-                  color: record.oral_status === 'pass' ? 'green' : record.oral_status === 'fail' ? 'red' : 'yellow',
-                },
-                {
-                  label: '과제',
-                  value: record.homework ? (STATUS_LABEL[record.homework] ?? record.homework) : null,
-                  icon: '✏️',
-                  color: record.homework === 'pass' ? 'green' : record.homework === 'fail' ? 'red' : 'yellow',
-                },
+                { label: '단어', value: record.word_score, icon: '📖', color: 'blue' },
+                { label: '클리닉', value: record.clinic_score, icon: '📝', color: 'indigo' },
+                { label: '구두', value: record.oral_status ? STATUS_LABEL[record.oral_status] ?? record.oral_status : null, icon: '🗣️', color: record.oral_status === 'pass' ? 'green' : record.oral_status === 'fail' ? 'red' : 'yellow' },
+                { label: '과제', value: record.homework ? (STATUS_LABEL[record.homework] ?? record.homework) : null, icon: '✏️', color: record.homework === 'pass' ? 'green' : record.homework === 'fail' ? 'red' : 'yellow' },
               ].map(({ label, value, icon, color }) => (
                 <div key={label} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                   <div className="flex items-center gap-2.5">
@@ -368,12 +376,12 @@ export default function ParentsPage() {
               </>
             )}
 
-            {/* 다시 확인 버튼 */}
+            {/* 학생코드 입력 버튼 */}
             <button
-              onClick={handleReset}
-              className="w-full py-3 rounded-2xl border-2 border-gray-100 text-gray-500 text-sm font-semibold hover:bg-gray-50 transition-colors mt-2"
+              onClick={handleChangeCode}
+              className="w-full py-3 rounded-2xl border-2 border-gray-100 text-gray-400 text-sm font-medium hover:bg-gray-50 transition-colors mt-2"
             >
-              다시 확인
+              학생코드 입력
             </button>
           </div>
         </div>
