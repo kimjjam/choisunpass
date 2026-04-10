@@ -789,7 +789,7 @@ export default function AdminPage() {
                               {rows.map(({ student, records }) => (
                                 <tr key={student.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                                   <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap border-r border-gray-100 sticky left-0 bg-white">
-                                    {student.name}
+                                    <span className="cursor-pointer hover:text-blue-600 transition-colors" onClick={() => openStudentHistory(student as Student)}>{student.name}</span>
                                   </td>
                                   <td className="px-3 py-2 text-gray-500 whitespace-nowrap border-r border-gray-100">{student.oral_type || '-'}</td>
                                   <td className="px-3 py-2 text-center text-gray-500 border-r border-gray-100">{student.clinic_day || '-'}</td>
