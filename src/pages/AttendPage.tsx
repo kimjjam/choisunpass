@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Student, Attendance, OralQueue, VisitType } from '../lib/database.types'
+import { useManifest } from '../hooks/useManifest'
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
 
 type PageState = 'input' | 'pending' | 'approved' | 'checked_out' | 'rejected'
 
@@ -11,6 +17,39 @@ function getLocalDateStr() {
 }
 
 export default function AttendPage() {
+  useManifest('/manifest-attend.webmanifest')
+
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [showIosGuide, setShowIosGuide] = useState(false)
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    if (isStandalone || localStorage.getItem('pwa-attend-dismissed')) return
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    if (isIos) {
+      setShowIosGuide(true)
+    } else {
+      const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e as BeforeInstallPromptEvent) }
+      window.addEventListener('beforeinstallprompt', handler)
+      return () => window.removeEventListener('beforeinstallprompt', handler)
+    }
+  }, [])
+
+  function dismissAttendBanner() {
+    localStorage.setItem('pwa-attend-dismissed', '1')
+    setInstallPrompt(null)
+    setShowIosGuide(false)
+  }
+
+  async function handleAttendInstall() {
+    if (!installPrompt) return
+    await installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') localStorage.setItem('pwa-attend-dismissed', '1')
+    setInstallPrompt(null)
+  }
+
   const [code, setCode] = useState('')
   const [pageState, setPageState] = useState<PageState>('input')
   const [student, setStudent] = useState<Student | null>(null)
@@ -528,6 +567,40 @@ export default function AttendPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+
+      {/* Android 설치 배너 */}
+      {installPrompt && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-4 flex items-center gap-3 max-w-sm mx-auto">
+            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-lg">최</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-800">홈 화면에 추가</p>
+              <p className="text-xs text-gray-400">앱처럼 빠르게 열 수 있어요</p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={dismissAttendBanner} className="text-xs text-gray-400 px-2 py-1.5">나중에</button>
+              <button onClick={handleAttendInstall} className="text-xs bg-blue-600 text-white font-semibold px-3 py-1.5 rounded-xl">추가</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* iOS 설치 안내 배너 */}
+      {showIosGuide && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-4 max-w-sm mx-auto">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-bold text-gray-800">홈 화면에 추가하기</p>
+              <button onClick={dismissAttendBanner} className="text-gray-400 text-lg leading-none">✕</button>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              하단의 <span className="text-blue-500 font-semibold">공유</span> 버튼을 누른 후<br/>
+              <span className="font-semibold text-gray-700">"홈 화면에 추가"</span>를 선택해주세요
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-sm">
         {/* 헤더 */}
         <div className="text-center mb-8">

@@ -1,0 +1,19 @@
+{
+  "name": "최선패스",
+  "short_name": "최선패스",
+  "description": "최선패스 출석 체크",
+  "theme_color": "#2563EB",
+  "background_color": "#EFF6FF",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/attend",
+  "scope": "/attend",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

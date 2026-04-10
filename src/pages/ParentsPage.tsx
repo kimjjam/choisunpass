@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { AttendanceWithStudent } from '../lib/database.types'
+import { useManifest } from '../hooks/useManifest'
 
 // PWA 설치 이벤트 타입
 interface BeforeInstallPromptEvent extends Event {
@@ -24,6 +25,8 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export default function ParentsPage() {
+  useManifest('/manifest-parents.webmanifest')
+
   const [digits, setDigits] = useState(['', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [record, setRecord] = useState<AttendanceWithStudent | null | 'notfound'>(null)

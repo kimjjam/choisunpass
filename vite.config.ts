@@ -7,29 +7,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
-      manifest: {
-        name: '최선패스 알림장',
-        short_name: '최선패스',
-        description: '최선패스 학부모 알림장',
-        theme_color: '#2563EB',
-        background_color: '#EFF6FF',
-        display: 'standalone',
-        orientation: 'portrait',
-        start_url: '/parents',
-        scope: '/parents',
-        icons: [
-          {
-            src: 'icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
-          },
-        ],
-      },
+      // 서비스 워커만 등록 (manifest는 각 페이지에서 동적으로 주입)
+      manifest: false,
       workbox: {
         navigateFallback: '/index.html',
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        globPatterns: ['**/*.{js,css,html,svg,ico,webmanifest}'],
       },
     }),
   ],
