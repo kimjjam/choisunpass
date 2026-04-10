@@ -23,6 +23,8 @@ export default function DashboardPage() {
   const [cancelCheckoutModal, setCancelCheckoutModal] = useState<{ id: string; name: string } | null>(null)
   const [cancelNextClinicModal, setCancelNextClinicModal] = useState<{ id: string; name: string } | null>(null)
   const [callConfirmModal, setCallConfirmModal] = useState<AttendanceWithStudent | null>(null)
+  const [parentNotifyModal, setParentNotifyModal] = useState<{ list: AttendanceWithStudent[]; label: string } | null>(null)
+  const [parentNotifySending, setParentNotifySending] = useState(false)
   const [nextClinicSetModal, setNextClinicSetModal] = useState<{ id: string; name: string; currentDate: string | null } | null>(null)
   const [nextClinicDateInput, setNextClinicDateInput] = useState('')
   const [historyTarget, setHistoryTarget] = useState<Student | null>(null)
@@ -199,6 +201,38 @@ export default function DashboardPage() {
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [])
+
+  async function handleSendParentNotify(list: AttendanceWithStudent[]) {
+    setParentNotifySending(true)
+    const studentIds = list.map(r => r.student_id)
+    const { data: students } = await supabase
+      .from('students')
+      .select('id, name, parent_push_subscription')
+      .in('id', studentIds)
+
+    let sent = 0
+    for (const s of (students ?? [])) {
+      if (!s.parent_push_subscription) continue
+      try {
+        await fetch('/api/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscription: s.parent_push_subscription,
+            title: '📚 최선패스 알림장',
+            body: `오늘 ${s.name} 학생의 학원 현황을 확인해보세요!`,
+            url: '/parents',
+          }),
+        })
+        sent++
+      } catch (e) {
+        console.warn(`push failed for ${s.name}`, e)
+      }
+    }
+    setParentNotifySending(false)
+    setParentNotifyModal(null)
+    alert(`${sent}명의 부모님께 알림을 보냈습니다!${sent < list.length ? `\n(${list.length - sent}명은 알림 미설정)` : ''}`)
+  }
 
   async function handleCallStudent(queueId: string, attendanceId: string, studentName: string, caller: string) {
     await supabase.from('oral_queue').update({ status: 'called', caller }).eq('id', queueId)
@@ -659,6 +693,16 @@ export default function DashboardPage() {
         {/* 하원 탭 */}
         {tab === 'checked_out' && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {checkedOutList.length > 0 && (
+              <div className="px-4 py-3 border-b border-gray-100 flex justify-end">
+                <button
+                  onClick={() => setParentNotifyModal({ list: checkedOutList, label: `하원 학생 ${checkedOutList.length}명` })}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold transition-colors"
+                >
+                  📨 알림 보내기
+                </button>
+              </div>
+            )}
             {loading ? (
               <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
             ) : checkedOutList.length === 0 ? (
@@ -739,6 +783,16 @@ export default function DashboardPage() {
         {/* 전체현황 탭 */}
         {tab === 'overview' && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {overviewList.length > 0 && (
+              <div className="px-4 py-3 border-b border-gray-100 flex justify-end">
+                <button
+                  onClick={() => setParentNotifyModal({ list: overviewList, label: `전체 학생 ${overviewList.length}명` })}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold transition-colors"
+                >
+                  📨 알림 보내기
+                </button>
+              </div>
+            )}
             {loading ? (
               <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
             ) : overviewList.length === 0 ? (
@@ -1304,6 +1358,34 @@ export default function DashboardPage() {
                 className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-sm transition-colors"
               >
                 확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 부모님 알림 전송 모달 */}
+      {parentNotifyModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl text-center">
+            <div className="text-3xl mb-3">📨</div>
+            <h3 className="font-semibold text-gray-800 text-base mb-1">부모님 알림 전송</h3>
+            <p className="text-sm text-gray-500 mb-1">{parentNotifyModal.label} 부모님께</p>
+            <p className="text-sm text-gray-500 mb-5">알림장 확인 알림을 보내시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setParentNotifyModal(null)}
+                disabled={parentNotifySending}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => handleSendParentNotify(parentNotifyModal.list)}
+                disabled={parentNotifySending}
+                className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-sm transition-colors disabled:opacity-50"
+              >
+                {parentNotifySending ? '전송 중...' : '전송'}
               </button>
             </div>
           </div>
