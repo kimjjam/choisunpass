@@ -122,22 +122,44 @@ export default function AttendPage() {
     if (attendance?.id) subscribePush(attendance.id)
   }, [pageState])
 
+  function urlBase64ToUint8Array(base64String: string) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const rawData = atob(base64)
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
+  }
+
   async function subscribePush(attendanceId: string) {
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn('push not supported')
+        return
+      }
       const reg = await navigator.serviceWorker.ready
       const permission = await Notification.requestPermission()
-      if (permission !== 'granted') return
+      if (permission !== 'granted') {
+        console.warn('push permission denied:', permission)
+        return
+      }
+      // 기존 구독 제거 후 새로 구독 (키 변경 대응)
       const existing = await reg.pushManager.getSubscription()
-      const sub = existing ?? await reg.pushManager.subscribe({
+      if (existing) await existing.unsubscribe()
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+      if (!vapidKey) {
+        console.error('VITE_VAPID_PUBLIC_KEY is not set')
+        return
+      }
+      const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       })
-      await supabase.from('attendances').update({
+      const { error } = await supabase.from('attendances').update({
         push_subscription: sub.toJSON(),
       }).eq('id', attendanceId)
+      if (error) console.error('supabase push_subscription save error:', error)
+      else console.log('push subscription saved successfully')
     } catch (e) {
-      console.warn('push subscribe failed', e)
+      console.error('push subscribe failed:', e)
     }
   }
 
