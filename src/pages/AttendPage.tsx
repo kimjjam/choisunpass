@@ -154,6 +154,25 @@ export default function AttendPage() {
     if (result.length > 0) setIncompleteModal(result)
   }
 
+  // 출석 상태 폴링 백업 (5초마다 - Realtime 미수신 대비)
+  useEffect(() => {
+    if (!attendance) return
+    const poll = setInterval(async () => {
+      const { data } = await supabase.from('attendances').select('*').eq('id', attendance.id).maybeSingle()
+      if (!data) {
+        // 레코드 삭제됨 → 처음 화면으로
+        localStorage.removeItem('attendance_id')
+        setAttendance(null)
+        setPageState('input')
+      } else if (data.status !== attendance.status || !!data.checked_out_at !== !!attendance.checked_out_at) {
+        setAttendance(data)
+        if (data.checked_out_at) setPageState('checked_out')
+        else setPageState(data.status as PageState)
+      }
+    }, 5000)
+    return () => clearInterval(poll)
+  }, [attendance?.id, attendance?.status, attendance?.checked_out_at])
+
   // 출석 상태 실시간 구독
   useEffect(() => {
     if (!attendance) return
