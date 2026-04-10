@@ -180,6 +180,21 @@ export default function AttendPage() {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'attendances',
+        },
+        (payload) => {
+          if ((payload.old as Attendance).id !== attendance.id) return
+          // 레코드 삭제 = 재시도 허용 → 처음 화면으로
+          localStorage.removeItem('attendance_id')
+          setAttendance(null)
+          setPageState('input')
+        }
+      )
       .subscribe()
 
     subscriptionRef.current = channel
