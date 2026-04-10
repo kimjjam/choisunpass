@@ -180,7 +180,7 @@ export default function DashboardPage() {
   const [oralDoneModal, setOralDoneModal] = useState<{ queueId: string; attendanceId: string; studentName: string } | null>(null)
   const [oralDoneForm, setOralDoneForm] = useState<{ wordScore: string; clinicScore: string; oralStatus: MissionStatus; homework: MissionStatus; oralMemo: string; homeworkMemo: string; notes: string }>({ wordScore: '', clinicScore: '', oralStatus: null, homework: null, oralMemo: '', homeworkMemo: '', notes: '' })
   const CALLERS = ['김재민조교', '조은채조교', '신수현조교', '이채연조교', '박성우조교', '김민준조교']
-  const TEACHERS = ['고정아', '김지영', '김수연']
+  const TEACHERS = ['고정아선생', '김지영선생', '김수연선생']
 
   async function fetchOralQueue() {
     const { data } = await supabase
