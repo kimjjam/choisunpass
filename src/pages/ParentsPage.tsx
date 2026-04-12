@@ -318,11 +318,17 @@ export default function ParentsPage() {
           <div className="bg-white rounded-b-3xl shadow-xl -mt-4 pt-6 pb-8 px-6 space-y-5">
 
             {/* 등하원 시간 */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${record.rechecked_in_at ? 'grid-cols-3' : 'grid-cols-2'}`}>
               <div className="bg-green-50 rounded-2xl p-4 text-center">
                 <p className="text-xs text-green-500 font-semibold mb-1">등원</p>
                 <p className="text-lg font-bold text-green-700">{formatTime(record.approved_at) ?? '-'}</p>
               </div>
+              {record.rechecked_in_at && (
+                <div className="bg-blue-50 rounded-2xl p-4 text-center">
+                  <p className="text-xs text-blue-500 font-semibold mb-1">재등원</p>
+                  <p className="text-lg font-bold text-blue-700">{formatTime(record.rechecked_in_at)}</p>
+                </div>
+              )}
               <div className="bg-orange-50 rounded-2xl p-4 text-center">
                 <p className="text-xs text-orange-500 font-semibold mb-1">하원</p>
                 <p className={`text-lg font-bold ${record.checked_out_at ? 'text-orange-600' : 'text-gray-300'}`}>
@@ -370,7 +376,7 @@ export default function ParentsPage() {
                 <div className="bg-indigo-50 rounded-2xl px-4 py-3.5 flex items-center gap-3">
                   <span className="text-xl">📅</span>
                   <div>
-                    <p className="text-xs text-indigo-400 font-semibold">다음 클리닉</p>
+                    <p className="text-xs text-indigo-400 font-semibold">재등원 예정</p>
                     <p className="text-sm font-bold text-indigo-700">{record.next_clinic_date}</p>
                   </div>
                 </div>
