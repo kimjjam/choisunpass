@@ -21,14 +21,17 @@ export default function AttendPage() {
 
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showIosGuide, setShowIosGuide] = useState(false)
+  const [showAndroidGuide, setShowAndroidGuide] = useState(false)
   const [isStandalone, setIsStandalone] = useState(false)
+  const [isIos, setIsIos] = useState(false)
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches
       || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
     setIsStandalone(standalone)
-    if (standalone) return
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    setIsIos(ios)
+    if (standalone) return
     if (ios) {
       if (!localStorage.getItem('pwa-attend-dismissed')) setShowIosGuide(true)
     } else {
@@ -639,6 +642,22 @@ export default function AttendPage() {
         </div>
       )}
 
+      {/* Android 설치 안내 (installPrompt 없을 때) */}
+      {showAndroidGuide && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/30" onClick={() => setShowAndroidGuide(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-gray-800">홈 화면에 추가하기</p>
+              <button onClick={() => setShowAndroidGuide(false)} className="text-gray-400 text-lg leading-none">✕</button>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              브라우저 상단의 <span className="font-semibold text-gray-700">⋮ 메뉴</span>를 누른 후<br/>
+              <span className="font-semibold text-gray-700">"홈 화면에 추가"</span>를 선택해주세요
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* iOS 설치 안내 배너 */}
       {showIosGuide && (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
@@ -1116,7 +1135,7 @@ export default function AttendPage() {
       {!isStandalone && (
         <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-40">
           <button
-            onClick={installPrompt ? handleAttendInstall : () => setShowIosGuide(true)}
+            onClick={installPrompt ? handleAttendInstall : isIos ? () => setShowIosGuide(true) : () => setShowAndroidGuide(true)}
             className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-full border border-gray-200 bg-white/80 backdrop-blur-sm transition-colors whitespace-nowrap"
           >
             + 홈화면에 추가
