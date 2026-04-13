@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [historyRecords, setHistoryRecords] = useState<AttendanceWithStudent[]>([])
   const [rejectReason, setRejectReason] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
+  const [showBulkApproveConfirm, setShowBulkApproveConfirm] = useState(false)
   const [weekValuesMap, setWeekValuesMap] = useState<Map<string, Record<string, string | null>>>(new Map())
 
   // 한국 로컬 날짜 기준 — 매 조회 시점에 계산 (자정 넘어가도 갱신됨)
@@ -387,6 +388,20 @@ export default function DashboardPage() {
       console.error('push failed', e)
       alert('알림 전송에 실패했습니다.')
     }
+  }
+
+  async function handleBulkApprove() {
+    const now = new Date().toISOString()
+    const targets = records.filter(r => r.status === 'pending')
+    const failed: string[] = []
+    for (const r of targets) {
+      const { error } = await supabase.from('attendances').update({ status: 'approved', approved_at: now }).eq('id', r.id)
+      if (error) { console.error(`승인 실패 (${r.students.name}):`, error); failed.push(r.students.name) }
+    }
+    if (failed.length > 0) {
+      alert(`일부 학생 처리 실패:\n${failed.join(', ')}\n\n해당 학생은 수동으로 승인해주세요.`)
+    }
+    fetchRecords()
   }
 
   async function handleBulkCheckOut() {
@@ -930,18 +945,31 @@ export default function DashboardPage() {
 
         {/* 대기 중 탭 */}
         {tab === 'pending' && (
-          <AttendanceTable
-            list={pendingList}
-            loading={loading}
-            emptyText="대기 중인 학생이 없습니다 🎉"
-            onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
-            onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
-            onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
-            onCheckOut={(r) => handleCheckOut(r.id)}
-            onCancelCheckOut={(r) => setCancelCheckoutModal({ id: r.id, name: r.students.name })}
-            onMission={handleMission}
-            onNameClick={(r) => openHistory(r.students)}
-          />
+          <div className="space-y-3">
+            {pendingList.length > 0 && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowBulkApproveConfirm(true)}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+                >
+                  일괄 승인 처리 ({pendingList.length}명)
+                </button>
+              </div>
+            )}
+            <AttendanceTable
+              list={pendingList}
+              loading={loading}
+              emptyText="대기 중인 학생이 없습니다 🎉"
+              onApprove={(r) => setApproveModal({ id: r.id, name: r.students.name })}
+              onReject={(r) => setRejectModal({ id: r.id, name: r.students.name })}
+              onCancelApprove={(r) => setCancelApproveModal({ id: r.id, name: r.students.name })}
+              onCheckOut={(r) => handleCheckOut(r.id)}
+              onCancelCheckOut={(r) => setCancelCheckoutModal({ id: r.id, name: r.students.name })}
+              onMission={handleMission}
+              onNameClick={(r) => openHistory(r.students)}
+              showVisitType
+            />
+          </div>
         )}
 
         {/* 클리닉 탭 */}
@@ -1340,6 +1368,30 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* 일괄 승인 확인 모달 */}
+      {showBulkApproveConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">일괄 승인 처리</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">대기 중인 학생 {pendingList.length}명을<br/>모두 승인하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowBulkApproveConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { setShowBulkApproveConfirm(false); handleBulkApprove() }}
+                className="flex-1 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-semibold text-sm transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 일괄 하원 확인 모달 */}
       {showBulkConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -1609,7 +1661,7 @@ export default function DashboardPage() {
 // ─── 서브 컴포넌트 ────────────────────────────────────────
 
 function AttendanceTable({
-  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic, weekValuesMap, onCall,
+  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic, weekValuesMap, onCall, showVisitType,
 }: {
   list: AttendanceWithStudent[]
   loading: boolean
@@ -1626,6 +1678,7 @@ function AttendanceTable({
   onSetNextClinic?: (r: AttendanceWithStudent) => void
   weekValuesMap?: Map<string, Record<string, string | null>>
   onCall?: (r: AttendanceWithStudent) => void
+  showVisitType?: boolean
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1639,6 +1692,7 @@ function AttendanceTable({
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
+              {showVisitType && <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구분</th>}
               <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">등원</th>
               <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">단어</th>
               <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">클리닉</th>
@@ -1666,6 +1720,7 @@ function AttendanceTable({
                 onSetNextClinic={onSetNextClinic ? () => onSetNextClinic(record) : undefined}
                 onCall={onCall ? () => onCall(record) : undefined}
                 inheritedValues={weekValuesMap?.get(record.student_id)}
+                showVisitType={showVisitType}
               />
             ))}
           </tbody>
@@ -1704,6 +1759,7 @@ function AttendanceRow({
   onSetNextClinic,
   onCall,
   inheritedValues,
+  showVisitType,
 }: {
   record: AttendanceWithStudent
   onApprove: () => void
@@ -1718,6 +1774,7 @@ function AttendanceRow({
   onSetNextClinic?: () => void
   onCall?: () => void
   inheritedValues?: Record<string, string | null>
+  showVisitType?: boolean
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
   const [oralMemo, setOralMemo] = useState(record.oral_memo ?? '')
@@ -1856,6 +1913,15 @@ function AttendanceRow({
           {record.students.clinic_day && <span className="ml-1 text-blue-400">{record.students.clinic_day}요일</span>}
         </div>
       </td>
+      {/* 구분 (visit_type) */}
+      {showVisitType && (
+        <td className="px-3 py-3 text-center">
+          {record.visit_type === 'class_clinic'
+            ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">수업+클리닉</span>
+            : <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">클리닉</span>
+          }
+        </td>
+      )}
       {/* 등원 */}
       <td className="px-3 py-3 text-center text-xs text-gray-600 whitespace-nowrap">
         <div>{checkinTime}</div>
