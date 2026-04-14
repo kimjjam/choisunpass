@@ -206,24 +206,27 @@ export default function AttendPage() {
 
     const result: IncompleteWeek[] = []
 
-    // 지난주 미완료
-    const { data: lastWeekData } = await supabase
+    // 지난주 미완료 — 여러 기록 중 하나라도 완료된 게 있으면 미완료 아님
+    const { data: lastWeekRows } = await supabase
       .from('attendances')
       .select('word_score, clinic_score, oral_status, homework')
       .eq('student_id', studentId)
       .eq('status', 'approved')
       .gte('date', lastWeek.start)
       .lte('date', lastWeek.end)
-      .limit(1)
-      .maybeSingle()
-    if (lastWeekData) {
-      const fields = getIncompleteFields(lastWeekData)
-      if (fields.length > 0) result.push({ label: '지난주', fields })
+      .order('date', { ascending: false })
+    if (lastWeekRows && lastWeekRows.length > 0) {
+      const hasComplete = lastWeekRows.some(r => getIncompleteFields(r).length === 0)
+      if (!hasComplete) {
+        // 가장 최근 기록 기준으로 미완료 필드 표시
+        const fields = getIncompleteFields(lastWeekRows[0])
+        if (fields.length > 0) result.push({ label: '지난주', fields })
+      }
     }
 
-    // 재등원이면 이번주도 체크 (오늘 제외)
+    // 재등원이면 이번주도 체크 (오늘 제외) — 동일하게 완료 기록 있으면 스킵
     if (isReCheckIn) {
-      const { data: thisWeekData } = await supabase
+      const { data: thisWeekRows } = await supabase
         .from('attendances')
         .select('word_score, clinic_score, oral_status, homework')
         .eq('student_id', studentId)
@@ -231,11 +234,13 @@ export default function AttendPage() {
         .gte('date', thisWeek.start)
         .lte('date', thisWeek.end)
         .neq('date', todayStr)
-        .limit(1)
-        .maybeSingle()
-      if (thisWeekData) {
-        const fields = getIncompleteFields(thisWeekData)
-        if (fields.length > 0) result.push({ label: '이번주', fields })
+        .order('date', { ascending: false })
+      if (thisWeekRows && thisWeekRows.length > 0) {
+        const hasComplete = thisWeekRows.some(r => getIncompleteFields(r).length === 0)
+        if (!hasComplete) {
+          const fields = getIncompleteFields(thisWeekRows[0])
+          if (fields.length > 0) result.push({ label: '이번주', fields })
+        }
       }
     }
 
