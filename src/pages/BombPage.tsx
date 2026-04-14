@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-const PIN = '1234'
+const PIN = '011030961105'
 
 function delay(ms: number) {
   return new Promise(res => setTimeout(res, ms))
@@ -35,10 +35,10 @@ export default function BombPage() {
   }
 
   function handlePinInput(val: string) {
-    const digits = val.replace(/\D/g, '').slice(0, 4)
+    const digits = val.replace(/\D/g, '').slice(0, 12)
     setPin(digits)
     setPinError(false)
-    if (digits.length === 4) {
+    if (digits.length === 12) {
       if (digits === PIN) {
         setUnlocked(true)
       } else {
@@ -95,9 +95,9 @@ export default function BombPage() {
         <div className="text-7xl">💣</div>
         <p className="text-red-500 font-mono text-xs tracking-[0.4em] uppercase">Access Required</p>
 
-        <div className={`flex gap-3 ${pinError ? 'wrong-shake' : ''}`}>
-          {[0, 1, 2, 3].map(i => (
-            <div key={i} className={`w-14 h-16 rounded-xl border-2 flex items-center justify-center text-xl transition-all duration-200
+        <div className={`flex gap-2 ${pinError ? 'wrong-shake' : ''}`}>
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i} className={`w-8 h-10 rounded-lg border-2 flex items-center justify-center text-sm transition-all duration-200
               ${pinError
                 ? 'border-red-500 bg-red-950 text-red-400'
                 : pin.length > i
