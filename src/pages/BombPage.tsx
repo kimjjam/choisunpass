@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-const PIN = '011030961105'
+const PIN = import.meta.env.VITE_BOMB_PIN ?? ''
 
 function delay(ms: number) {
   return new Promise(res => setTimeout(res, ms))
