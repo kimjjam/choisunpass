@@ -33,6 +33,12 @@ export default function DashboardPage() {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
   const [showBulkApproveConfirm, setShowBulkApproveConfirm] = useState(false)
   const [weekValuesMap, setWeekValuesMap] = useState<Map<string, Record<string, string | null>>>(new Map())
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
+
+  useEffect(() => {
+    supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
+      .then(({ data }) => { if (data?.value === 'true') setMaintenanceMode(true) })
+  }, [])
 
   // 한국 로컬 날짜 기준 — 매 조회 시점에 계산 (자정 넘어가도 갱신됨)
   function getToday() {
@@ -487,6 +493,18 @@ export default function DashboardPage() {
     approved: records.filter((r) => r.status === 'approved').length,
     pending: records.filter(r => r.status === 'pending').length,
     rejected: records.filter((r) => r.status === 'rejected').length,
+  }
+
+  if (maintenanceMode) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-5 px-6 text-center">
+        <div className="text-7xl">🚧</div>
+        <h1 className="text-white font-black text-2xl">점검 중입니다</h1>
+        <p className="text-gray-400 text-sm leading-relaxed">
+          현재 서비스 점검 중이에요.<br />잠시 후 다시 시도해주세요.
+        </p>
+      </div>
+    )
   }
 
   return (

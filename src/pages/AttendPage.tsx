@@ -87,6 +87,12 @@ export default function AttendPage() {
   const [incompleteModal, setIncompleteModal] = useState<IncompleteWeek[] | null>(null)
   const [incompleteItems, setIncompleteItems] = useState<IncompleteWeek[] | null>(null)
   const prevPageState = useRef<PageState>('input')
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
+
+  useEffect(() => {
+    supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
+      .then(({ data }) => { if (data?.value === 'true') setMaintenanceMode(true) })
+  }, [])
 
   useEffect(() => { oralQueueRef.current = oralQueue }, [oralQueue])
 
@@ -625,6 +631,18 @@ export default function AttendPage() {
       supabase.removeChannel(subscriptionRef.current)
     }
     setTimeout(() => inputRef.current?.focus(), 100)
+  }
+
+  if (maintenanceMode) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-5 px-6 text-center">
+        <div className="text-7xl">🚧</div>
+        <h1 className="text-white font-black text-2xl">점검 중입니다</h1>
+        <p className="text-gray-400 text-sm leading-relaxed">
+          현재 서비스 점검 중이에요.<br />잠시 후 다시 시도해주세요.
+        </p>
+      </div>
+    )
   }
 
   return (

@@ -10,6 +10,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         attend: resolve(__dirname, 'attend.html'),
         parents: resolve(__dirname, 'parents.html'),
+        bomb: resolve(__dirname, 'bomb.html'),
       },
     },
   },

@@ -6,6 +6,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/bomb", "destination": "/bomb.html" },
     { "source": "/attend", "destination": "/attend.html" },
     { "source": "/attend/(.*)", "destination": "/attend.html" },
     { "source": "/parents", "destination": "/parents.html" },
