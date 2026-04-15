@@ -416,13 +416,11 @@ export default function DashboardPage() {
     const failed: string[] = []
 
     for (const r of targets) {
-      if (isAllDone(r)) {
-        const { error } = await supabase.from('attendances').update({ checked_out_at: now }).eq('id', r.id)
-        if (error) { console.error(`하원 실패 (${r.students.name}):`, error); failed.push(r.students.name) }
-      } else {
-        const { error } = await supabase.from('attendances').update({ force_next_clinic: true }).eq('id', r.id)
-        if (error) { console.error(`강제하원 플래그 실패 (${r.students.name}):`, error); failed.push(r.students.name) }
-      }
+      const updates = isAllDone(r)
+        ? { checked_out_at: now }
+        : { checked_out_at: now, force_next_clinic: true }
+      const { error } = await supabase.from('attendances').update(updates).eq('id', r.id)
+      if (error) { console.error(`하원 실패 (${r.students.name}):`, error); failed.push(r.students.name) }
     }
 
     if (failed.length > 0) {
