@@ -209,6 +209,13 @@ export default function DashboardPage() {
     return () => { supabase.removeChannel(ch) }
   }, [])
 
+  async function buildPushHeaders() {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
+    return headers
+  }
+
   async function handleSendParentNotify(list: AttendanceWithStudent[]) {
     setParentNotifySending(true)
     const studentIds = list.map(r => r.student_id)
@@ -217,13 +224,14 @@ export default function DashboardPage() {
       .select('id, name, parent_push_subscription')
       .in('id', studentIds)
 
+    const headers = await buildPushHeaders()
     let sent = 0
     for (const s of (students ?? [])) {
       if (!s.parent_push_subscription) continue
       try {
-        await fetch('/api/push', {
+        const res = await fetch('/api/push', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             subscription: s.parent_push_subscription,
             title: '📚 최선패스 알림장',
@@ -231,7 +239,8 @@ export default function DashboardPage() {
             url: '/parents',
           }),
         })
-        sent++
+        if (res.ok) sent++
+        else console.warn(`push failed for ${s.name}:`, await res.text())
       } catch (e) {
         console.warn(`push failed for ${s.name}`, e)
       }
@@ -248,9 +257,10 @@ export default function DashboardPage() {
     // 푸쉬 알림 전송
     const { data } = await supabase.from('attendances').select('push_subscription').eq('id', attendanceId).single()
     if (data?.push_subscription) {
+      const headers = await buildPushHeaders()
       fetch('/api/push', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           subscription: data.push_subscription,
           title: '📢 조교 호출',
@@ -380,9 +390,10 @@ export default function DashboardPage() {
       return
     }
     try {
+      const headers = await buildPushHeaders()
       const res = await fetch('/api/push', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           subscription: data.push_subscription,
           title: '📢 호출',

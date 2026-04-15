@@ -7,8 +7,16 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 Deno.serve(async () => {
   // 환경변수 검증
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('필수 환경변수 누락: SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY')
-    return new Response(JSON.stringify({ error: '환경변수 누락' }), { status: 500 })
+    const summary = {
+      processed: 0,
+      class_clinic_count: 0,
+      clinic_count: 0,
+      failed_count: 1,
+      discord_failed_count: 0,
+      error: 'missing_env',
+    }
+    console.error('[auto-checkout] summary', summary)
+    return new Response(JSON.stringify(summary), { status: 500 })
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -18,6 +26,7 @@ Deno.serve(async () => {
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
   const today = kst.toISOString().split('T')[0]
   const nextWeek = new Date(kst.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const startedAt = now.toISOString()
 
   // 오늘 미하원 학생 조회 (클리닉 + 수업+클리닉)
   const { data: targets, error } = await supabase
@@ -29,13 +38,39 @@ Deno.serve(async () => {
     .eq('date', today)
 
   if (error) {
-    console.error('조회 오류:', error)
-    return new Response(JSON.stringify({ error }), { status: 500 })
+    const summary = {
+      today,
+      started_at: startedAt,
+      processed: 0,
+      class_clinic_count: 0,
+      clinic_count: 0,
+      failed_count: 1,
+      discord_failed_count: 0,
+      error: String(error.message ?? error),
+    }
+    console.error('[auto-checkout] summary', summary)
+    return new Response(JSON.stringify(summary), { status: 500 })
   }
 
+  const clinicCount = (targets ?? []).filter(t => t.visit_type === 'clinic').length
+  const classClinicCount = (targets ?? []).filter(t => t.visit_type === 'class_clinic').length
+  let failedCount = 0
+  let discordFailedCount = 0
+
   if (!targets || targets.length === 0) {
-    console.log('자동 하원 대상 없음')
-    return new Response(JSON.stringify({ processed: 0 }), { status: 200 })
+    const summary = {
+      today,
+      started_at: startedAt,
+      processed: 0,
+      class_clinic_count: 0,
+      clinic_count: 0,
+      failed_count: 0,
+      discord_sent: false,
+      discord_failed_count: 0,
+      note: 'no targets',
+    }
+    console.info('[auto-checkout] summary', summary)
+    return new Response(JSON.stringify(summary), { status: 200 })
   }
 
   // 일괄 하원 처리
@@ -50,8 +85,23 @@ Deno.serve(async () => {
 
   if (updateError) {
     console.error('업데이트 오류:', updateError)
-    return new Response(JSON.stringify({ error: updateError }), { status: 500 })
+    failedCount = targets.length
+    const summary = {
+      today,
+      started_at: startedAt,
+      processed: 0,
+      class_clinic_count: classClinicCount,
+      clinic_count: clinicCount,
+      failed_count: failedCount,
+      discord_sent: false,
+      discord_failed_count: 0,
+      error: String(updateError.message ?? updateError),
+    }
+    console.error('[auto-checkout] summary', summary)
+    return new Response(JSON.stringify(summary), { status: 500 })
   }
+
+  let discordSent = false
 
   // Discord 알림 전송
   if (DISCORD_WEBHOOK_URL) {
@@ -84,9 +134,13 @@ Deno.serve(async () => {
         }),
       })
       if (!discordRes.ok) {
+        discordFailedCount += 1
         console.error('Discord 알림 실패:', discordRes.status, await discordRes.text())
+      } else {
+        discordSent = true
       }
     } catch (discordErr) {
+      discordFailedCount += 1
       console.error('Discord 알림 오류:', discordErr)
       // Discord 실패해도 하원 처리는 완료된 것으로 처리
     }
@@ -94,6 +148,16 @@ Deno.serve(async () => {
     console.warn('DISCORD_WEBHOOK_URL 미설정 - 알림 생략')
   }
 
-  console.log(`자동 하원 처리 완료: ${targets.length}명`)
-  return new Response(JSON.stringify({ processed: targets.length }), { status: 200 })
+  const summary = {
+    today,
+    started_at: startedAt,
+    processed: targets.length,
+    class_clinic_count: classClinicCount,
+    clinic_count: clinicCount,
+    failed_count: failedCount,
+    discord_sent: discordSent,
+    discord_failed_count: discordFailedCount,
+  }
+  console.info('[auto-checkout] summary', summary)
+  return new Response(JSON.stringify(summary), { status: 200 })
 })
