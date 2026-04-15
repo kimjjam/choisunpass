@@ -453,11 +453,11 @@ export default function ParentsPage() {
             )}
             {historyRecords.length > 0 && (
               <button
-                onClick={() => setShowHistory(!showHistory)}
+                onClick={() => setShowHistory(true)}
                 className="w-full py-3 rounded-2xl border-2 border-gray-100 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors mb-3 flex items-center justify-center gap-1.5"
               >
                 <span>📋 지난 기록</span>
-                <span className="text-gray-400 text-xs">({historyRecords.length}건) {showHistory ? '▲' : '▼'}</span>
+                <span className="text-gray-400 text-xs">({historyRecords.length}건)</span>
               </button>
             )}
             <button onClick={handleChangeCode} className="w-full py-3 rounded-2xl border-2 border-gray-200 text-gray-500 font-semibold text-sm hover:bg-gray-50 transition-colors">
@@ -465,15 +465,6 @@ export default function ParentsPage() {
             </button>
           </div>
 
-          {/* 히스토리 (notfound 상태) */}
-          {showHistory && weekGroups.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-400 font-medium px-1">{savedStudentName} 학생 전체 기록</p>
-              {weekGroups.map(({ label, records }) => (
-                <WeekCard key={label} label={label} records={records} />
-              ))}
-            </div>
-          )}
         </div>
       )}
 
@@ -578,11 +569,11 @@ export default function ParentsPage() {
               {/* 지난 기록 버튼 */}
               {historyRecords.length > 0 && (
                 <button
-                  onClick={() => setShowHistory(!showHistory)}
+                  onClick={() => setShowHistory(true)}
                   className="w-full py-3 rounded-2xl border-2 border-gray-100 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <span>📋 지난 기록</span>
-                  <span className="text-gray-400 text-xs">({historyRecords.length}건) {showHistory ? '▲' : '▼'}</span>
+                  <span className="text-gray-400 text-xs">({historyRecords.length}건)</span>
                 </button>
               )}
 
@@ -596,14 +587,47 @@ export default function ParentsPage() {
             </div>
           </div>
 
-          {/* 히스토리 주차별 */}
-          {showHistory && weekGroups.length > 0 && (
-            <div className="space-y-2 pb-4">
+        </div>
+      )}
+
+      {/* 지난 기록 Bottom Sheet */}
+      {showHistory && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <style>{`
+            @keyframes slideUp {
+              from { transform: translateY(100%); }
+              to   { transform: translateY(0); }
+            }
+            .history-sheet { animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+          `}</style>
+          {/* 배경 오버레이 */}
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowHistory(false)} />
+          {/* 시트 */}
+          <div className="history-sheet relative bg-white rounded-t-3xl flex flex-col" style={{ maxHeight: '85vh' }}>
+            {/* 드래그 핸들 */}
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
+            {/* 헤더 */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-gray-800">{savedStudentName} 학생</h3>
+                <p className="text-xs text-gray-400">전체 {historyRecords.length}건</p>
+              </div>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            {/* 스크롤 컨텐츠 */}
+            <div className="overflow-y-auto flex-1 p-4 space-y-2 pb-10">
               {weekGroups.map(({ label, records }) => (
                 <WeekCard key={label} label={label} records={records} />
               ))}
             </div>
-          )}
+          </div>
         </div>
       )}
 
