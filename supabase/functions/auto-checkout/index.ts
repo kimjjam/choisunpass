@@ -19,11 +19,11 @@ Deno.serve(async () => {
   const today = kst.toISOString().split('T')[0]
   const nextWeek = new Date(kst.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-  // 오늘 미하원 수업+클리닉 학생 조회
+  // 오늘 미하원 학생 조회 (클리닉 + 수업+클리닉)
   const { data: targets, error } = await supabase
     .from('attendances')
-    .select('id, students(name)')
-    .eq('visit_type', 'class_clinic')
+    .select('id, visit_type, students(name)')
+    .in('visit_type', ['class_clinic', 'clinic'])
     .eq('status', 'approved')
     .is('checked_out_at', null)
     .eq('date', today)
@@ -55,13 +55,25 @@ Deno.serve(async () => {
 
   // Discord 알림 전송
   if (DISCORD_WEBHOOK_URL) {
-    const nameList = targets
+    const clinicTargets = targets.filter(t => t.visit_type === 'clinic')
+    const classClinicTargets = targets.filter(t => t.visit_type === 'class_clinic')
+
+    const formatList = (list: typeof targets) => list
       .map(t => {
         const student = t.students as { name: string } | null
         const name = student?.name ?? '(이름 없음)'
         return `• ${name} → 재등원: ${nextWeek}`
       })
       .join('\n')
+
+    const parts: string[] = []
+    if (classClinicTargets.length > 0) {
+      parts.push(`📗 **수업+클리닉** (${classClinicTargets.length}명)\n${formatList(classClinicTargets)}`)
+    }
+    if (clinicTargets.length > 0) {
+      parts.push(`📘 **클리닉** (${clinicTargets.length}명)\n${formatList(clinicTargets)}`)
+    }
+    const nameList = parts.join('\n\n')
 
     try {
       const discordRes = await fetch(DISCORD_WEBHOOK_URL, {
