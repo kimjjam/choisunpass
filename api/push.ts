@@ -10,10 +10,11 @@ webpush.setVapidDetails(
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
-  const { subscription, title, body } = req.body as {
+  const { subscription, title, body, url } = req.body as {
     subscription: webpush.PushSubscription
     title: string
-    body: string
+    body?: string
+    url?: string
   }
 
   if (!subscription || !title) return res.status(400).json({ error: 'missing fields' })
@@ -21,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     await webpush.sendNotification(
       subscription,
-      JSON.stringify({ title, body }),
+      JSON.stringify({ title, body, url }),
     )
     return res.status(200).json({ ok: true })
   } catch (err: unknown) {
