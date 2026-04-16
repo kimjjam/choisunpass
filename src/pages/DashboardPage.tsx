@@ -11,33 +11,33 @@ type Tab = 'pending' | 'clinic' | 'class_clinic' | 'checked_out' | 'overview' | 
 // 요일(0=일,1=월...6=토) → 수업 학교·담당선생님 스케줄
 const SCHOOL_SCHEDULE: Record<number, { school: string; teacher: string }[]> = {
   1: [ // 월요일
-    { school: '서원고', teacher: '고정아t' },
-    { school: '수지고', teacher: '김지영t' },
-    { school: '죽전고', teacher: '김수연t' },
+    { school: '서원고', teacher: '고정아' },
+    { school: '수지고', teacher: '김지영' },
+    { school: '죽전고', teacher: '김수연' },
   ],
   2: [ // 화요일
-    { school: '수지고', teacher: '고정아t' },
-    { school: '신봉고', teacher: '김지영t' },
-    { school: '풍덕고', teacher: '김수연t' },
+    { school: '수지고', teacher: '고정아' },
+    { school: '신봉고', teacher: '김지영' },
+    { school: '풍덕고', teacher: '김수연' },
   ],
   3: [ // 수요일
-    { school: '성복고', teacher: '김수연t' },
-    { school: '신봉고', teacher: '고정아t' },
-    { school: '풍덕고', teacher: '김지영t' },
+    { school: '성복고', teacher: '김수연' },
+    { school: '신봉고', teacher: '고정아' },
+    { school: '풍덕고', teacher: '김지영' },
   ],
   4: [ // 목요일
-    { school: '서원고', teacher: '김수연t' },
-    { school: '현암고', teacher: '김지영t' },
-    { school: '홍천고', teacher: '고정아t' },
+    { school: '서원고', teacher: '김수연' },
+    { school: '현암고', teacher: '김지영' },
+    { school: '홍천고', teacher: '고정아' },
   ],
   5: [ // 금요일
-    { school: '상현고', teacher: '김수연t' },
-    { school: '현암고', teacher: '고정아t' },
-    { school: '홍천고', teacher: '김지영t' },
+    { school: '상현고', teacher: '김수연' },
+    { school: '현암고', teacher: '고정아' },
+    { school: '홍천고', teacher: '김지영' },
   ],
 }
 
-const ALL_TEACHERS = ['고정아t', '김지영t', '김수연t']
+const ALL_TEACHERS = ['고정아', '김지영', '김수연']
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -1051,7 +1051,7 @@ export default function DashboardPage() {
             teacher,
             students: absentStudents
               .filter(s => s.school === school)
-              .filter(s => !absentTeacherFilter || s.class === absentTeacherFilter.slice(0, -1))
+              .filter(s => !absentTeacherFilter || s.class === absentTeacherFilter)
               .map(s => ({ ...s, attended: attendedIds.has(s.id) })),
           })).filter(g => g.students.length > 0)
 
