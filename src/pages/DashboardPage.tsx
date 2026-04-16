@@ -1051,6 +1051,7 @@ export default function DashboardPage() {
             teacher,
             students: absentStudents
               .filter(s => s.school === school)
+              .filter(s => !absentTeacherFilter || s.class === absentTeacherFilter.slice(0, -1))
               .map(s => ({ ...s, attended: attendedIds.has(s.id) })),
           })).filter(g => g.students.length > 0)
 
