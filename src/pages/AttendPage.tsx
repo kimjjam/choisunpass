@@ -886,7 +886,7 @@ export default function AttendPage() {
             <h2 className="text-lg font-bold text-gray-800 mb-1">{student.name} 학생</h2>
             <p className="text-2xl font-bold text-indigo-600 mb-2">하원 완료!</p>
             <p className="text-sm text-gray-500 mb-4">
-              오늘도 수고했어요!<br />내일 또 봐요 😊
+              오늘도 수고했어요!<br />다음 수업 때 만나요! 😊
             </p>
             {attendance?.checked_out_at && (
               <div className="bg-indigo-50 rounded-xl p-3 mb-4 text-xs text-indigo-600 space-y-1">
