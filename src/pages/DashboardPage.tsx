@@ -6,7 +6,38 @@ import { useCurrentUser } from '../hooks/useCurrentUser'
 import type { AttendanceWithStudent, MissionStatus, OralQueueWithStudent, Student } from '../lib/database.types'
 import StudentHistoryModal from '../components/StudentHistoryModal'
 
-type Tab = 'pending' | 'clinic' | 'class_clinic' | 'checked_out' | 'overview' | 'oral' | 'rejected'
+type Tab = 'pending' | 'clinic' | 'class_clinic' | 'checked_out' | 'overview' | 'oral' | 'rejected' | 'absent'
+
+// 요일(0=일,1=월...6=토) → 수업 학교·담당선생님 스케줄
+const SCHOOL_SCHEDULE: Record<number, { school: string; teacher: string }[]> = {
+  1: [ // 월요일
+    { school: '서원고', teacher: '고정아t' },
+    { school: '수지고', teacher: '김지영t' },
+    { school: '죽전고', teacher: '김수연t' },
+  ],
+  2: [ // 화요일
+    { school: '수지고', teacher: '고정아t' },
+    { school: '신봉고', teacher: '김지영t' },
+    { school: '풍덕고', teacher: '김수연t' },
+  ],
+  3: [ // 수요일
+    { school: '성복고', teacher: '김수연t' },
+    { school: '신봉고', teacher: '고정아t' },
+    { school: '풍덕고', teacher: '김지영t' },
+  ],
+  4: [ // 목요일
+    { school: '서원고', teacher: '김수연t' },
+    { school: '현암고', teacher: '김지영t' },
+    { school: '홍천고', teacher: '고정아t' },
+  ],
+  5: [ // 금요일
+    { school: '상현고', teacher: '김수연t' },
+    { school: '현암고', teacher: '고정아t' },
+    { school: '홍천고', teacher: '김지영t' },
+  ],
+}
+
+const ALL_TEACHERS = ['고정아t', '김지영t', '김수연t']
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -34,6 +65,9 @@ export default function DashboardPage() {
   const [showBulkApproveConfirm, setShowBulkApproveConfirm] = useState(false)
   const [weekValuesMap, setWeekValuesMap] = useState<Map<string, Record<string, string | null>>>(new Map())
   const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [absentStudents, setAbsentStudents] = useState<Student[]>([])
+  const [absentLoading, setAbsentLoading] = useState(false)
+  const [absentTeacherFilter, setAbsentTeacherFilter] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
@@ -317,6 +351,21 @@ export default function DashboardPage() {
     fetchOralQueue()
   }
 
+  async function fetchAbsentStudents() {
+    const todayDay = new Date().getDay()
+    const todaySchedule = SCHOOL_SCHEDULE[todayDay] ?? []
+    if (todaySchedule.length === 0) { setAbsentStudents([]); return }
+    setAbsentLoading(true)
+    const schools = todaySchedule.map(s => s.school)
+    const { data } = await supabase.from('students').select('*').in('school', schools).order('name')
+    setAbsentStudents((data as Student[]) ?? [])
+    setAbsentLoading(false)
+  }
+
+  useEffect(() => {
+    if (tab === 'absent') fetchAbsentStudents()
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function openHistory(student: Student) {
     setHistoryTarget(student)
     const { data } = await supabase
@@ -544,6 +593,25 @@ export default function DashboardPage() {
                   {oralQueue.length}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => setTab('absent')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors ml-1 ${
+                tab === 'absent' ? 'bg-rose-600 text-white' : 'bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100'
+              }`}
+            >
+              수업 미출석
+              {(() => {
+                const todayDay = new Date().getDay()
+                const todaySchedule = SCHOOL_SCHEDULE[todayDay] ?? []
+                const attendedIds = new Set(records.map(r => r.student_id))
+                const absentCount = absentStudents.filter(s => todaySchedule.some(sc => sc.school === s.school) && !attendedIds.has(s.id)).length
+                return absentCount > 0 ? (
+                  <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'absent' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700'}`}>
+                    {absentCount}
+                  </span>
+                ) : null
+              })()}
             </button>
           </div>
         </div>
@@ -969,6 +1037,117 @@ export default function DashboardPage() {
             )}
           </div>
         )}
+
+        {/* 수업 미출석 탭 */}
+        {tab === 'absent' && (() => {
+          const todayDay = new Date().getDay()
+          const todaySchedule = SCHOOL_SCHEDULE[todayDay] ?? []
+          const attendedIds = new Set(records.map(r => r.student_id))
+          const filteredSchedule = absentTeacherFilter
+            ? todaySchedule.filter(s => s.teacher === absentTeacherFilter)
+            : todaySchedule
+          const groups = filteredSchedule.map(({ school, teacher }) => ({
+            school,
+            teacher,
+            students: absentStudents
+              .filter(s => s.school === school)
+              .map(s => ({ ...s, attended: attendedIds.has(s.id) })),
+          })).filter(g => g.students.length > 0)
+
+          return (
+            <div className="space-y-4">
+              {/* 선생님 필터 */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-gray-400 font-medium">선생님 필터:</span>
+                <button
+                  onClick={() => setAbsentTeacherFilter(null)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    absentTeacherFilter === null ? 'bg-gray-700 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  전체
+                </button>
+                {ALL_TEACHERS.map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setAbsentTeacherFilter(prev => prev === t ? null : t)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      absentTeacherFilter === t ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {absentLoading ? (
+                <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+              ) : todaySchedule.length === 0 ? (
+                <div className="py-16 text-center">
+                  <div className="text-4xl mb-3">📅</div>
+                  <p className="text-gray-400 text-sm">오늘은 수업이 없습니다</p>
+                </div>
+              ) : groups.length === 0 ? (
+                <div className="py-16 text-center text-gray-400 text-sm">해당 조건의 학생이 없습니다</div>
+              ) : (
+                groups.map(({ school, teacher, students }) => {
+                  const absentCount = students.filter(s => !s.attended).length
+                  return (
+                    <div key={school} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      {/* 학교 헤더 */}
+                      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🏫</span>
+                          <span className="font-bold text-gray-800">{school}</span>
+                          <span className="text-xs text-indigo-500 font-medium bg-indigo-50 px-2 py-0.5 rounded-full">{teacher}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-gray-400">전체 {students.length}명</span>
+                          {absentCount > 0 && (
+                            <span className="bg-rose-100 text-rose-600 font-semibold px-2 py-0.5 rounded-full">
+                              미출석 {absentCount}명
+                            </span>
+                          )}
+                          {absentCount === 0 && (
+                            <span className="bg-green-100 text-green-600 font-semibold px-2 py-0.5 rounded-full">
+                              전원 출석 ✓
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* 학생 목록 */}
+                      <div className="divide-y divide-gray-50">
+                        {students.map(s => (
+                          <div
+                            key={s.id}
+                            className={`px-5 py-3 flex items-center justify-between transition-colors ${
+                              s.attended ? 'bg-green-50' : 'bg-white hover:bg-rose-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s.attended ? 'bg-green-400' : 'bg-rose-300'}`} />
+                              <span className={`text-sm font-medium ${s.attended ? 'text-green-700' : 'text-gray-800'}`}>
+                                {s.name}
+                              </span>
+                              <span className="text-xs text-gray-400">{s.class}</span>
+                            </div>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                              s.attended
+                                ? 'bg-green-100 text-green-600'
+                                : 'bg-rose-100 text-rose-500'
+                            }`}>
+                              {s.attended ? '출석' : '미출석'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          )
+        })()}
 
         {/* 대기 중 탭 */}
         {tab === 'pending' && (

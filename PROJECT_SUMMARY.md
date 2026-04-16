@@ -254,6 +254,10 @@ limit 20;
 
 ## 최근 변경 이력
 
+### [2026-04-16] 수업 미출석 탭 추가
+- `src/pages/DashboardPage.tsx` — `SCHOOL_SCHEDULE` 상수(요일→학교·선생님 매핑) 추가, 헤더 구두대기 옆 `수업 미출석` 버튼 추가
+- 탭 진입 시 오늘 스케줄 학교 학생 전체 조회 후 출석 여부 색상 구분(초록=출석, rose=미출석), 선생님별 필터 제공
+
 ### [2026-04-16] 감사로그/헬스체크 고정 패치 (최종 반영)
 - `api/push.ts`
   - 감사 로그 필드를 `result`, `target_type(parent/student)`, `status_code`, `error_reason`로 고정
