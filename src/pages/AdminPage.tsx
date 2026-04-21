@@ -52,10 +52,17 @@ export default function AdminPage() {
 
   const [editTarget, setEditTarget] = useState<Student | null>(null)
 
+  // 학생 관리 / 누적 통계 탭 필터
   const [search, setSearch] = useState('')
   const [dayFilter, setDayFilter] = useState<string>('')
   const [schoolFilter, setSchoolFilter] = useState<string>('')
   const [classFilter, setClassFilter] = useState<string>('')
+
+  // 주차별 탭 전용 필터 (독립)
+  const [weeklySearch, setWeeklySearch] = useState('')
+  const [weeklyDayFilter, setWeeklyDayFilter] = useState<string>('')
+  const [weeklySchoolFilter, setWeeklySchoolFilter] = useState<string>('')
+  const [weeklyClassFilter, setWeeklyClassFilter] = useState<string>('')
 
   // 주차별 탭에서 선택된 주차
   const [selectedWeek, setSelectedWeek] = useState<string>('')
@@ -483,10 +490,10 @@ export default function AdminPage() {
   const weekStarts = getWeekStarts(termRecords)
   const weekRecords = termRecords
     .filter((r) => getWeekStart(r.date) === selectedWeek)
-    .filter((r) => r.students.name.includes(search.trim()))
-    .filter((r) => !dayFilter || r.students.clinic_day === dayFilter)
-    .filter((r) => !schoolFilter || r.students.school === schoolFilter)
-    .filter((r) => !classFilter || r.students.class === classFilter)
+    .filter((r) => r.students.name.includes(weeklySearch.trim()))
+    .filter((r) => !weeklyDayFilter || r.students.clinic_day === weeklyDayFilter)
+    .filter((r) => !weeklySchoolFilter || r.students.school === weeklySchoolFilter)
+    .filter((r) => !weeklyClassFilter || r.students.class === weeklyClassFilter)
 
   const schools = [...new Set(students.map(s => s.school))].filter(Boolean).sort()
   const classes = [...new Set(students.map(s => s.class))].filter(Boolean).sort()
@@ -704,6 +711,53 @@ export default function AdminPage() {
             <div className="py-16 text-center text-gray-400 text-sm">출석 기록이 없습니다.</div>
           ) : (
             <>
+              {/* 주차별 전용 필터 */}
+              <div className="flex items-center gap-2 flex-wrap bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+                <input
+                  value={weeklySearch}
+                  onChange={(e) => setWeeklySearch(e.target.value)}
+                  placeholder="학생 이름 검색..."
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 w-40"
+                />
+                <select
+                  value={weeklySchoolFilter}
+                  onChange={(e) => setWeeklySchoolFilter(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-36"
+                >
+                  <option value="">전체 학교</option>
+                  {schools.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select
+                  value={weeklyClassFilter}
+                  onChange={(e) => setWeeklyClassFilter(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32"
+                >
+                  <option value="">전체 선생님</option>
+                  {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <div className="flex gap-1">
+                  {['', '월', '화', '수', '목', '금'].map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setWeeklyDayFilter(d)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        weeklyDayFilter === d ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300'
+                      }`}
+                    >
+                      {d || '전체'}
+                    </button>
+                  ))}
+                </div>
+                {(weeklySearch || weeklyDayFilter || weeklySchoolFilter || weeklyClassFilter) && (
+                  <button
+                    onClick={() => { setWeeklySearch(''); setWeeklyDayFilter(''); setWeeklySchoolFilter(''); setWeeklyClassFilter('') }}
+                    className="text-xs text-gray-400 hover:text-red-400 border border-gray-200 rounded-lg px-2.5 py-1.5 transition-colors"
+                  >
+                    필터 초기화
+                  </button>
+                )}
+              </div>
+
               {/* 주차 선택 */}
               <div className="flex gap-2 flex-wrap">
                 <button
@@ -735,10 +789,10 @@ export default function AdminPage() {
               {/* ── 전체 주차 피벗 뷰 ── */}
               {selectedWeek === 'all' && (() => {
                 const filteredAll = termRecords
-                  .filter(r => r.students.name.includes(search.trim()))
-                  .filter(r => !dayFilter || r.students.clinic_day === dayFilter)
-                  .filter(r => !schoolFilter || r.students.school === schoolFilter)
-                  .filter(r => !classFilter || r.students.class === classFilter)
+                  .filter(r => r.students.name.includes(weeklySearch.trim()))
+                  .filter(r => !weeklyDayFilter || r.students.clinic_day === weeklyDayFilter)
+                  .filter(r => !weeklySchoolFilter || r.students.school === weeklySchoolFilter)
+                  .filter(r => !weeklyClassFilter || r.students.class === weeklyClassFilter)
 
                 // 학생별 { student, records: { weekStart → record } } 피벗
                 const studentMap: Record<string, { student: AttendanceWithStudent['students']; records: Record<string, AttendanceWithStudent> }> = {}
