@@ -1289,7 +1289,7 @@ export default function DashboardPage() {
               onSetNextClinic={(r) => { setNextClinicDateInput(r.next_clinic_date ?? ''); setNextClinicSetModal({ id: r.id, name: r.students.name, currentDate: r.next_clinic_date ?? null }) }}
               weekValuesMap={weekValuesMap}
               onCall={(r) => setCallConfirmModal(r)}
-              maxScores={maxScores}
+              maxScores={schoolFilter.length > 0 ? maxScores : undefined}
               onMoveToClassClinic={(r) => setMoveToClassClinicModal({ id: r.id, name: r.students.name })}
             />
           </div>
@@ -1321,7 +1321,7 @@ export default function DashboardPage() {
             onNameClick={(r) => openHistory(r.students)}
             weekValuesMap={weekValuesMap}
             onCall={(r) => setCallConfirmModal(r)}
-            maxScores={maxScores}
+            maxScores={schoolFilter.length > 0 ? maxScores : undefined}
           />
           </div>
         )}
