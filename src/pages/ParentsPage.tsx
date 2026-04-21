@@ -334,7 +334,7 @@ export default function ParentsPage() {
   const weekGroups = groupByWeek(historyRecords)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center px-4 py-6" style={{ justifyContent: record && record !== 'notfound' ? 'flex-start' : 'center' }}>
+    <div className="min-h-[100svh] bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center px-4 py-6" style={{ justifyContent: record && record !== 'notfound' ? 'flex-start' : 'center' }}>
 
       {/* Android 설치 배너 */}
       {installPrompt && !installBannerDismissed && (
@@ -478,10 +478,10 @@ export default function ParentsPage() {
       )}
 
       {!loading && record && record !== 'notfound' && (
-        <div className="w-full max-w-sm space-y-2">
+        <div className="w-full max-w-sm min-h-[calc(100svh-3rem)] flex flex-col">
           {/* 컴팩트 헤더 — 이름 + 날짜 + 등하원 */}
-          <div className="bg-blue-600 rounded-2xl px-5 py-4 text-white">
-            <div className="flex items-center gap-3 mb-3">
+          <div className="bg-blue-600 rounded-3xl px-5 py-5 text-white shadow-lg shadow-blue-200/50">
+            <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-base font-bold flex-shrink-0">
                 {record.students.name[0]}
               </div>
@@ -491,17 +491,17 @@ export default function ParentsPage() {
               </div>
             </div>
             <div className={`grid gap-2 ${record.rechecked_in_at ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              <div className="bg-white/15 rounded-xl py-2 text-center">
+              <div className="bg-white/15 rounded-2xl min-h-[92px] px-2 py-3 text-center flex flex-col justify-center">
                 <p className="text-blue-200 text-[10px] font-semibold">등원</p>
                 <p className="text-sm font-bold mt-0.5">{formatTime(record.approved_at) ?? '-'}</p>
               </div>
               {record.rechecked_in_at && (
-                <div className="bg-white/15 rounded-xl py-2 text-center">
+                <div className="bg-white/15 rounded-2xl min-h-[92px] px-2 py-3 text-center flex flex-col justify-center">
                   <p className="text-blue-200 text-[10px] font-semibold">재등원</p>
                   <p className="text-sm font-bold mt-0.5">{formatTime(record.rechecked_in_at)}</p>
                 </div>
               )}
-              <div className="bg-white/15 rounded-xl py-2 text-center">
+              <div className="bg-white/15 rounded-2xl min-h-[92px] px-2 py-3 text-center flex flex-col justify-center">
                 <p className="text-blue-200 text-[10px] font-semibold">하원</p>
                 <p className={`text-sm font-bold mt-0.5 ${!record.checked_out_at ? 'text-blue-200' : ''}`}>
                   {formatTime(record.checked_out_at) ?? '수업 중'}
@@ -511,9 +511,10 @@ export default function ParentsPage() {
           </div>
 
           {/* 학습 결과 — 2×2 그리드 */}
-          <div className="bg-white rounded-2xl px-4 py-3.5 shadow-sm">
+          <div className="flex-1 flex flex-col justify-center gap-3 py-3">
+            <div className="bg-white rounded-3xl px-4 py-4 shadow-sm">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">학습 결과</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {[
                 { label: '단어',   value: record.word_score, icon: '📖',
                   cls: 'bg-blue-50 text-blue-700' },
@@ -524,13 +525,13 @@ export default function ParentsPage() {
                 { label: '과제',   value: record.homework ? (STATUS_LABEL[record.homework] ?? record.homework) : null, icon: '✏️',
                   cls: record.homework === 'pass' ? 'bg-green-100 text-green-700' : record.homework === 'fail' ? 'bg-red-100 text-red-600' : record.homework === 'partial_pass' ? 'bg-orange-100 text-orange-600' : 'bg-yellow-100 text-yellow-700' },
               ].map(({ label, value, icon, cls }) => (
-                <div key={label} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
+                <div key={label} className="flex items-center justify-between bg-gray-50 rounded-2xl px-3 py-3 min-h-[82px]">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm">{icon}</span>
                     <span className="text-xs font-medium text-gray-500">{label}</span>
                   </div>
                   {value
-                    ? <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cls}`}>{value}</span>
+                    ? <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${cls}`}>{value}</span>
                     : <span className="text-xs text-gray-300">-</span>}
                 </div>
               ))}
@@ -539,18 +540,18 @@ export default function ParentsPage() {
 
           {/* 직보 + 알림장 */}
           {(record.jikbo_score || record.parent_memo) && (
-            <div className="bg-white rounded-2xl px-4 py-3.5 shadow-sm space-y-2.5">
+            <div className="bg-white rounded-3xl px-4 py-4 shadow-sm space-y-3">
               {record.jikbo_score && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm">📋</span>
                     <span className="text-xs font-medium text-gray-500">직보</span>
                   </div>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">{record.jikbo_score}</span>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">{record.jikbo_score}</span>
                 </div>
               )}
               {record.parent_memo && (
-                <div className="bg-green-50 rounded-xl px-3 py-2.5">
+                <div className="bg-green-50 rounded-2xl px-3 py-3">
                   <p className="text-[10px] text-green-600 font-semibold mb-1">👨‍👩‍👧 알림장</p>
                   <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{record.parent_memo}</p>
                 </div>
@@ -560,7 +561,7 @@ export default function ParentsPage() {
 
           {/* 재등원 예정 */}
           {record.next_clinic_date && (
-            <div className="bg-indigo-50 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm">
+            <div className="bg-indigo-50 rounded-3xl px-4 py-3.5 flex items-center gap-3 shadow-sm">
               <span className="text-lg">📅</span>
               <div>
                 <p className="text-[10px] text-indigo-400 font-semibold">재등원 예정</p>
@@ -570,18 +571,20 @@ export default function ParentsPage() {
           )}
 
           {/* 하단 버튼 */}
-          <div className="flex gap-2 pt-1">
+          </div>
+
+          <div className={`grid gap-2 pt-2 pb-1 ${historyRecords.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {historyRecords.length > 0 && (
               <button
                 onClick={() => setShowHistory(true)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
+                className="py-3.5 rounded-2xl border border-gray-200 bg-white text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1 shadow-sm"
               >
                 📋 지난 기록 <span className="text-gray-400">({historyRecords.length}건)</span>
               </button>
             )}
             <button
               onClick={handleChangeCode}
-              className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-400 text-xs font-medium hover:bg-gray-50 transition-colors"
+              className="py-3.5 rounded-2xl border border-gray-200 bg-white text-gray-400 text-xs font-medium hover:bg-gray-50 transition-colors shadow-sm"
             >
               학생코드 입력
             </button>
