@@ -482,31 +482,31 @@ export default function ParentsPage() {
           {/* 컴팩트 헤더 — 이름 + 날짜 + 등하원 */}
           <div className="bg-[#2f6bff] rounded-[28px] px-5 py-5 text-white shadow-[0_24px_60px_rgba(47,107,255,0.28)]">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/18 flex items-center justify-center text-2xl font-bold flex-shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-white/18 flex items-center justify-center text-xl font-bold flex-shrink-0">
                 {record.students.name[0]}
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-[2.05rem] font-bold leading-none tracking-tight">{record.students.name}</h2>
-                <p className="mt-1.5 text-sm font-medium text-blue-100">
+                <h2 className="text-[1.65rem] font-bold leading-tight tracking-tight">{record.students.name}</h2>
+                <p className="mt-1 text-[0.95rem] font-medium text-blue-100">
                   {record.students.school} · {record.students.class}반
                 </p>
-                <p className="mt-1 text-sm text-blue-200">{today}</p>
+                <p className="mt-1 text-[0.95rem] text-blue-200">{today}</p>
               </div>
             </div>
             <div className={`grid gap-3 ${record.rechecked_in_at ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              <div className="bg-sky-300/18 border border-sky-200/35 rounded-[24px] min-h-[112px] px-3 py-3 text-center flex flex-col justify-center">
+              <div className="bg-sky-300/18 border border-sky-200/35 rounded-[24px] min-h-[104px] px-3 py-3 text-center flex flex-col justify-center">
                 <p className="text-sky-100 text-xs font-semibold">등원</p>
-                <p className="text-[2rem] font-bold leading-none mt-4">{formatTime(record.approved_at) ?? '-'}</p>
+                <p className="text-[1.65rem] font-bold leading-none mt-4">{formatTime(record.approved_at) ?? '-'}</p>
               </div>
               {record.rechecked_in_at && (
-                <div className="bg-emerald-300/16 border border-emerald-200/35 rounded-[24px] min-h-[112px] px-3 py-3 text-center flex flex-col justify-center">
+                <div className="bg-emerald-300/16 border border-emerald-200/35 rounded-[24px] min-h-[104px] px-3 py-3 text-center flex flex-col justify-center">
                   <p className="text-emerald-100 text-xs font-semibold">재등원</p>
-                  <p className="text-[2rem] font-bold leading-none mt-4">{formatTime(record.rechecked_in_at)}</p>
+                  <p className="text-[1.65rem] font-bold leading-none mt-4">{formatTime(record.rechecked_in_at)}</p>
                 </div>
               )}
-              <div className="bg-amber-300/16 border border-amber-100/35 rounded-[24px] min-h-[112px] px-3 py-3 text-center flex flex-col justify-center">
+              <div className="bg-amber-300/16 border border-amber-100/35 rounded-[24px] min-h-[104px] px-3 py-3 text-center flex flex-col justify-center">
                 <p className="text-amber-50 text-xs font-semibold">하원</p>
-                <p className={`text-[1.9rem] font-bold leading-none mt-4 ${!record.checked_out_at ? 'text-amber-50' : 'text-white'}`}>
+                <p className={`text-[1.6rem] font-bold leading-none mt-4 ${!record.checked_out_at ? 'text-amber-50' : 'text-white'}`}>
                   {formatTime(record.checked_out_at) ?? '수업 중'}
                 </p>
               </div>
