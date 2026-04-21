@@ -480,30 +480,33 @@ export default function ParentsPage() {
       {!loading && record && record !== 'notfound' && (
         <div className="w-full max-w-sm min-h-[calc(100svh-3rem)] flex flex-col">
           {/* 컴팩트 헤더 — 이름 + 날짜 + 등하원 */}
-          <div className="bg-blue-600 rounded-3xl px-5 py-5 text-white shadow-lg shadow-blue-200/50">
+          <div className="bg-[#2f6bff] rounded-[28px] px-5 py-5 text-white shadow-[0_24px_60px_rgba(47,107,255,0.28)]">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-base font-bold flex-shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-white/18 flex items-center justify-center text-2xl font-bold flex-shrink-0">
                 {record.students.name[0]}
               </div>
-              <div>
-                <h2 className="text-base font-bold leading-tight">{record.students.name} 학생</h2>
-                <p className="text-blue-200 text-xs">{today}</p>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[2.05rem] font-bold leading-none tracking-tight">{record.students.name}</h2>
+                <p className="mt-1.5 text-sm font-medium text-blue-100">
+                  {record.students.school} · {record.students.class}반
+                </p>
+                <p className="mt-1 text-sm text-blue-200">{today}</p>
               </div>
             </div>
-            <div className={`grid gap-2 ${record.rechecked_in_at ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              <div className="bg-white/15 rounded-2xl min-h-[92px] px-2 py-3 text-center flex flex-col justify-center">
-                <p className="text-blue-200 text-[10px] font-semibold">등원</p>
-                <p className="text-sm font-bold mt-0.5">{formatTime(record.approved_at) ?? '-'}</p>
+            <div className={`grid gap-3 ${record.rechecked_in_at ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              <div className="bg-sky-300/18 border border-sky-200/35 rounded-[24px] min-h-[112px] px-3 py-3 text-center flex flex-col justify-center">
+                <p className="text-sky-100 text-xs font-semibold">등원</p>
+                <p className="text-[2rem] font-bold leading-none mt-4">{formatTime(record.approved_at) ?? '-'}</p>
               </div>
               {record.rechecked_in_at && (
-                <div className="bg-white/15 rounded-2xl min-h-[92px] px-2 py-3 text-center flex flex-col justify-center">
-                  <p className="text-blue-200 text-[10px] font-semibold">재등원</p>
-                  <p className="text-sm font-bold mt-0.5">{formatTime(record.rechecked_in_at)}</p>
+                <div className="bg-emerald-300/16 border border-emerald-200/35 rounded-[24px] min-h-[112px] px-3 py-3 text-center flex flex-col justify-center">
+                  <p className="text-emerald-100 text-xs font-semibold">재등원</p>
+                  <p className="text-[2rem] font-bold leading-none mt-4">{formatTime(record.rechecked_in_at)}</p>
                 </div>
               )}
-              <div className="bg-white/15 rounded-2xl min-h-[92px] px-2 py-3 text-center flex flex-col justify-center">
-                <p className="text-blue-200 text-[10px] font-semibold">하원</p>
-                <p className={`text-sm font-bold mt-0.5 ${!record.checked_out_at ? 'text-blue-200' : ''}`}>
+              <div className="bg-amber-300/16 border border-amber-100/35 rounded-[24px] min-h-[112px] px-3 py-3 text-center flex flex-col justify-center">
+                <p className="text-amber-50 text-xs font-semibold">하원</p>
+                <p className={`text-[1.9rem] font-bold leading-none mt-4 ${!record.checked_out_at ? 'text-amber-50' : 'text-white'}`}>
                   {formatTime(record.checked_out_at) ?? '수업 중'}
                 </p>
               </div>
@@ -512,8 +515,11 @@ export default function ParentsPage() {
 
           {/* 학습 결과 — 2×2 그리드 */}
           <div className="flex-1 flex flex-col justify-center gap-3 py-3">
-            <div className="bg-white rounded-3xl px-4 py-4 shadow-sm">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">학습 결과</p>
+            <div className="bg-white rounded-[28px] px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-semibold text-slate-400">학습 결과</p>
+              <p className="text-xs text-slate-300">오늘 기록</p>
+            </div>
             <div className="grid grid-cols-2 gap-2.5">
               {[
                 { label: '단어',   value: record.word_score, icon: '📖',
@@ -525,14 +531,16 @@ export default function ParentsPage() {
                 { label: '과제',   value: record.homework ? (STATUS_LABEL[record.homework] ?? record.homework) : null, icon: '✏️',
                   cls: record.homework === 'pass' ? 'bg-green-100 text-green-700' : record.homework === 'fail' ? 'bg-red-100 text-red-600' : record.homework === 'partial_pass' ? 'bg-orange-100 text-orange-600' : 'bg-yellow-100 text-yellow-700' },
               ].map(({ label, value, icon, cls }) => (
-                <div key={label} className="flex items-center justify-between bg-gray-50 rounded-2xl px-3 py-3 min-h-[82px]">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm">{icon}</span>
-                    <span className="text-xs font-medium text-gray-500">{label}</span>
+                <div key={label} className="bg-slate-50 rounded-[22px] px-3.5 py-3 min-h-[92px]">
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <span className="text-base">{icon}</span>
+                    <span className="text-sm font-semibold">{label}</span>
                   </div>
-                  {value
-                    ? <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${cls}`}>{value}</span>
-                    : <span className="text-xs text-gray-300">-</span>}
+                  <div className="mt-5 flex justify-end">
+                    {value
+                      ? <span className={`text-base font-bold px-3 py-1.5 rounded-full ${cls}`}>{value}</span>
+                      : <span className="text-sm text-slate-300">-</span>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -540,20 +548,20 @@ export default function ParentsPage() {
 
           {/* 직보 + 알림장 */}
           {(record.jikbo_score || record.parent_memo) && (
-            <div className="bg-white rounded-3xl px-4 py-4 shadow-sm space-y-3">
+            <div className="bg-white rounded-[28px] px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] space-y-3">
               {record.jikbo_score && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm">📋</span>
-                    <span className="text-xs font-medium text-gray-500">직보</span>
+                <div className="flex items-center justify-between rounded-[20px] bg-amber-50 px-3.5 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📋</span>
+                    <span className="text-sm font-semibold text-amber-900">직보 점수</span>
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">{record.jikbo_score}</span>
+                  <span className="text-base font-bold px-3 py-1 rounded-full bg-white text-amber-700 shadow-sm">{record.jikbo_score}</span>
                 </div>
               )}
               {record.parent_memo && (
-                <div className="bg-green-50 rounded-2xl px-3 py-3">
-                  <p className="text-[10px] text-green-600 font-semibold mb-1">👨‍👩‍👧 알림장</p>
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{record.parent_memo}</p>
+                <div className="bg-green-50 border border-green-100 rounded-[22px] px-3.5 py-3.5">
+                  <p className="text-xs text-green-600 font-semibold mb-1.5">👨‍👩‍👧 알림장</p>
+                  <p className="text-[1.05rem] text-gray-700 leading-7 whitespace-pre-wrap">{record.parent_memo}</p>
                 </div>
               )}
             </div>
@@ -561,11 +569,11 @@ export default function ParentsPage() {
 
           {/* 재등원 예정 */}
           {record.next_clinic_date && (
-            <div className="bg-indigo-50 rounded-3xl px-4 py-3.5 flex items-center gap-3 shadow-sm">
-              <span className="text-lg">📅</span>
+            <div className="bg-indigo-50 border border-indigo-100 rounded-[24px] px-4 py-3.5 flex items-center gap-3 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+              <span className="h-10 w-10 rounded-2xl bg-white flex items-center justify-center text-lg shadow-sm">📅</span>
               <div>
-                <p className="text-[10px] text-indigo-400 font-semibold">재등원 예정</p>
-                <p className="text-sm font-bold text-indigo-700">{record.next_clinic_date}</p>
+                <p className="text-xs text-indigo-500 font-semibold">재등원 예정</p>
+                <p className="text-lg font-bold text-indigo-900">{record.next_clinic_date}</p>
               </div>
             </div>
           )}
@@ -577,14 +585,14 @@ export default function ParentsPage() {
             {historyRecords.length > 0 && (
               <button
                 onClick={() => setShowHistory(true)}
-                className="py-3.5 rounded-2xl border border-gray-200 bg-white text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1 shadow-sm"
+                className="py-3.5 rounded-[22px] border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
               >
-                📋 지난 기록 <span className="text-gray-400">({historyRecords.length}건)</span>
+                지난 기록 ({historyRecords.length}건)
               </button>
             )}
             <button
               onClick={handleChangeCode}
-              className="py-3.5 rounded-2xl border border-gray-200 bg-white text-gray-400 text-xs font-medium hover:bg-gray-50 transition-colors shadow-sm"
+              className="py-3.5 rounded-[22px] border border-slate-200 bg-white text-slate-500 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
             >
               학생코드 입력
             </button>
