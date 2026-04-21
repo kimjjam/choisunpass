@@ -125,9 +125,16 @@ function WeekCard({ label, records }: { label: string; records: AttendanceWithSt
                   </div>
                 )}
               </div>
-              {/* 메모 */}
-              {r.notes && (
-                <p className="text-xs text-gray-400 leading-relaxed bg-gray-50 rounded-xl px-3 py-2">{r.notes}</p>
+              {/* 직보 점수 */}
+              {r.jikbo_score && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-400">직보</span>
+                  <span className="text-xs font-semibold text-amber-600">{r.jikbo_score}</span>
+                </div>
+              )}
+              {/* 부모님 알림장 */}
+              {r.parent_memo && (
+                <p className="text-xs text-gray-600 leading-relaxed bg-green-50 rounded-xl px-3 py-2 whitespace-pre-wrap">{r.parent_memo}</p>
               )}
               {/* 재등원 예정 */}
               {r.next_clinic_date && (
@@ -541,13 +548,29 @@ export default function ParentsPage() {
                 ))}
               </div>
 
-              {/* 메모 */}
-              {record.notes && (
+              {/* 직보 점수 */}
+              {record.jikbo_score && (
                 <>
                   <div className="border-t border-gray-100"/>
-                  <div className="bg-gray-50 rounded-2xl px-4 py-3.5">
-                    <p className="text-xs text-gray-400 font-semibold mb-1.5">📌 메모</p>
-                    <p className="text-sm text-gray-600 leading-relaxed">{record.notes}</p>
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg">📋</span>
+                      <span className="text-sm font-medium text-gray-600">직보</span>
+                    </div>
+                    <span className="text-sm font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-700">
+                      {record.jikbo_score}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {/* 부모님 알림장 */}
+              {record.parent_memo && (
+                <>
+                  <div className="border-t border-gray-100"/>
+                  <div className="bg-green-50 rounded-2xl px-4 py-3.5">
+                    <p className="text-xs text-green-600 font-semibold mb-1.5">👨‍👩‍👧 알림장</p>
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{record.parent_memo}</p>
                   </div>
                 </>
               )}
