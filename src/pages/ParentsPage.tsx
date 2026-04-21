@@ -481,8 +481,8 @@ export default function ParentsPage() {
               <div className="absolute -left-10 top-20 h-40 w-40 rounded-full bg-white/10" />
               <div className="absolute -right-8 top-0 h-28 w-28 rounded-full bg-white/10" />
 
-              <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-white/18 text-[2rem] font-bold">
-                {record.students.name[0]}
+              <div className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-white/18 px-2 text-sm font-semibold leading-tight text-white">
+                {record.students.school}
               </div>
               <h2 className="relative text-[2rem] font-bold leading-none">{record.students.name} 학생</h2>
               <p className="relative mt-3 text-[1rem] text-blue-100">{today}</p>
