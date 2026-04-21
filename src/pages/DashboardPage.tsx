@@ -72,6 +72,7 @@ export default function DashboardPage() {
   const [maxScoreModal, setMaxScoreModal] = useState(false)
   const [maxScoreEdit, setMaxScoreEdit] = useState<Record<string, { word: string; clinic: string }>>({})
   const [moveToClassClinicModal, setMoveToClassClinicModal] = useState<{ id: string; name: string } | null>(null)
+  const [moveToClinicModal, setMoveToClinicModal] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
@@ -369,6 +370,16 @@ export default function DashboardPage() {
     const { error } = await supabase.from('attendances').update({ visit_type: 'class_clinic' }).eq('id', id)
     if (error) { console.error('이동 실패:', error); setRecords(prev) }
     setMoveToClassClinicModal(null)
+  }
+
+  async function handleMoveToClinic() {
+    if (!moveToClinicModal) return
+    const { id } = moveToClinicModal
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, visit_type: 'clinic' } : r))
+    const { error } = await supabase.from('attendances').update({ visit_type: 'clinic' }).eq('id', id)
+    if (error) { console.error('이동 실패:', error); setRecords(prev) }
+    setMoveToClinicModal(null)
   }
 
   function openMaxScoreModal() {
@@ -1314,6 +1325,7 @@ export default function DashboardPage() {
             weekValuesMap={weekValuesMap}
             onCall={(r) => setCallConfirmModal(r)}
             maxScores={schoolFilter.length > 0 ? maxScores : undefined}
+            onMoveToClinic={(r) => setMoveToClinicModal({ id: r.id, name: r.students.name })}
           />
           </div>
         )}
@@ -1940,6 +1952,41 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* 수업+클리닉 → 클리닉 이동 확인 모달 */}
+      {moveToClinicModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <div className="text-center mb-4">
+              <div className="text-3xl mb-2">🔄</div>
+              <h3 className="font-bold text-gray-800 text-base">유형 변경</h3>
+            </div>
+            <p className="text-sm text-gray-600 text-center mb-1">
+              <span className="font-semibold text-gray-800">{moveToClinicModal.name}</span> 학생을
+            </p>
+            <p className="text-sm text-gray-600 text-center mb-2">
+              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold">수업+클리닉</span>
+              <span className="mx-2 text-gray-400">→</span>
+              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold">클리닉</span>
+            </p>
+            <p className="text-xs text-gray-400 text-center mb-6">으로 이동하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMoveToClinicModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleMoveToClinic}
+                className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors"
+              >
+                이동 확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 학교별 만점 설정 모달 */}
       {maxScoreModal && (() => {
         const weekStart = getThisWeekMonday()
@@ -2027,7 +2074,7 @@ export default function DashboardPage() {
 // ─── 서브 컴포넌트 ────────────────────────────────────────
 
 function AttendanceTable({
-  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic, weekValuesMap, onCall, showVisitType, maxScores, onMoveToClassClinic,
+  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic, weekValuesMap, onCall, showVisitType, maxScores, onMoveToClassClinic, onMoveToClinic,
 }: {
   list: AttendanceWithStudent[]
   loading: boolean
@@ -2047,6 +2094,7 @@ function AttendanceTable({
   showVisitType?: boolean
   maxScores?: Record<string, { word: string; clinic: string }>
   onMoveToClassClinic?: (r: AttendanceWithStudent) => void
+  onMoveToClinic?: (r: AttendanceWithStudent) => void
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -2091,6 +2139,7 @@ function AttendanceTable({
                 showVisitType={showVisitType}
                 maxScore={maxScores?.[record.students.school]}
                 onMoveToClassClinic={onMoveToClassClinic ? () => onMoveToClassClinic(record) : undefined}
+                onMoveToClinic={onMoveToClinic ? () => onMoveToClinic(record) : undefined}
               />
             ))}
           </tbody>
@@ -2132,6 +2181,7 @@ function AttendanceRow({
   showVisitType,
   maxScore,
   onMoveToClassClinic,
+  onMoveToClinic,
 }: {
   record: AttendanceWithStudent
   onApprove: () => void
@@ -2149,6 +2199,7 @@ function AttendanceRow({
   showVisitType?: boolean
   maxScore?: { word: string; clinic: string }
   onMoveToClassClinic?: () => void
+  onMoveToClinic?: () => void
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
   const [oralMemo, setOralMemo] = useState(record.oral_memo ?? '')
@@ -2611,6 +2662,14 @@ function AttendanceRow({
                 className="text-xs px-2 py-0.5 rounded-md bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-800 transition-colors whitespace-nowrap border border-green-200"
               >
                 수업+클리닉↑
+              </button>
+            )}
+            {onMoveToClinic && record.visit_type === 'class_clinic' && !record.checked_out_at && (
+              <button
+                onClick={onMoveToClinic}
+                className="text-xs px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-800 transition-colors whitespace-nowrap border border-blue-200"
+              >
+                클리닉↓
               </button>
             )}
           </div>
