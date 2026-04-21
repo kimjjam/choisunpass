@@ -334,7 +334,7 @@ export default function ParentsPage() {
   const weekGroups = groupByWeek(historyRecords)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center px-4 py-6" style={{ justifyContent: record && record !== 'notfound' ? 'flex-start' : 'center' }}>
 
       {/* Android 설치 배너 */}
       {installPrompt && !installBannerDismissed && (
@@ -385,16 +385,18 @@ export default function ParentsPage() {
         </div>
       )}
 
-      {/* 로고 */}
-      <div className="mb-8 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 shadow-lg mb-4">
-          <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
+      {/* 로고 — 결과 카드 없을 때만 표시 */}
+      {!(record && record !== 'notfound') && (
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 shadow-lg mb-4">
+            <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">최선패스</h1>
+          <p className="text-sm text-gray-400 mt-1">학부모 알림장</p>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">최선패스</h1>
-        <p className="text-sm text-gray-400 mt-1">학부모 알림장</p>
-      </div>
+      )}
 
       {/* 로딩 */}
       {loading && (
@@ -476,140 +478,114 @@ export default function ParentsPage() {
       )}
 
       {!loading && record && record !== 'notfound' && (
-        /* 알림장 카드 */
-        <div className="w-full max-w-sm space-y-3">
-          <div>
-            <div className="bg-blue-600 rounded-t-3xl px-6 pt-7 pb-10 text-white text-center relative overflow-hidden">
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute -top-4 -right-4 w-32 h-32 rounded-full bg-white"/>
-                <div className="absolute -bottom-6 -left-6 w-40 h-40 rounded-full bg-white"/>
+        <div className="w-full max-w-sm space-y-2">
+          {/* 컴팩트 헤더 — 이름 + 날짜 + 등하원 */}
+          <div className="bg-blue-600 rounded-2xl px-5 py-4 text-white">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-base font-bold flex-shrink-0">
+                {record.students.name[0]}
               </div>
-              <div className="relative">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/20 mb-3 text-2xl font-bold">
-                  {record.students.name[0]}
-                </div>
-                <h2 className="text-xl font-bold">{record.students.name} 학생</h2>
-                <p className="text-blue-200 text-sm mt-1">{today}</p>
+              <div>
+                <h2 className="text-base font-bold leading-tight">{record.students.name} 학생</h2>
+                <p className="text-blue-200 text-xs">{today}</p>
               </div>
             </div>
-
-            <div className="bg-white rounded-b-3xl shadow-xl -mt-4 pt-6 pb-8 px-6 space-y-5">
-
-              {/* 등하원 시간 */}
-              <div className={`grid gap-3 ${record.rechecked_in_at ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                <div className="bg-green-50 rounded-2xl p-4 text-center">
-                  <p className="text-xs text-green-500 font-semibold mb-1">등원</p>
-                  <p className="text-lg font-bold text-green-700">{formatTime(record.approved_at) ?? '-'}</p>
-                </div>
-                {record.rechecked_in_at && (
-                  <div className="bg-blue-50 rounded-2xl p-4 text-center">
-                    <p className="text-xs text-blue-500 font-semibold mb-1">재등원</p>
-                    <p className="text-lg font-bold text-blue-700">{formatTime(record.rechecked_in_at)}</p>
-                  </div>
-                )}
-                <div className="bg-orange-50 rounded-2xl p-4 text-center">
-                  <p className="text-xs text-orange-500 font-semibold mb-1">하원</p>
-                  <p className={`text-lg font-bold ${record.checked_out_at ? 'text-orange-600' : 'text-gray-300'}`}>
-                    {formatTime(record.checked_out_at) ?? '수업 중'}
-                  </p>
-                </div>
+            <div className={`grid gap-2 ${record.rechecked_in_at ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              <div className="bg-white/15 rounded-xl py-2 text-center">
+                <p className="text-blue-200 text-[10px] font-semibold">등원</p>
+                <p className="text-sm font-bold mt-0.5">{formatTime(record.approved_at) ?? '-'}</p>
               </div>
-
-              <div className="border-t border-gray-100"/>
-
-              {/* 학습 결과 */}
-              <div className="space-y-3">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">학습 결과</p>
-                {[
-                  { label: '단어', value: record.word_score, icon: '📖', color: 'blue' },
-                  { label: '클리닉', value: record.clinic_score, icon: '📝', color: 'indigo' },
-                  { label: '구두', value: record.oral_status ? STATUS_LABEL[record.oral_status] ?? record.oral_status : null, icon: '🗣️', color: record.oral_status === 'pass' ? 'green' : record.oral_status === 'fail' ? 'red' : 'yellow' },
-                  { label: '과제', value: record.homework ? (STATUS_LABEL[record.homework] ?? record.homework) : null, icon: '✏️', color: record.homework === 'pass' ? 'green' : record.homework === 'fail' ? 'red' : record.homework === 'partial_pass' ? 'orange' : 'yellow' },
-                ].map(({ label, value, icon, color }) => (
-                  <div key={label} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-lg">{icon}</span>
-                      <span className="text-sm font-medium text-gray-600">{label}</span>
-                    </div>
-                    {value ? (
-                      <span className={`text-sm font-bold px-3 py-1 rounded-full
-                        ${color === 'green' ? 'bg-green-100 text-green-700' :
-                          color === 'red' ? 'bg-red-100 text-red-600' :
-                          color === 'orange' ? 'bg-orange-100 text-orange-600' :
-                          color === 'yellow' ? 'bg-yellow-100 text-yellow-700' :
-                          color === 'blue' ? 'bg-blue-50 text-blue-700' :
-                          'bg-indigo-50 text-indigo-700'}`}>
-                        {value}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-gray-300">-</span>
-                    )}
-                  </div>
-                ))}
+              {record.rechecked_in_at && (
+                <div className="bg-white/15 rounded-xl py-2 text-center">
+                  <p className="text-blue-200 text-[10px] font-semibold">재등원</p>
+                  <p className="text-sm font-bold mt-0.5">{formatTime(record.rechecked_in_at)}</p>
+                </div>
+              )}
+              <div className="bg-white/15 rounded-xl py-2 text-center">
+                <p className="text-blue-200 text-[10px] font-semibold">하원</p>
+                <p className={`text-sm font-bold mt-0.5 ${!record.checked_out_at ? 'text-blue-200' : ''}`}>
+                  {formatTime(record.checked_out_at) ?? '수업 중'}
+                </p>
               </div>
-
-              {/* 직보 점수 */}
-              {record.jikbo_score && (
-                <>
-                  <div className="border-t border-gray-100"/>
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-lg">📋</span>
-                      <span className="text-sm font-medium text-gray-600">직보</span>
-                    </div>
-                    <span className="text-sm font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-700">
-                      {record.jikbo_score}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              {/* 부모님 알림장 */}
-              {record.parent_memo && (
-                <>
-                  <div className="border-t border-gray-100"/>
-                  <div className="bg-green-50 rounded-2xl px-4 py-3.5">
-                    <p className="text-xs text-green-600 font-semibold mb-1.5">👨‍👩‍👧 알림장</p>
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{record.parent_memo}</p>
-                  </div>
-                </>
-              )}
-
-              {/* 재등원 예정 */}
-              {record.next_clinic_date && (
-                <>
-                  <div className="border-t border-gray-100"/>
-                  <div className="bg-indigo-50 rounded-2xl px-4 py-3.5 flex items-center gap-3">
-                    <span className="text-xl">📅</span>
-                    <div>
-                      <p className="text-xs text-indigo-400 font-semibold">재등원 예정</p>
-                      <p className="text-sm font-bold text-indigo-700">{record.next_clinic_date}</p>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* 지난 기록 버튼 */}
-              {historyRecords.length > 0 && (
-                <button
-                  onClick={() => setShowHistory(true)}
-                  className="w-full py-3 rounded-2xl border-2 border-gray-100 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <span>📋 지난 기록</span>
-                  <span className="text-gray-400 text-xs">({historyRecords.length}건)</span>
-                </button>
-              )}
-
-              {/* 학생코드 입력 버튼 */}
-              <button
-                onClick={handleChangeCode}
-                className="w-full py-3 rounded-2xl border-2 border-gray-100 text-gray-400 text-sm font-medium hover:bg-gray-50 transition-colors"
-              >
-                학생코드 입력
-              </button>
             </div>
           </div>
 
+          {/* 학습 결과 — 2×2 그리드 */}
+          <div className="bg-white rounded-2xl px-4 py-3.5 shadow-sm">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">학습 결과</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: '단어',   value: record.word_score, icon: '📖',
+                  cls: 'bg-blue-50 text-blue-700' },
+                { label: '클리닉', value: record.clinic_score, icon: '📝',
+                  cls: 'bg-indigo-50 text-indigo-700' },
+                { label: '구두',   value: record.oral_status ? (STATUS_LABEL[record.oral_status] ?? record.oral_status) : null, icon: '🗣️',
+                  cls: record.oral_status === 'pass' ? 'bg-green-100 text-green-700' : record.oral_status === 'fail' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-700' },
+                { label: '과제',   value: record.homework ? (STATUS_LABEL[record.homework] ?? record.homework) : null, icon: '✏️',
+                  cls: record.homework === 'pass' ? 'bg-green-100 text-green-700' : record.homework === 'fail' ? 'bg-red-100 text-red-600' : record.homework === 'partial_pass' ? 'bg-orange-100 text-orange-600' : 'bg-yellow-100 text-yellow-700' },
+              ].map(({ label, value, icon, cls }) => (
+                <div key={label} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">{icon}</span>
+                    <span className="text-xs font-medium text-gray-500">{label}</span>
+                  </div>
+                  {value
+                    ? <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cls}`}>{value}</span>
+                    : <span className="text-xs text-gray-300">-</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 직보 + 알림장 */}
+          {(record.jikbo_score || record.parent_memo) && (
+            <div className="bg-white rounded-2xl px-4 py-3.5 shadow-sm space-y-2.5">
+              {record.jikbo_score && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">📋</span>
+                    <span className="text-xs font-medium text-gray-500">직보</span>
+                  </div>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">{record.jikbo_score}</span>
+                </div>
+              )}
+              {record.parent_memo && (
+                <div className="bg-green-50 rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] text-green-600 font-semibold mb-1">👨‍👩‍👧 알림장</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{record.parent_memo}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 재등원 예정 */}
+          {record.next_clinic_date && (
+            <div className="bg-indigo-50 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm">
+              <span className="text-lg">📅</span>
+              <div>
+                <p className="text-[10px] text-indigo-400 font-semibold">재등원 예정</p>
+                <p className="text-sm font-bold text-indigo-700">{record.next_clinic_date}</p>
+              </div>
+            </div>
+          )}
+
+          {/* 하단 버튼 */}
+          <div className="flex gap-2 pt-1">
+            {historyRecords.length > 0 && (
+              <button
+                onClick={() => setShowHistory(true)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
+              >
+                📋 지난 기록 <span className="text-gray-400">({historyRecords.length}건)</span>
+              </button>
+            )}
+            <button
+              onClick={handleChangeCode}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-400 text-xs font-medium hover:bg-gray-50 transition-colors"
+            >
+              학생코드 입력
+            </button>
+          </div>
         </div>
       )}
 
