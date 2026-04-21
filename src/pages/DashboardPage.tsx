@@ -80,10 +80,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const weekStart = getThisWeekMonday()
-    try {
-      const stored = localStorage.getItem(`maxScores_${weekStart}`)
-      if (stored) setMaxScores(JSON.parse(stored))
-    } catch {}
+    supabase.from('app_settings').select('value').eq('key', `maxScores_${weekStart}`).maybeSingle()
+      .then(({ data }) => { if (data?.value) { try { setMaxScores(JSON.parse(data.value)) } catch {} } })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 한국 로컬 날짜 기준 — 매 조회 시점에 계산 (자정 넘어가도 갱신됨)
@@ -374,13 +372,7 @@ export default function DashboardPage() {
   }
 
   function openMaxScoreModal() {
-    const weekStart = getThisWeekMonday()
-    try {
-      const stored = localStorage.getItem(`maxScores_${weekStart}`)
-      setMaxScoreEdit(stored ? JSON.parse(stored) : { ...maxScores })
-    } catch {
-      setMaxScoreEdit({ ...maxScores })
-    }
+    setMaxScoreEdit({ ...maxScores })
     setMaxScoreModal(true)
   }
 
@@ -391,7 +383,7 @@ export default function DashboardPage() {
     for (const [school, v] of Object.entries(maxScoreEdit)) {
       if (v.word.trim() || v.clinic.trim()) cleaned[school] = { word: v.word.trim(), clinic: v.clinic.trim() }
     }
-    localStorage.setItem(`maxScores_${weekStart}`, JSON.stringify(cleaned))
+    supabase.from('app_settings').upsert({ key: `maxScores_${weekStart}`, value: JSON.stringify(cleaned) }, { onConflict: 'key' })
     setMaxScores(cleaned)
     setMaxScoreModal(false)
   }
