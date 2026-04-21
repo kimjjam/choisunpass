@@ -82,6 +82,9 @@ export default function AdminPage() {
   const [overdueStudents, setOverdueStudents] = useState<AttendanceWithStudent[]>([])
 
   // 일별 조회
+  const [dailySearch, setDailySearch] = useState('')
+  const [dailySchoolFilter, setDailySchoolFilter] = useState('')
+  const [dailyClassFilter, setDailyClassFilter] = useState('')
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const d = new Date()
     d.setDate(d.getDate() - 1)
@@ -1346,9 +1349,16 @@ export default function AdminPage() {
       )}
 
       {/* ── 일별 조회 탭 ── */}
-      {tab === 'daily' && (
+      {tab === 'daily' && (() => {
+        const dailyFiltered = dailyRecords
+          .filter(r => r.students.name.includes(dailySearch.trim()))
+          .filter(r => !dailySchoolFilter || r.students.school === dailySchoolFilter)
+          .filter(r => !dailyClassFilter || r.students.class === dailyClassFilter)
+        const dailySchools = [...new Set(dailyRecords.map(r => r.students.school))].filter(Boolean).sort()
+        const dailyClasses = [...new Set(dailyRecords.map(r => r.students.class))].filter(Boolean).sort()
+        return (
         <div className="px-6 pb-8 max-w-screen-xl mx-auto space-y-4">
-          {/* 날짜 피커 */}
+          {/* 날짜 피커 + 필터 */}
           <div className="flex items-center gap-3 flex-wrap">
             <input
               type="date"
@@ -1363,12 +1373,42 @@ export default function AdminPage() {
             <span className="text-sm text-gray-500">
               {new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
             </span>
+            <input
+              value={dailySearch}
+              onChange={(e) => setDailySearch(e.target.value)}
+              placeholder="이름 검색..."
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-36"
+            />
+            <select
+              value={dailySchoolFilter}
+              onChange={(e) => setDailySchoolFilter(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-36"
+            >
+              <option value="">전체 학교</option>
+              {dailySchools.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select
+              value={dailyClassFilter}
+              onChange={(e) => setDailyClassFilter(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32"
+            >
+              <option value="">전체 선생님</option>
+              {dailyClasses.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {(dailySearch || dailySchoolFilter || dailyClassFilter) && (
+              <button
+                onClick={() => { setDailySearch(''); setDailySchoolFilter(''); setDailyClassFilter('') }}
+                className="text-xs text-gray-400 hover:text-red-400 border border-gray-200 rounded-lg px-2.5 py-2 transition-colors"
+              >
+                초기화
+              </button>
+            )}
             {!dailyLoading && (
               <div className="flex gap-2 text-xs">
-                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">전체 {dailyRecords.length}명</span>
-                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">승인 {dailyRecords.filter(r => r.status === 'approved').length}명</span>
-                <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">대기 {dailyRecords.filter(r => r.status === 'pending').length}명</span>
-                <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full">거절 {dailyRecords.filter(r => r.status === 'rejected').length}명</span>
+                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">전체 {dailyFiltered.length}명{dailyFiltered.length !== dailyRecords.length && ` / ${dailyRecords.length}명`}</span>
+                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">승인 {dailyFiltered.filter(r => r.status === 'approved').length}명</span>
+                <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">대기 {dailyFiltered.filter(r => r.status === 'pending').length}명</span>
+                <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full">거절 {dailyFiltered.filter(r => r.status === 'rejected').length}명</span>
               </div>
             )}
           </div>
@@ -1377,8 +1417,8 @@ export default function AdminPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             {dailyLoading ? (
               <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
-            ) : dailyRecords.length === 0 ? (
-              <div className="py-16 text-center text-gray-400 text-sm">해당 날짜의 출석 기록이 없습니다</div>
+            ) : dailyFiltered.length === 0 ? (
+              <div className="py-16 text-center text-gray-400 text-sm">{dailyRecords.length === 0 ? '해당 날짜의 출석 기록이 없습니다' : '필터 조건에 맞는 학생이 없습니다'}</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
@@ -1398,7 +1438,7 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {dailyRecords.map((r, idx) => {
+                  {dailyFiltered.map((r, idx) => {
                     const statusBadge = () => {
                       if (r.status === 'approved') return <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">승인</span>
                       if (r.status === 'pending') return <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">대기</span>
@@ -1442,7 +1482,8 @@ export default function AdminPage() {
             )}
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {/* 학생 등록 모달 */}
       {showRegisterModal && (
