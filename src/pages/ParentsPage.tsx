@@ -494,19 +494,19 @@ export default function ParentsPage() {
               </div>
             </div>
             <div className={`grid gap-3 ${record.rechecked_in_at ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              <div className="bg-sky-300/18 border border-sky-200/35 rounded-[24px] min-h-[104px] px-3 py-3 text-center flex flex-col justify-center">
-                <p className="text-sky-100 text-sm font-semibold">등원</p>
-                <p className="text-[1.5rem] font-bold leading-none mt-4">{formatTime(record.approved_at) ?? '-'}</p>
+              <div className="bg-cyan-300/22 border border-cyan-100/45 rounded-[24px] min-h-[104px] px-3 py-3 text-center flex flex-col justify-center">
+                <p className="text-cyan-50 text-[0.95rem] font-semibold">등원</p>
+                <p className="text-[1.35rem] font-bold leading-none mt-4">{formatTime(record.approved_at) ?? '-'}</p>
               </div>
               {record.rechecked_in_at && (
-                <div className="bg-emerald-300/16 border border-emerald-200/35 rounded-[24px] min-h-[104px] px-3 py-3 text-center flex flex-col justify-center">
-                  <p className="text-emerald-100 text-sm font-semibold">재등원</p>
-                  <p className="text-[1.5rem] font-bold leading-none mt-4">{formatTime(record.rechecked_in_at)}</p>
+                <div className="bg-emerald-300/18 border border-emerald-100/40 rounded-[24px] min-h-[104px] px-3 py-3 text-center flex flex-col justify-center">
+                  <p className="text-emerald-50 text-[0.95rem] font-semibold">재등원</p>
+                  <p className="text-[1.35rem] font-bold leading-none mt-4">{formatTime(record.rechecked_in_at)}</p>
                 </div>
               )}
-              <div className="bg-amber-300/16 border border-amber-100/35 rounded-[24px] min-h-[104px] px-3 py-3 text-center flex flex-col justify-center">
-                <p className="text-amber-50 text-sm font-semibold">하원</p>
-                <p className={`text-[1.45rem] font-bold leading-none mt-4 ${!record.checked_out_at ? 'text-amber-50' : 'text-white'}`}>
+              <div className="bg-rose-300/18 border border-rose-100/45 rounded-[24px] min-h-[104px] px-3 py-3 text-center flex flex-col justify-center">
+                <p className="text-rose-50 text-[0.95rem] font-semibold">하원</p>
+                <p className={`text-[1.3rem] font-bold leading-none mt-4 ${!record.checked_out_at ? 'text-rose-50' : 'text-white'}`}>
                   {formatTime(record.checked_out_at) ?? '수업 중'}
                 </p>
               </div>
@@ -546,23 +546,6 @@ export default function ParentsPage() {
             </div>
           </div>
 
-          <div className={`grid gap-2 ${historyRecords.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {historyRecords.length > 0 && (
-              <button
-                onClick={() => setShowHistory(true)}
-                className="py-3.5 rounded-[22px] border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
-              >
-                지난 기록 ({historyRecords.length}건)
-              </button>
-            )}
-            <button
-              onClick={handleChangeCode}
-              className="py-3.5 rounded-[22px] border border-slate-200 bg-white text-slate-500 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
-            >
-              학생코드 입력
-            </button>
-          </div>
-
           {/* 직보 + 알림장 */}
           {(record.jikbo_score || record.parent_memo) && (
             <div className="bg-white rounded-[28px] px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] space-y-3">
@@ -594,6 +577,22 @@ export default function ParentsPage() {
               </div>
             </div>
           )}
+
+          {historyRecords.length > 0 && (
+            <button
+              onClick={() => setShowHistory(true)}
+              className="w-full py-3.5 rounded-[22px] border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
+            >
+              지난 기록 ({historyRecords.length}건)
+            </button>
+          )}
+
+          <button
+            onClick={handleChangeCode}
+            className="w-full py-3.5 rounded-[22px] border border-slate-200 bg-white text-slate-500 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
+          >
+            학생코드 입력
+          </button>
 
           </div>
         </div>
