@@ -8,7 +8,7 @@ import type { Student, AttendanceWithStudent, Term, ClinicAbsenceWithStudent } f
 import EditStudentModal from '../components/EditStudentModal'
 import StudentHistoryModal from '../components/StudentHistoryModal'
 
-type AdminTab = 'students' | 'weekly' | 'stats' | 'absence'
+type AdminTab = 'students' | 'weekly' | 'stats' | 'absence' | 'daily'
 
 const ORAL_TYPES = ['빈칸 구두', '별구두', '해석 구두', '별 빈칸 구두', '기타']
 const CLINIC_DAYS = ['월', '화', '수', '목', '금']
@@ -74,6 +74,15 @@ export default function AdminPage() {
   // 미재등원 학생 (next_clinic_date 지났는데 미등원)
   const [overdueStudents, setOverdueStudents] = useState<AttendanceWithStudent[]>([])
 
+  // 일별 조회
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    return d.toISOString().split('T')[0]
+  })
+  const [dailyRecords, setDailyRecords] = useState<AttendanceWithStudent[]>([])
+  const [dailyLoading, setDailyLoading] = useState(false)
+
   // 학생 히스토리 모달
   const [historyTarget, setHistoryTarget] = useState<Student | null>(null)
   const [historyRecords, setHistoryRecords] = useState<AttendanceWithStudent[]>([])
@@ -98,7 +107,8 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab === 'weekly' || tab === 'stats') fetchAllRecords()
     if (tab === 'absence') { fetchAbsences(); fetchNoShowData() }
-  }, [tab])
+    if (tab === 'daily') fetchDailyRecords(selectedDate)
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 어드민 실시간 구독
   useEffect(() => {
@@ -168,6 +178,17 @@ export default function AdminPage() {
   function getWeekStarts(records: AttendanceWithStudent[]): string[] {
     const set = new Set(records.map((r) => getWeekStart(r.date)))
     return Array.from(set).sort()
+  }
+
+  async function fetchDailyRecords(date: string) {
+    setDailyLoading(true)
+    const { data } = await supabase
+      .from('attendances')
+      .select('*, students(*)')
+      .eq('date', date)
+      .order('checked_in_at', { ascending: true })
+    setDailyRecords((data as AttendanceWithStudent[]) ?? [])
+    setDailyLoading(false)
   }
 
   async function fetchAbsences() {
@@ -554,6 +575,7 @@ export default function AdminPage() {
           <TabButton active={tab === 'weekly'} onClick={() => setTab('weekly')}>주차별 현황</TabButton>
           <TabButton active={tab === 'stats'} onClick={() => { setTab('stats'); fetchAllRecords() }}>누적 통계</TabButton>
           <TabButton active={tab === 'absence'} onClick={() => setTab('absence')}>재등원 관리</TabButton>
+          <TabButton active={tab === 'daily'} onClick={() => setTab('daily')}>일별 조회</TabButton>
         </div>
         <button
           onClick={() => { setShowRegisterModal(true); setShowRegisterConfirm(false); setFormError('') }}
@@ -1265,6 +1287,105 @@ export default function AdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── 일별 조회 탭 ── */}
+      {tab === 'daily' && (
+        <div className="px-6 pb-8 max-w-screen-xl mx-auto space-y-4">
+          {/* 날짜 피커 */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              type="date"
+              value={selectedDate}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={(e) => {
+                setSelectedDate(e.target.value)
+                fetchDailyRecords(e.target.value)
+              }}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+            />
+            <span className="text-sm text-gray-500">
+              {new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
+            </span>
+            {!dailyLoading && (
+              <div className="flex gap-2 text-xs">
+                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">전체 {dailyRecords.length}명</span>
+                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">승인 {dailyRecords.filter(r => r.status === 'approved').length}명</span>
+                <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">대기 {dailyRecords.filter(r => r.status === 'pending').length}명</span>
+                <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full">거절 {dailyRecords.filter(r => r.status === 'rejected').length}명</span>
+              </div>
+            )}
+          </div>
+
+          {/* 기록 테이블 */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {dailyLoading ? (
+              <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+            ) : dailyRecords.length === 0 ? (
+              <div className="py-16 text-center text-gray-400 text-sm">해당 날짜의 출석 기록이 없습니다</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">#</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">유형</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">상태</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">등원</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">하원</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">단어</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">클리닉</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구두</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">과제</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">재등원 예정</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {dailyRecords.map((r, idx) => {
+                    const statusBadge = () => {
+                      if (r.status === 'approved') return <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">승인</span>
+                      if (r.status === 'pending') return <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">대기</span>
+                      return <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">거절</span>
+                    }
+                    return (
+                      <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 text-xs text-gray-400">{idx + 1}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800">{r.students.name}</td>
+                        <td className="px-3 py-3 text-xs text-gray-500">
+                          {r.students.school}<br />
+                          <span className="text-blue-400">{r.students.class}</span>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          {r.visit_type === 'class_clinic'
+                            ? <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">수업+클리닉</span>
+                            : <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">클리닉</span>
+                          }
+                        </td>
+                        <td className="px-3 py-3 text-center">{statusBadge()}</td>
+                        <td className="px-3 py-3 text-center text-xs text-gray-500">
+                          {r.checked_in_at ? new Date(r.checked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs text-gray-500">
+                          {r.checked_out_at ? new Date(r.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : <span className="text-gray-300">-</span>}
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs text-gray-700">{r.word_score || <span className="text-gray-300">-</span>}</td>
+                        <td className="px-3 py-3 text-center text-xs text-gray-700">{r.clinic_score || <span className="text-gray-300">-</span>}</td>
+                        <td className="px-3 py-3 text-center"><MissionBadge value={r.oral_status} /></td>
+                        <td className="px-3 py-3 text-center"><MissionBadge value={r.homework} /></td>
+                        <td className="px-3 py-3 text-center text-xs">
+                          {r.next_clinic_date
+                            ? <span className="text-blue-600 font-medium">{r.next_clinic_date}</span>
+                            : <span className="text-gray-300">-</span>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
