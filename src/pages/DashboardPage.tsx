@@ -68,11 +68,23 @@ export default function DashboardPage() {
   const [absentStudents, setAbsentStudents] = useState<Student[]>([])
   const [absentLoading, setAbsentLoading] = useState(false)
   const [absentTeacherFilter, setAbsentTeacherFilter] = useState<string | null>(null)
+  const [maxScores, setMaxScores] = useState<Record<string, { word: string; clinic: string }>>({})
+  const [maxScoreModal, setMaxScoreModal] = useState(false)
+  const [maxScoreEdit, setMaxScoreEdit] = useState<Record<string, { word: string; clinic: string }>>({})
+  const [moveToClassClinicModal, setMoveToClassClinicModal] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
       .then(({ data }) => { if (data?.value === 'true') setMaintenanceMode(true) })
   }, [])
+
+  useEffect(() => {
+    const weekStart = getThisWeekMonday()
+    try {
+      const stored = localStorage.getItem(`maxScores_${weekStart}`)
+      if (stored) setMaxScores(JSON.parse(stored))
+    } catch {}
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 한국 로컬 날짜 기준 — 매 조회 시점에 계산 (자정 넘어가도 갱신됨)
   function getToday() {
@@ -349,6 +361,39 @@ export default function DashboardPage() {
   async function handleRemoveFromQueue(queueId: string) {
     await supabase.from('oral_queue').delete().eq('id', queueId)
     fetchOralQueue()
+  }
+
+  async function handleMoveToClassClinic() {
+    if (!moveToClassClinicModal) return
+    const { id } = moveToClassClinicModal
+    const prev = records
+    setRecords(p => p.map(r => r.id === id ? { ...r, visit_type: 'class_clinic' } : r))
+    const { error } = await supabase.from('attendances').update({ visit_type: 'class_clinic' }).eq('id', id)
+    if (error) { console.error('이동 실패:', error); setRecords(prev) }
+    setMoveToClassClinicModal(null)
+  }
+
+  function openMaxScoreModal() {
+    const weekStart = getThisWeekMonday()
+    try {
+      const stored = localStorage.getItem(`maxScores_${weekStart}`)
+      setMaxScoreEdit(stored ? JSON.parse(stored) : { ...maxScores })
+    } catch {
+      setMaxScoreEdit({ ...maxScores })
+    }
+    setMaxScoreModal(true)
+  }
+
+  function handleSaveMaxScores() {
+    const weekStart = getThisWeekMonday()
+    // 빈 값 제거
+    const cleaned: Record<string, { word: string; clinic: string }> = {}
+    for (const [school, v] of Object.entries(maxScoreEdit)) {
+      if (v.word.trim() || v.clinic.trim()) cleaned[school] = { word: v.word.trim(), clinic: v.clinic.trim() }
+    }
+    localStorage.setItem(`maxScores_${weekStart}`, JSON.stringify(cleaned))
+    setMaxScores(cleaned)
+    setMaxScoreModal(false)
   }
 
   async function fetchAbsentStudents() {
@@ -726,6 +771,18 @@ export default function DashboardPage() {
               <div className="fixed inset-0 z-20" onClick={() => setClassDropdownOpen(false)} />
             )}
           </div>
+          <button
+            onClick={openMaxScoreModal}
+            className="flex items-center gap-1 px-3 py-2 text-xs rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors ml-1"
+            title="학교별 단어/클리닉 만점 설정 (주별)"
+          >
+            ⚙️ 만점
+            {Object.keys(maxScores).length > 0 && (
+              <span className="bg-blue-100 text-blue-600 rounded-full px-1.5 text-[10px] font-semibold">
+                {Object.keys(maxScores).length}
+              </span>
+            )}
+          </button>
           <div className="flex gap-1 ml-2">
             <button
               onClick={() => setTab('pending')}
@@ -1232,6 +1289,8 @@ export default function DashboardPage() {
               onSetNextClinic={(r) => { setNextClinicDateInput(r.next_clinic_date ?? ''); setNextClinicSetModal({ id: r.id, name: r.students.name, currentDate: r.next_clinic_date ?? null }) }}
               weekValuesMap={weekValuesMap}
               onCall={(r) => setCallConfirmModal(r)}
+              maxScores={maxScores}
+              onMoveToClassClinic={(r) => setMoveToClassClinicModal({ id: r.id, name: r.students.name })}
             />
           </div>
         )}
@@ -1262,6 +1321,7 @@ export default function DashboardPage() {
             onNameClick={(r) => openHistory(r.students)}
             weekValuesMap={weekValuesMap}
             onCall={(r) => setCallConfirmModal(r)}
+            maxScores={maxScores}
           />
           </div>
         )}
@@ -1853,6 +1913,113 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* 클리닉 → 수업+클리닉 이동 확인 모달 */}
+      {moveToClassClinicModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+            <div className="text-center mb-4">
+              <div className="text-3xl mb-2">🔄</div>
+              <h3 className="font-bold text-gray-800 text-base">유형 변경</h3>
+            </div>
+            <p className="text-sm text-gray-600 text-center mb-1">
+              <span className="font-semibold text-gray-800">{moveToClassClinicModal.name}</span> 학생을
+            </p>
+            <p className="text-sm text-gray-600 text-center mb-2">
+              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold">클리닉</span>
+              <span className="mx-2 text-gray-400">→</span>
+              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold">수업+클리닉</span>
+            </p>
+            <p className="text-xs text-gray-400 text-center mb-6">으로 이동하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setMoveToClassClinicModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleMoveToClassClinic}
+                className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
+              >
+                이동 확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 학교별 만점 설정 모달 */}
+      {maxScoreModal && (() => {
+        const weekStart = getThisWeekMonday()
+        // 오늘 출석 학교 + 이미 저장된 학교 합집합
+        const allSchools = [...new Set([...schools, ...Object.keys(maxScoreEdit)])].sort()
+        return (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-gray-800">만점 설정</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">이번 주 ({weekStart}) 기준</p>
+                </div>
+                <button onClick={() => setMaxScoreModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              </div>
+              <div className="px-6 py-4 space-y-3 max-h-[60vh] overflow-y-auto">
+                {allSchools.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">오늘 출석 학생이 없습니다.<br/>학생 등원 후 설정해주세요.</p>
+                ) : (
+                  allSchools.map(school => {
+                    const cur = maxScoreEdit[school] ?? { word: '', clinic: '' }
+                    return (
+                      <div key={school} className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-700 w-16 flex-shrink-0">{school}</span>
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <div className="flex-1">
+                            <label className="block text-[10px] text-gray-400 mb-0.5">단어 만점</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={cur.word}
+                              onChange={(e) => setMaxScoreEdit(prev => ({ ...prev, [school]: { ...cur, word: e.target.value } }))}
+                              placeholder="예: 30"
+                              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:border-blue-400"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="block text-[10px] text-gray-400 mb-0.5">클리닉 만점</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={cur.clinic}
+                              onChange={(e) => setMaxScoreEdit(prev => ({ ...prev, [school]: { ...cur, clinic: e.target.value } }))}
+                              placeholder="예: 50"
+                              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:border-blue-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+              <div className="px-6 pb-5 flex gap-2">
+                <button
+                  onClick={() => setMaxScoreModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveMaxScores}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors"
+                >
+                  저장
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* 학생 히스토리 모달 */}
       {historyTarget && (
         <StudentHistoryModal
@@ -1868,7 +2035,7 @@ export default function DashboardPage() {
 // ─── 서브 컴포넌트 ────────────────────────────────────────
 
 function AttendanceTable({
-  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic, weekValuesMap, onCall, showVisitType,
+  list, loading, emptyText, onApprove, onReject, onCancelApprove, onAllowRetry, onCheckOut, onCancelCheckOut, onMission, onAdminForceCheckout, onNameClick, onSetNextClinic, weekValuesMap, onCall, showVisitType, maxScores, onMoveToClassClinic,
 }: {
   list: AttendanceWithStudent[]
   loading: boolean
@@ -1886,6 +2053,8 @@ function AttendanceTable({
   weekValuesMap?: Map<string, Record<string, string | null>>
   onCall?: (r: AttendanceWithStudent) => void
   showVisitType?: boolean
+  maxScores?: Record<string, { word: string; clinic: string }>
+  onMoveToClassClinic?: (r: AttendanceWithStudent) => void
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -1928,6 +2097,8 @@ function AttendanceTable({
                 onCall={onCall ? () => onCall(record) : undefined}
                 inheritedValues={weekValuesMap?.get(record.student_id)}
                 showVisitType={showVisitType}
+                maxScore={maxScores?.[record.students.school]}
+                onMoveToClassClinic={onMoveToClassClinic ? () => onMoveToClassClinic(record) : undefined}
               />
             ))}
           </tbody>
@@ -1967,6 +2138,8 @@ function AttendanceRow({
   onCall,
   inheritedValues,
   showVisitType,
+  maxScore,
+  onMoveToClassClinic,
 }: {
   record: AttendanceWithStudent
   onApprove: () => void
@@ -1982,10 +2155,14 @@ function AttendanceRow({
   onCall?: () => void
   inheritedValues?: Record<string, string | null>
   showVisitType?: boolean
+  maxScore?: { word: string; clinic: string }
+  onMoveToClassClinic?: () => void
 }) {
   const [notes, setNotes] = useState(record.notes ?? '')
   const [oralMemo, setOralMemo] = useState(record.oral_memo ?? '')
   const [homeworkMemo, setHomeworkMemo] = useState(record.homework_memo ?? '')
+  const [jikboScore, setJikboScore] = useState(record.jikbo_score ?? '')
+  const [parentMemo, setParentMemo] = useState(record.parent_memo ?? '')
   const [wordScore, setWordScore] = useState(record.word_score ?? '')
   const [clinicScore, setClinicScore] = useState(record.clinic_score ?? '')
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1993,6 +2170,8 @@ function AttendanceRow({
   const [modalNotes, setModalNotes] = useState('')
   const [modalOralMemo, setModalOralMemo] = useState('')
   const [modalHomeworkMemo, setModalHomeworkMemo] = useState('')
+  const [modalJikboScore, setModalJikboScore] = useState('')
+  const [modalParentMemo, setModalParentMemo] = useState('')
   const [confirmEdit, setConfirmEdit] = useState<{ field: string; editValue: string } | null>(null)
   const wordInputRef = useRef<HTMLInputElement>(null)
   const clinicInputRef = useRef<HTMLInputElement>(null)
@@ -2068,11 +2247,13 @@ function AttendanceRow({
     rejected: 'opacity-60',
   }
 
-  async function saveNotes(n: string, om: string, hm: string) {
+  async function saveNotes(n: string, om: string, hm: string, js: string, pm: string) {
     await supabase.from('attendances').update({
       notes: n || null,
       oral_memo: om || null,
       homework_memo: hm || null,
+      jikbo_score: js || null,
+      parent_memo: pm || null,
     }).eq('id', record.id)
   }
 
@@ -2080,6 +2261,8 @@ function AttendanceRow({
     setModalNotes(notes)
     setModalOralMemo(oralMemo)
     setModalHomeworkMemo(homeworkMemo)
+    setModalJikboScore(jikboScore)
+    setModalParentMemo(parentMemo)
     setShowNotesModal(true)
   }
 
@@ -2087,9 +2270,25 @@ function AttendanceRow({
     setNotes(modalNotes)
     setOralMemo(modalOralMemo)
     setHomeworkMemo(modalHomeworkMemo)
+    setJikboScore(modalJikboScore)
+    setParentMemo(modalParentMemo)
     if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
-    await saveNotes(modalNotes, modalOralMemo, modalHomeworkMemo)
+    await saveNotes(modalNotes, modalOralMemo, modalHomeworkMemo, modalJikboScore, modalParentMemo)
     setShowNotesModal(false)
+  }
+
+  function handleScoreKeyDown(e: React.KeyboardEvent<HTMLInputElement>, type: 'word' | 'clinic') {
+    if (e.key === 'ArrowRight' && type === 'word') {
+      e.preventDefault(); clinicInputRef.current?.focus()
+    } else if (e.key === 'ArrowLeft' && type === 'clinic') {
+      e.preventDefault(); wordInputRef.current?.focus()
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const all = Array.from(document.querySelectorAll<HTMLInputElement>(`[data-score-type="${type}"]`))
+      const idx = all.indexOf(e.currentTarget)
+      if (e.key === 'ArrowDown' && idx < all.length - 1) all[idx + 1].focus()
+      if (e.key === 'ArrowUp' && idx > 0) all[idx - 1].focus()
+    }
   }
 
   function scoreStyle(val: string) {
@@ -2139,29 +2338,39 @@ function AttendanceRow({
       {/* 단어 점수 */}
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
-          ? <input
-              ref={wordInputRef}
-              value={wordDisplay}
-              onChange={(e) => setWordScore(e.target.value)}
-              onFocus={() => { if (iWordInherited) { wordInputRef.current?.blur(); setConfirmEdit({ field: 'word_score', editValue: inheritedValues?.word_score ?? '' }) } }}
-              onBlur={() => saveScore('word_score', wordScore)}
-              placeholder="단어"
-              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iWordInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(wordScore)}`}
-            />
+          ? <div className="flex flex-col items-center">
+              <input
+                ref={wordInputRef}
+                data-score-type="word"
+                value={wordDisplay}
+                onChange={(e) => setWordScore(e.target.value)}
+                onFocus={() => { if (iWordInherited) { wordInputRef.current?.blur(); setConfirmEdit({ field: 'word_score', editValue: inheritedValues?.word_score ?? '' }) } }}
+                onBlur={() => saveScore('word_score', wordScore)}
+                onKeyDown={(e) => handleScoreKeyDown(e, 'word')}
+                placeholder="단어"
+                className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iWordInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(wordScore)}`}
+              />
+              {maxScore?.word && <span className="text-[10px] text-gray-400 mt-0.5">/{maxScore.word}</span>}
+            </div>
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
       {/* 클리닉 점수 */}
       <td className="px-3 py-3 text-center">
         {record.status === 'approved'
-          ? <input
-              ref={clinicInputRef}
-              value={clinicDisplay}
-              onChange={(e) => setClinicScore(e.target.value)}
-              onFocus={() => { if (iClinicInherited) { clinicInputRef.current?.blur(); setConfirmEdit({ field: 'clinic_score', editValue: inheritedValues?.clinic_score ?? '' }) } }}
-              onBlur={() => saveScore('clinic_score', clinicScore)}
-              placeholder="클리닉"
-              className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iClinicInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(clinicScore)}`}
-            />
+          ? <div className="flex flex-col items-center">
+              <input
+                ref={clinicInputRef}
+                data-score-type="clinic"
+                value={clinicDisplay}
+                onChange={(e) => setClinicScore(e.target.value)}
+                onFocus={() => { if (iClinicInherited) { clinicInputRef.current?.blur(); setConfirmEdit({ field: 'clinic_score', editValue: inheritedValues?.clinic_score ?? '' }) } }}
+                onBlur={() => saveScore('clinic_score', clinicScore)}
+                onKeyDown={(e) => handleScoreKeyDown(e, 'clinic')}
+                placeholder="클리닉"
+                className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iClinicInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(clinicScore)}`}
+              />
+              {maxScore?.clinic && <span className="text-[10px] text-gray-400 mt-0.5">/{maxScore.clinic}</span>}
+            </div>
           : <span className="text-gray-200 text-xs">—</span>}
       </td>
       {/* 구두 */}
@@ -2193,12 +2402,14 @@ function AttendanceRow({
             onClick={openNotesModal}
             className="flex items-center gap-1 max-w-[100px] group"
           >
-            {(oralMemo || homeworkMemo || notes) ? (
-              <span className="text-xs text-gray-600 truncate max-w-[70px]">{oralMemo || homeworkMemo || notes}</span>
+            {(oralMemo || homeworkMemo || notes || jikboScore || parentMemo) ? (
+              <span className="text-xs text-gray-600 truncate max-w-[70px]">
+                {jikboScore ? `직보:${jikboScore} ` : ''}{oralMemo || homeworkMemo || notes || parentMemo}
+              </span>
             ) : (
               <span className="text-xs text-gray-300">메모...</span>
             )}
-            <span className={`text-xs flex-shrink-0 ${(oralMemo || homeworkMemo || notes) ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
+            <span className={`text-xs flex-shrink-0 ${(oralMemo || homeworkMemo || notes || jikboScore || parentMemo) ? 'text-blue-400 group-hover:text-blue-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
           </button>
         )}
         {showNotesModal && createPortal(
@@ -2206,14 +2417,15 @@ function AttendanceRow({
             <div className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl">
               <h3 className="font-semibold text-gray-800 mb-1">{record.students.name} 학생</h3>
               <p className="text-xs text-gray-400 mb-4">메모</p>
-              <div className="grid grid-cols-3 gap-3 mb-4">
+              {/* 1행: 구두/과제/기타 메모 */}
+              <div className="grid grid-cols-3 gap-3 mb-3">
                 <div>
                   <label className="block text-xs font-medium text-blue-500 mb-1.5">구두 메모</label>
                   <textarea
                     value={modalOralMemo}
                     onChange={(e) => setModalOralMemo(e.target.value)}
                     autoFocus
-                    rows={5}
+                    rows={4}
                     className="w-full border border-blue-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 resize-none"
                     placeholder="구두 관련 메모..."
                   />
@@ -2223,7 +2435,7 @@ function AttendanceRow({
                   <textarea
                     value={modalHomeworkMemo}
                     onChange={(e) => setModalHomeworkMemo(e.target.value)}
-                    rows={5}
+                    rows={4}
                     className="w-full border border-purple-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-400 resize-none"
                     placeholder="과제 관련 메모..."
                   />
@@ -2233,9 +2445,32 @@ function AttendanceRow({
                   <textarea
                     value={modalNotes}
                     onChange={(e) => setModalNotes(e.target.value)}
-                    rows={5}
+                    rows={4}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-gray-400 resize-none"
                     placeholder="기타 메모..."
+                  />
+                </div>
+              </div>
+              {/* 2행: 직보 점수 + 부모님 알림장 */}
+              <div className="flex gap-3 mb-4">
+                <div className="w-28 flex-shrink-0">
+                  <label className="block text-xs font-medium text-amber-600 mb-1.5">📋 직보 점수</label>
+                  <input
+                    type="text"
+                    value={modalJikboScore}
+                    onChange={(e) => setModalJikboScore(e.target.value)}
+                    placeholder="예: 85"
+                    className="w-full border border-amber-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-green-600 mb-1.5">👨‍👩‍👧 부모님 알림장</label>
+                  <textarea
+                    value={modalParentMemo}
+                    onChange={(e) => setModalParentMemo(e.target.value)}
+                    rows={2}
+                    className="w-full border border-green-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-400 resize-none"
+                    placeholder="부모님께 전달할 내용..."
                   />
                 </div>
               </div>
@@ -2376,6 +2611,14 @@ function AttendanceRow({
                 title="학생 기기로 호출 알림 전송"
               >
                 🔔 호출
+              </button>
+            )}
+            {onMoveToClassClinic && record.visit_type === 'clinic' && !record.checked_out_at && (
+              <button
+                onClick={onMoveToClassClinic}
+                className="text-xs px-2 py-0.5 rounded-md bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-800 transition-colors whitespace-nowrap border border-green-200"
+              >
+                수업+클리닉↑
               </button>
             )}
           </div>

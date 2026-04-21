@@ -43,6 +43,8 @@ export interface Attendance {
   notes: string | null
   oral_memo: string | null
   homework_memo: string | null
+  jikbo_score: string | null
+  parent_memo: string | null
 }
 
 export interface AttendanceWithStudent extends Attendance {
@@ -80,6 +82,8 @@ export type AttendanceInsert = {
   notes?: string | null
   oral_memo?: string | null
   homework_memo?: string | null
+  jikbo_score?: string | null
+  parent_memo?: string | null
 }
 
 export interface ClinicAbsence {
