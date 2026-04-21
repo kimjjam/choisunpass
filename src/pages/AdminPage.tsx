@@ -169,17 +169,25 @@ export default function AdminPage() {
 
   async function fetchAllRecords(keepWeek = false) {
     setLoading(true)
-    const { data } = await supabase
-      .from('attendances')
-      .select('*, students(*)')
-      .order('date', { ascending: true })
-      .limit(10000)
-    if (data) {
-      const records = data as AttendanceWithStudent[]
-      setAllRecords(records)
-      // 기본 선택: 가장 최근 주차 (keepWeek=true면 현재 선택 유지)
-      if (!keepWeek && records.length > 0) {
-        const starts = getWeekStarts(records)
+    // Supabase 서버 max rows(기본 1000) 우회 — 페이지네이션으로 전체 수집
+    const PAGE = 1000
+    let all: AttendanceWithStudent[] = []
+    let from = 0
+    while (true) {
+      const { data, error } = await supabase
+        .from('attendances')
+        .select('*, students(*)')
+        .order('date', { ascending: true })
+        .range(from, from + PAGE - 1)
+      if (error || !data || data.length === 0) break
+      all = all.concat(data as AttendanceWithStudent[])
+      if (data.length < PAGE) break
+      from += PAGE
+    }
+    if (all.length > 0) {
+      setAllRecords(all)
+      if (!keepWeek) {
+        const starts = getWeekStarts(all)
         setSelectedWeek(starts[starts.length - 1])
       }
     }
