@@ -39,6 +39,9 @@ const SCHOOL_SCHEDULE: Record<number, { school: string; teacher: string }[]> = {
 
 const ALL_TEACHERS = ['고정아', '김지영', '김수연']
 
+// SCHOOL_SCHEDULE에서 중복 제거한 전체 학교 목록 (정렬)
+const ALL_SCHOOLS = [...new Set(Object.values(SCHOOL_SCHEDULE).flat().map(s => s.school))].sort()
+
 export default function DashboardPage() {
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
@@ -1990,8 +1993,6 @@ export default function DashboardPage() {
       {/* 학교별 만점 설정 모달 */}
       {maxScoreModal && (() => {
         const weekStart = getThisWeekMonday()
-        // 오늘 출석 학교 + 이미 저장된 학교 합집합
-        const allSchools = [...new Set([...schools, ...Object.keys(maxScoreEdit)])].sort()
         return (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
@@ -2003,10 +2004,7 @@ export default function DashboardPage() {
                 <button onClick={() => setMaxScoreModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
               <div className="px-6 py-4 space-y-3 max-h-[60vh] overflow-y-auto">
-                {allSchools.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-4">오늘 출석 학생이 없습니다.<br/>학생 등원 후 설정해주세요.</p>
-                ) : (
-                  allSchools.map(school => {
+                {ALL_SCHOOLS.map(school => {
                     const cur = maxScoreEdit[school] ?? { word: '', clinic: '' }
                     return (
                       <div key={school} className="flex items-center gap-3">
@@ -2037,8 +2035,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     )
-                  })
-                )}
+                  })}
               </div>
               <div className="px-6 pb-5 flex gap-2">
                 <button
