@@ -173,6 +173,7 @@ export default function AdminPage() {
       .from('attendances')
       .select('*, students(*)')
       .order('date', { ascending: true })
+      .limit(10000)
     if (data) {
       const records = data as AttendanceWithStudent[]
       setAllRecords(records)
