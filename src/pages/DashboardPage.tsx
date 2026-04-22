@@ -617,13 +617,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* 헤더 */}
-      <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-6">
+      <header className="bg-white shadow-md shadow-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-5">
           <div>
-            <div className="text-base font-bold text-gray-900">조교 대시보드</div>
-            <div className="text-xs text-gray-400">
+            <div className="text-lg font-black text-gray-900 tracking-tight">조교 대시보드</div>
+            <div className="text-xs text-gray-400 font-medium">
               {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
             </div>
           </div>
@@ -632,70 +632,144 @@ export default function DashboardPage() {
             <StatPill label="대기" value={stats.pending} color="yellow" />
             <StatPill label="승인" value={stats.approved} color="green" />
             <StatPill label="거절" value={stats.rejected} color="red" />
-            <button
-              onClick={() => setTab('oral')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors ml-1 ${
-                tab === 'oral' ? 'bg-purple-600 text-white' : 'bg-purple-50 border border-purple-200 text-purple-600 hover:bg-purple-100'
-              }`}
-            >
-              구두 대기
-              {oralQueue.length > 0 && (
-                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'oral' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'}`}>
-                  {oralQueue.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setTab('absent')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors ml-1 ${
-                tab === 'absent' ? 'bg-rose-600 text-white' : 'bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100'
-              }`}
-            >
-              수업 미출석
-              {(() => {
-                const todayDay = new Date().getDay()
-                const todaySchedule = SCHOOL_SCHEDULE[todayDay] ?? []
-                const attendedIds = new Set(records.map(r => r.student_id))
-                const absentCount = absentStudents.filter(s => todaySchedule.some(sc => sc.school === s.school) && !attendedIds.has(s.id)).length
-                return absentCount > 0 ? (
-                  <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'absent' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700'}`}>
-                    {absentCount}
-                  </span>
-                ) : null
-              })()}
-            </button>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/admin')}
-            className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
+            className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-xl px-3 py-1.5 font-semibold transition-colors"
           >
             관리자 페이지
           </button>
-          <span className="text-xs text-gray-500">{currentUser}</span>
+          <span className="text-xs text-gray-400 font-medium">{currentUser}</span>
           <button
             onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
-            className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+            className="text-xs text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl px-3 py-1.5 transition-colors"
           >
             로그아웃
           </button>
         </div>
       </header>
 
-      <div className="max-w-screen-2xl mx-auto px-6 py-4">
-        {/* 필터 + 탭 */}
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
+      <div className="max-w-screen-2xl mx-auto px-6 pt-4 pb-0">
+        {/* 탭 바 — iOS segmented control 스타일 */}
+        <div className="bg-gray-100 rounded-2xl p-1.5 flex gap-1 mb-3 flex-wrap">
+          <button
+            onClick={() => setTab('pending')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'pending' ? 'bg-white shadow-md shadow-amber-100 text-amber-600' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+            }`}
+          >
+            대기 중
+            {stats.pending > 0 && (
+              <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${tab === 'pending' ? 'bg-amber-100 text-amber-600' : 'bg-white text-gray-500'}`}>
+                {stats.pending}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setTab('clinic')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'clinic' ? 'bg-white shadow-md shadow-blue-100 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+            }`}
+          >
+            클리닉
+            <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${tab === 'clinic' ? 'bg-blue-100 text-blue-600' : 'bg-white text-gray-500'}`}>
+              {forceCheckOutList.length > 0 ? `!${forceCheckOutList.length}` : clinicList.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setTab('class_clinic')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'class_clinic' ? 'bg-white shadow-md shadow-emerald-100 text-emerald-600' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+            }`}
+          >
+            수업+클리닉
+            <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${tab === 'class_clinic' ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-gray-500'}`}>
+              {classClinicList.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setTab('checked_out')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'checked_out' ? 'bg-white shadow-md shadow-orange-100 text-orange-500' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+            }`}
+          >
+            하원
+            <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${tab === 'checked_out' ? 'bg-orange-100 text-orange-500' : 'bg-white text-gray-500'}`}>
+              {checkedOutList.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setTab('overview')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'overview' ? 'bg-white shadow-md shadow-slate-100 text-slate-600' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+            }`}
+          >
+            전체현황
+            <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${tab === 'overview' ? 'bg-slate-100 text-slate-600' : 'bg-white text-gray-500'}`}>
+              {overviewList.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setTab('oral')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'oral' ? 'bg-white shadow-md shadow-purple-100 text-purple-600' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+            }`}
+          >
+            구두 대기
+            {oralQueue.length > 0 && (
+              <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${tab === 'oral' ? 'bg-purple-100 text-purple-600' : 'bg-white text-gray-500'}`}>
+                {oralQueue.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setTab('absent')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'absent' ? 'bg-white shadow-md shadow-rose-100 text-rose-500' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+            }`}
+          >
+            수업 미출석
+            {(() => {
+              const todayDay = new Date().getDay()
+              const todaySchedule = SCHOOL_SCHEDULE[todayDay] ?? []
+              const attendedIds = new Set(records.map(r => r.student_id))
+              const absentCount = absentStudents.filter(s => todaySchedule.some(sc => sc.school === s.school) && !attendedIds.has(s.id)).length
+              return absentCount > 0 ? (
+                <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${tab === 'absent' ? 'bg-rose-100 text-rose-500' : 'bg-white text-gray-500'}`}>
+                  {absentCount}
+                </span>
+              ) : null
+            })()}
+          </button>
+          <button
+            onClick={() => setTab('rejected')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'rejected' ? 'bg-white shadow-md shadow-red-100 text-red-500' : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+            }`}
+          >
+            거절
+            {stats.rejected > 0 && (
+              <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${tab === 'rejected' ? 'bg-red-100 text-red-500' : 'bg-white text-gray-500'}`}>
+                {stats.rejected}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* 필터 바 */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="학생 이름 검색..."
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-44"
+            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-44 shadow-sm"
           />
           <div className="relative">
             <button
               onClick={() => setSchoolDropdownOpen(o => !o)}
-              className={`border rounded-lg px-3 py-2 text-sm text-left min-w-[120px] flex items-center gap-2 transition-colors ${
+              className={`bg-white border rounded-xl px-3 py-2 text-sm text-left min-w-[120px] flex items-center gap-2 transition-colors shadow-sm ${
                 schoolFilter.length ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >
@@ -707,7 +781,7 @@ export default function DashboardPage() {
               </svg>
             </button>
             {schoolDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 min-w-[160px] py-1">
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-2xl shadow-xl z-30 min-w-[160px] py-1">
                 <button
                   onClick={() => { setSchoolFilter([]); setSchoolDropdownOpen(false) }}
                   className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${schoolFilter.length === 0 ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
@@ -734,11 +808,10 @@ export default function DashboardPage() {
               <div className="fixed inset-0 z-20" onClick={() => setSchoolDropdownOpen(false)} />
             )}
           </div>
-          {/* 선생님 필터 */}
           <div className="relative">
             <button
               onClick={() => setClassDropdownOpen(o => !o)}
-              className={`border rounded-lg px-3 py-2 text-sm text-left min-w-[120px] flex items-center gap-2 transition-colors ${
+              className={`bg-white border rounded-xl px-3 py-2 text-sm text-left min-w-[120px] flex items-center gap-2 transition-colors shadow-sm ${
                 classFilter.length ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >
@@ -750,7 +823,7 @@ export default function DashboardPage() {
               </svg>
             </button>
             {classDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 min-w-[140px] py-1">
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-2xl shadow-xl z-30 min-w-[140px] py-1">
                 <button
                   onClick={() => { setClassFilter([]); setClassDropdownOpen(false) }}
                   className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${classFilter.length === 0 ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}
@@ -779,7 +852,7 @@ export default function DashboardPage() {
           </div>
           <button
             onClick={openMaxScoreModal}
-            className="flex items-center gap-1 px-3 py-2 text-xs rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors ml-1"
+            className="flex items-center gap-1 px-3 py-2 text-xs rounded-xl bg-white border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors shadow-sm"
             title="학교별 단어/클리닉 만점 설정 (주별)"
           >
             ⚙️ 만점
@@ -789,83 +862,11 @@ export default function DashboardPage() {
               </span>
             )}
           </button>
-          <div className="flex gap-1 ml-2">
-            <button
-              onClick={() => setTab('pending')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === 'pending' ? 'bg-yellow-500 text-white' : 'bg-white border border-gray-200 text-gray-600'
-              }`}
-            >
-              대기 중
-              {stats.pending > 0 && (
-                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'pending' ? 'bg-white/20 text-white' : 'bg-yellow-100 text-yellow-700'}`}>
-                  {stats.pending}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setTab('clinic')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === 'clinic' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
-              }`}
-            >
-              클리닉
-              <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'clinic' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'}`}>
-                {forceCheckOutList.length > 0 ? `!${forceCheckOutList.length}` : clinicList.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setTab('class_clinic')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === 'class_clinic' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
-              }`}
-            >
-              수업+클리닉
-              <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'class_clinic' ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'}`}>
-                {classClinicList.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setTab('checked_out')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === 'checked_out' ? 'bg-orange-500 text-white' : 'bg-white border border-gray-200 text-gray-600'
-              }`}
-            >
-              하원
-              <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'checked_out' ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-600'}`}>
-                {checkedOutList.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setTab('overview')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === 'overview' ? 'bg-slate-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
-              }`}
-            >
-              전체현황
-              <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'overview' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                {overviewList.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setTab('rejected')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === 'rejected' ? 'bg-red-500 text-white' : 'bg-white border border-gray-200 text-gray-600'
-              }`}
-            >
-              거절
-              {stats.rejected > 0 && (
-                <span className={`text-xs rounded-full px-1.5 py-0.5 ${tab === 'rejected' ? 'bg-white/20 text-white' : 'bg-red-100 text-red-600'}`}>
-                  {stats.rejected}
-                </span>
-              )}
-            </button>
-          </div>
         </div>
 
         {/* 하원 탭 */}
         {tab === 'checked_out' && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
             {checkedOutList.length > 0 && (
               <div className="px-4 py-3 border-b border-gray-100 flex justify-end">
                 <button
@@ -877,13 +878,13 @@ export default function DashboardPage() {
               </div>
             )}
             {loading ? (
-              <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+              <div className="py-20 text-center text-gray-400 text-sm font-medium">불러오는 중...</div>
             ) : checkedOutList.length === 0 ? (
-              <div className="py-16 text-center text-gray-400 text-sm">하원한 학생이 없습니다</div>
+              <div className="py-20 text-center text-gray-400 text-sm font-medium">하원한 학생이 없습니다</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-slate-100 bg-slate-50/80">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">#</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
                     <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
@@ -955,7 +956,7 @@ export default function DashboardPage() {
 
         {/* 전체현황 탭 */}
         {tab === 'overview' && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
             {overviewList.length > 0 && (
               <div className="px-4 py-3 border-b border-gray-100 flex justify-end">
                 <button
@@ -967,13 +968,13 @@ export default function DashboardPage() {
               </div>
             )}
             {loading ? (
-              <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+              <div className="py-20 text-center text-gray-400 text-sm font-medium">불러오는 중...</div>
             ) : overviewList.length === 0 ? (
-              <div className="py-16 text-center text-gray-400 text-sm">승인된 학생이 없습니다</div>
+              <div className="py-20 text-center text-gray-400 text-sm font-medium">승인된 학생이 없습니다</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-slate-100 bg-slate-50/80">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
                     <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">유형</th>
@@ -1030,13 +1031,13 @@ export default function DashboardPage() {
 
         {/* 구두 대기 탭 */}
         {tab === 'oral' && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
             {oralQueue.length === 0 ? (
-              <div className="py-16 text-center text-gray-400 text-sm">구두 대기 중인 학생이 없습니다</div>
+              <div className="py-20 text-center text-gray-400 text-sm font-medium">구두 대기 중인 학생이 없습니다</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-slate-100 bg-slate-50/80">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">순번</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
                     <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
@@ -1145,19 +1146,19 @@ export default function DashboardPage() {
               </div>
 
               {absentLoading ? (
-                <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+                <div className="py-20 text-center text-gray-400 text-sm font-medium">불러오는 중...</div>
               ) : todaySchedule.length === 0 ? (
                 <div className="py-16 text-center">
                   <div className="text-4xl mb-3">📅</div>
                   <p className="text-gray-400 text-sm">오늘은 수업이 없습니다</p>
                 </div>
               ) : groups.length === 0 ? (
-                <div className="py-16 text-center text-gray-400 text-sm">해당 조건의 학생이 없습니다</div>
+                <div className="py-20 text-center text-gray-400 text-sm font-medium">해당 조건의 학생이 없습니다</div>
               ) : (
                 groups.map(({ school, teacher, students }) => {
                   const absentCount = students.filter(s => !s.attended).length
                   return (
-                    <div key={school} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div key={school} className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
                       {/* 학교 헤더 */}
                       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                         <div className="flex items-center gap-2">
@@ -1247,7 +1248,7 @@ export default function DashboardPage() {
           <div className="space-y-3">
             {/* 강제하원 요청 */}
             {forceCheckOutList.length > 0 && (
-              <div className="bg-orange-50 border border-orange-200 rounded-2xl overflow-hidden">
+              <div className="bg-orange-50 rounded-3xl shadow-md shadow-orange-100 overflow-hidden">
                 <div className="px-4 py-2 bg-orange-100 border-b border-orange-200">
                   <span className="text-xs font-semibold text-orange-700">다음에 올게요 요청 ({forceCheckOutList.length}명)</span>
                 </div>
@@ -1335,13 +1336,13 @@ export default function DashboardPage() {
 
         {/* 거절 탭 */}
         {tab === 'rejected' && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
             {rejectedList.length === 0 ? (
-              <div className="py-16 text-center text-gray-400 text-sm">거절된 학생이 없습니다</div>
+              <div className="py-20 text-center text-gray-400 text-sm font-medium">거절된 학생이 없습니다</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-slate-100 bg-slate-50/80">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
                     <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
                     <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">사유</th>
@@ -2094,15 +2095,15 @@ function AttendanceTable({
   onMoveToClinic?: (r: AttendanceWithStudent) => void
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
       {loading ? (
-        <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+        <div className="py-20 text-center text-gray-400 text-sm font-medium">불러오는 중...</div>
       ) : list.length === 0 ? (
-        <div className="py-16 text-center text-gray-400 text-sm">{emptyText}</div>
+        <div className="py-20 text-center text-gray-400 text-sm font-medium">{emptyText}</div>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
+            <tr className="border-b border-slate-100 bg-slate-50/80">
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">이름</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500">학교 · 반</th>
               {showVisitType && <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구분</th>}
@@ -2148,15 +2149,15 @@ function AttendanceTable({
 
 function StatPill({ label, value, color }: { label: string; value: number; color: 'blue' | 'yellow' | 'green' | 'red' }) {
   const colors = {
-    blue: 'bg-blue-50 text-blue-700',
-    yellow: 'bg-yellow-50 text-yellow-700',
-    green: 'bg-green-50 text-green-700',
-    red: 'bg-red-50 text-red-700',
+    blue: 'bg-blue-50 text-blue-600 shadow-blue-100',
+    yellow: 'bg-amber-50 text-amber-600 shadow-amber-100',
+    green: 'bg-emerald-50 text-emerald-600 shadow-emerald-100',
+    red: 'bg-rose-50 text-rose-500 shadow-rose-100',
   }
   return (
-    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm ${colors[color]}`}>
-      <span className="font-bold">{value}</span>
-      <span className="text-xs opacity-70">{label}</span>
+    <div className={`flex flex-col items-center px-4 py-2 rounded-2xl shadow-md ${colors[color]}`}>
+      <span className="text-xl font-black leading-none">{value}</span>
+      <span className="text-[11px] font-medium opacity-70 mt-0.5">{label}</span>
     </div>
   )
 }
