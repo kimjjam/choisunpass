@@ -705,31 +705,60 @@ export default function AttendPage() {
 
         {/* 코드 입력 화면 */}
         {pageState === 'input' && (
-          <div className="bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.07)] p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">출석 코드 입력</h2>
-            <p className="text-sm text-gray-400 mb-6">전화번호 마지막 또는 중간 4자리를 입력하세요</p>
-            <form onSubmit={handleSubmit}>
-              <input
-                ref={inputRef}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={code}
-                onChange={(e) => { setCode(e.target.value); setError('') }}
-                placeholder="0000"
-                maxLength={4}
-                autoFocus
-                className="w-full text-center text-4xl font-black tracking-[0.5em] bg-slate-50 rounded-2xl py-5 focus:outline-none focus:bg-blue-50 transition-colors placeholder:text-gray-200 placeholder:tracking-[0.5em] mb-4"
-              />
-              {error && <p className="text-sm text-red-400 text-center mb-3">{error}</p>}
-              <button
-                type="submit"
-                disabled={loading || !code.trim()}
-                className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-100 disabled:text-gray-300 text-white font-bold py-4 rounded-2xl text-base transition-colors shadow-sm"
-              >
-                {loading ? '확인 중...' : '출석 요청'}
-              </button>
-            </form>
+          <div className="bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.07)] overflow-hidden">
+            {/* 상단 컬러 스트라이프 */}
+            <div className="h-1.5 bg-gradient-to-r from-blue-400 via-violet-400 to-pink-400" />
+            <div className="px-6 pt-6 pb-7">
+              {/* 아이콘 */}
+              <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-5">
+                <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-black text-gray-900 mb-1">출석 코드 입력</h2>
+              <p className="text-sm text-gray-400 mb-7">전화번호 마지막 또는 중간 4자리</p>
+              <form onSubmit={handleSubmit}>
+                {/* OTP 박스 + 투명 input 오버레이 */}
+                <div className="relative mb-5">
+                  <div className="flex gap-3 justify-center pointer-events-none select-none">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className={`w-16 h-[72px] rounded-2xl flex items-center justify-center text-3xl font-black transition-all duration-150 ${
+                          i === code.length
+                            ? 'bg-blue-50 ring-2 ring-blue-400 scale-105'
+                            : code[i]
+                            ? 'bg-slate-50 ring-2 ring-blue-200 text-gray-900'
+                            : 'bg-slate-50 ring-2 ring-transparent text-gray-200'
+                        }`}
+                      >
+                        {code[i] ?? ''}
+                      </div>
+                    ))}
+                  </div>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={code}
+                    onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setError('') }}
+                    maxLength={4}
+                    autoFocus
+                    className="absolute inset-0 w-full h-full z-10 cursor-pointer bg-transparent text-transparent"
+                    style={{ caretColor: 'transparent' }}
+                  />
+                </div>
+                {error && <p className="text-sm text-red-400 text-center mb-3">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={loading || !code.trim()}
+                  className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-100 disabled:text-gray-300 text-white font-bold py-4 rounded-2xl text-base transition-colors shadow-sm"
+                >
+                  {loading ? '확인 중...' : '출석 요청'}
+                </button>
+              </form>
+            </div>
           </div>
         )}
 
