@@ -899,7 +899,7 @@ export default function DashboardPage() {
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">액션</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-slate-100/80">
                   {checkedOutList.map((r, idx) => {
                     const missionBadge = (v: string | null) => {
                       if (!v) return <span className="text-gray-300">-</span>
@@ -986,7 +986,7 @@ export default function DashboardPage() {
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">하원</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-slate-100/80">
                   {overviewList.map(r => {
                     const missionBadge = (v: string | null) => {
                       if (!v) return <span className="text-gray-300">-</span>
@@ -1350,7 +1350,7 @@ export default function DashboardPage() {
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">재시도</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-slate-100/80">
                   {rejectedList.map(r => (
                     <tr key={r.id}>
                       <td className="px-4 py-3 font-medium text-gray-800">{r.students.name}</td>
@@ -2117,7 +2117,7 @@ function AttendanceTable({
               <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">액션</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-slate-100/80">
             {list.map((record) => (
               <AttendanceRow
                 key={record.id}
@@ -2341,7 +2341,7 @@ function AttendanceRow({
   }
 
   return (
-    <tr className={`hover:bg-blue-50/30 transition-colors ${rowBg[record.status]}`}>
+    <tr className={`hover:bg-slate-50/80 transition-colors ${rowBg[record.status]}`}>
       {/* 이름 */}
       <td className="px-4 py-3">
         <div
@@ -2389,7 +2389,7 @@ function AttendanceRow({
                 onBlur={() => saveScore('word_score', wordScore)}
                 onKeyDown={(e) => handleScoreKeyDown(e, 'word')}
                 placeholder="단어"
-                className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iWordInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(wordScore)}`}
+                className={`w-16 text-center text-xs border rounded-xl px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iWordInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(wordScore)}`}
               />
               {maxScore?.word && <span className="text-[10px] text-gray-400 mt-0.5">/{maxScore.word}</span>}
             </div>
@@ -2408,7 +2408,7 @@ function AttendanceRow({
                 onBlur={() => saveScore('clinic_score', clinicScore)}
                 onKeyDown={(e) => handleScoreKeyDown(e, 'clinic')}
                 placeholder="클리닉"
-                className={`w-16 text-center text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iClinicInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(clinicScore)}`}
+                className={`w-16 text-center text-xs border rounded-xl px-2 py-1.5 focus:outline-none focus:border-blue-400 ${iClinicInherited ? 'border-dashed border-red-400 bg-red-50 text-red-500' : scoreStyle(clinicScore)}`}
               />
               {maxScore?.clinic && <span className="text-[10px] text-gray-400 mt-0.5">/{maxScore.clinic}</span>}
             </div>
@@ -2591,9 +2591,9 @@ function AttendanceRow({
                 onClick={handleCheckOutClick}
                 disabled={!allDone}
                 title={!allDone ? '단어·구두·과제 완료 후 하원 가능' : ''}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   allDone
-                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm shadow-indigo-200'
                     : 'bg-gray-100 text-gray-300 cursor-not-allowed'
                 }`}
               >
@@ -2602,7 +2602,7 @@ function AttendanceRow({
               {onAdminForceCheckout && (
                 <button
                   onClick={onAdminForceCheckout}
-                  className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-500 transition-colors"
+                  className="px-2 py-1 rounded-xl text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-500 transition-colors"
                 >
                   강제하원
                 </button>
@@ -2620,26 +2620,26 @@ function AttendanceRow({
       <td className="px-3 py-3 text-center">
         {record.status === 'pending' && (
           <div className="flex gap-1.5 justify-center">
-            <button onClick={onApprove} className="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+            <button onClick={onApprove} className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-sm shadow-emerald-200 transition-all">
               승인
             </button>
-            <button onClick={onReject} className="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
+            <button onClick={onReject} className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors">
               거절
             </button>
           </div>
         )}
         {record.status === 'approved' && (
           <div className="flex flex-col items-center gap-1">
-            <button onClick={onCancelApprove} className="text-xs text-gray-400 hover:text-orange-500 transition-colors whitespace-nowrap">
+            <button onClick={onCancelApprove} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 px-2.5 py-1 rounded-xl transition-colors whitespace-nowrap">
               승인 취소
             </button>
             {onSetNextClinic && !record.checked_out_at && (
               <button
                 onClick={onSetNextClinic}
-                className={`text-xs px-2 py-0.5 rounded-md transition-colors whitespace-nowrap ${
+                className={`text-xs px-2.5 py-1 rounded-xl transition-colors whitespace-nowrap font-medium ${
                   record.next_clinic_date
-                    ? 'text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100'
-                    : 'text-gray-400 hover:text-blue-500 border border-dashed border-gray-300 hover:border-blue-400'
+                    ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                    : 'text-gray-400 hover:text-blue-500 bg-gray-100 hover:bg-blue-50'
                 }`}
               >
                 {record.next_clinic_date ? `📅 ${record.next_clinic_date}` : '재등원 날짜'}
@@ -2648,7 +2648,7 @@ function AttendanceRow({
             {onCall && !record.checked_out_at && (
               <button
                 onClick={onCall}
-                className="text-xs px-2 py-0.5 rounded-md bg-orange-50 hover:bg-orange-100 text-orange-500 hover:text-orange-700 transition-colors whitespace-nowrap"
+                className="text-xs px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-colors whitespace-nowrap font-medium"
                 title="학생 기기로 호출 알림 전송"
               >
                 🔔 호출
@@ -2657,7 +2657,7 @@ function AttendanceRow({
             {onMoveToClassClinic && record.visit_type === 'clinic' && !record.checked_out_at && (
               <button
                 onClick={onMoveToClassClinic}
-                className="text-xs px-2 py-0.5 rounded-md bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-800 transition-colors whitespace-nowrap border border-green-200"
+                className="text-xs px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700 transition-colors whitespace-nowrap font-medium"
               >
                 수업+클리닉▶
               </button>
@@ -2665,7 +2665,7 @@ function AttendanceRow({
             {onMoveToClinic && record.visit_type === 'class_clinic' && !record.checked_out_at && (
               <button
                 onClick={onMoveToClinic}
-                className="text-xs px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-800 transition-colors whitespace-nowrap border border-blue-200"
+                className="text-xs px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap font-medium"
               >
                 ◀클리닉
               </button>
@@ -2765,7 +2765,7 @@ function MissionCycleButton({ value, onChange, variant = 'oral' }: { value: Miss
       <button
         ref={btnRef}
         onClick={handleOpen}
-        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors min-w-[52px] ${badgeStyles[key]}`}
+        className={`px-2.5 py-1 rounded-xl text-xs font-semibold transition-colors min-w-[52px] ${badgeStyles[key]}`}
       >
         {labels[key]}
       </button>
@@ -2773,7 +2773,7 @@ function MissionCycleButton({ value, onChange, variant = 'oral' }: { value: Miss
         <div
           ref={dropdownRef}
           style={{ position: 'fixed', top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
-          className={`z-50 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[80px] ${pos.upward ? 'flex flex-col-reverse' : ''}`}
+          className={`z-50 bg-white border border-gray-100 rounded-2xl shadow-xl py-1 min-w-[80px] ${pos.upward ? 'flex flex-col-reverse' : ''}`}
         >
           {options.map((opt) => (
             <button
