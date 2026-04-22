@@ -745,7 +745,7 @@ export default function AttendPage() {
                     onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setError('') }}
                     maxLength={4}
                     autoFocus
-                    className="absolute inset-0 w-full h-full z-10 cursor-pointer bg-transparent text-transparent"
+                    className="absolute inset-0 w-full h-full z-10 cursor-pointer bg-transparent text-transparent outline-none border-none"
                     style={{ caretColor: 'transparent' }}
                   />
                 </div>
