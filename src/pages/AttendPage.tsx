@@ -1191,30 +1191,35 @@ export default function AttendPage() {
         </div>
       )}
 
-      {/* 구두 호출 모달 */}
+      {/* 구두 호출 모달 — bottom sheet */}
       {showCalledModal && student && (
-        <div className="fixed inset-0 bg-violet-900/80 flex items-center justify-center z-50 p-5">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl">
-            <div className="w-20 h-20 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-5 animate-pulse">
-              <svg className="w-10 h-10 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-sm shadow-2xl">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
-            <p className="text-xs text-gray-400 mb-0.5">{student.name} 학생</p>
-            <p className="text-3xl font-black text-violet-600 mb-3">지금 오세요!</p>
-            {oralQueue?.caller ? (
-              <p className="text-sm text-gray-500 mb-6">
-                <span className="font-bold text-violet-700">{oralQueue.caller}</span> 님이 호출했어요<br />조교님께 가주세요
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500 mb-6">구두 테스트 차례예요<br />조교 선생님께 가주세요</p>
-            )}
-            <button
-              onClick={() => setShowCalledModal(false)}
-              className="w-full bg-violet-500 hover:bg-violet-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-sm"
-            >
-              확인
-            </button>
+            <div className="px-5 pt-4 pb-6 text-center">
+              <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <svg className="w-8 h-8 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-400 mb-0.5">{student.name} 학생</p>
+              <p className="text-2xl font-black text-violet-600 mb-2">지금 오세요!</p>
+              {oralQueue?.caller ? (
+                <p className="text-sm text-gray-400 mb-6">
+                  <span className="font-bold text-violet-700">{oralQueue.caller}</span> 님이 호출했어요<br />조교님께 가주세요
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400 mb-6">구두 테스트 차례예요<br />조교 선생님께 가주세요</p>
+              )}
+              <button
+                onClick={() => setShowCalledModal(false)}
+                className="w-full bg-violet-500 hover:bg-violet-600 text-white font-bold py-4 rounded-2xl transition-colors shadow-sm"
+              >
+                확인
+              </button>
+            </div>
           </div>
         </div>
       )}
