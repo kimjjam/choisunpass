@@ -525,150 +525,160 @@ export default function AdminPage() {
   }, {})
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* 헤더 */}
-      <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div>
-            <div className="text-base font-bold text-gray-900">관리자 페이지</div>
-            <div className="text-xs text-gray-400">최선어학원 클리닉</div>
-          </div>
-          {/* 검색 + 요일 필터 인라인 */}
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="학생 이름 검색..."
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 w-44"
-          />
-          <select
-            value={schoolFilter}
-            onChange={(e) => setSchoolFilter(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-36"
-          >
-            <option value="">전체 학교</option>
-            {schools.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select
-            value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32"
-          >
-            <option value="">전체 선생님</option>
-            {classes.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <div className="flex gap-1">
-            {['', '월', '화', '수', '목', '금'].map((d) => (
-              <button
-                key={d}
-                onClick={() => setDayFilter(d)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  dayFilter === d ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300'
-                }`}
-              >
-                {d || '전체'}
-              </button>
-            ))}
-          </div>
+      <header className="bg-white shadow-md shadow-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+        <div>
+          <div className="text-lg font-black text-gray-900 tracking-tight">관리자 페이지</div>
+          <div className="text-xs text-gray-400 font-medium">최선어학원 클리닉</div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors"
+            className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-xl px-3 py-1.5 font-semibold transition-colors"
           >
             조교 대시보드
           </button>
-          <span className="text-xs text-gray-500">{currentUser}</span>
+          <span className="text-xs text-gray-400 font-medium">{currentUser}</span>
           <button
             onClick={async () => { await supabase.auth.signOut(); navigate('/login') }}
-            className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+            className="text-xs text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl px-3 py-1.5 transition-colors"
           >
             로그아웃
           </button>
         </div>
       </header>
 
-      {/* 탭 */}
-      <div className="px-6 pt-4 flex items-center justify-between mb-4">
-        <div className="flex gap-2 flex-wrap">
-          <TabButton active={tab === 'students'} onClick={() => setTab('students')}>학생 관리</TabButton>
-          <TabButton active={tab === 'weekly'} onClick={() => setTab('weekly')}>주차별 현황</TabButton>
-          <TabButton active={tab === 'stats'} onClick={() => { setTab('stats'); fetchAllRecords() }}>누적 통계</TabButton>
-          <TabButton active={tab === 'absence'} onClick={() => setTab('absence')}>재등원 관리</TabButton>
-          <TabButton active={tab === 'daily'} onClick={() => setTab('daily')}>일별 조회</TabButton>
+      {/* 탭 바 + 학생 등록 */}
+      <div className="px-6 pt-4 mb-0">
+        <div className="flex items-center gap-3">
+          <div className="bg-gray-100 rounded-2xl p-1.5 flex gap-1 flex-1">
+            <TabButton active={tab === 'students'} onClick={() => setTab('students')}>학생 관리</TabButton>
+            <TabButton active={tab === 'weekly'} onClick={() => setTab('weekly')}>주차별 현황</TabButton>
+            <TabButton active={tab === 'stats'} onClick={() => { setTab('stats'); fetchAllRecords() }}>누적 통계</TabButton>
+            <TabButton active={tab === 'absence'} onClick={() => setTab('absence')}>재등원 관리</TabButton>
+            <TabButton active={tab === 'daily'} onClick={() => setTab('daily')}>일별 조회</TabButton>
+          </div>
+          <button
+            onClick={() => { setShowRegisterModal(true); setShowRegisterConfirm(false); setFormError('') }}
+            className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm shadow-blue-200 transition-all whitespace-nowrap"
+          >
+            + 학생 등록
+          </button>
         </div>
-        <button
-          onClick={() => { setShowRegisterModal(true); setShowRegisterConfirm(false); setFormError('') }}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors whitespace-nowrap"
-        >
-          + 학생 등록
-        </button>
       </div>
 
       {/* ── 학생 관리 탭 ── */}
       {tab === 'students' && (
-        <div className="px-6 space-y-4 pb-8 max-w-screen-2xl mx-auto">
+        <div className="px-6 space-y-3 pb-8 max-w-screen-2xl mx-auto pt-4">
+          {/* 필터 바 */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="학생 이름 검색..."
+              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-44 shadow-sm"
+            />
+            <select
+              value={schoolFilter}
+              onChange={(e) => setSchoolFilter(e.target.value)}
+              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-36 shadow-sm"
+            >
+              <option value="">전체 학교</option>
+              {schools.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32 shadow-sm"
+            >
+              <option value="">전체 선생님</option>
+              {classes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <div className="flex gap-1">
+              {['', '월', '화', '수', '목', '금'].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDayFilter(d)}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    dayFilter === d ? 'bg-blue-500 text-white shadow-sm shadow-blue-200' : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300 shadow-sm'
+                  }`}
+                >
+                  {d || '전체'}
+                </button>
+              ))}
+            </div>
+          </div>
           {/* 학생 목록 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden max-w-screen-2xl">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <span className="font-semibold text-gray-800 text-sm">
-                전체 학생 ({filteredStudents.length}명{search && ` / 검색결과`})
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <span className="font-bold text-gray-800 text-sm">
+                전체 학생 <span className="text-blue-500">{filteredStudents.length}명</span>{search && <span className="text-gray-400 font-normal text-xs ml-1">/ 검색결과</span>}
               </span>
               <button
                 onClick={() => handlePrintCodes(filteredStudents)}
-                className="text-xs text-gray-500 hover:text-blue-600 border border-gray-200 rounded-lg px-2.5 py-1 transition-colors"
+                className="text-xs text-gray-500 hover:text-blue-600 bg-gray-100 hover:bg-blue-50 rounded-xl px-2.5 py-1.5 transition-colors"
               >
                 코드 목록 인쇄
               </button>
             </div>
             {filteredStudents.length === 0 ? (
-              <div className="py-10 text-center text-gray-400 text-sm">
+              <div className="py-16 text-center text-gray-400 text-sm font-medium">
                 {search ? `"${search}" 검색 결과가 없습니다.` : '등록된 학생이 없습니다.'}
               </div>
             ) : (
-              <div className="divide-y divide-gray-50">
-                {filteredStudents.map((s) => (
-                  <div key={s.id} className="px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
-                        {s.name[0]}
-                      </div>
-                      <div>
-                        <div
-                          className="font-medium text-gray-900 text-sm cursor-pointer hover:text-blue-600 transition-colors"
-                          onClick={() => openStudentHistory(s)}
-                        >{s.name}</div>
-                        <div className="text-xs text-gray-400">
-                          {s.class} · {s.school}
-                          {s.oral_type && <span> · {s.oral_type}</span>}
-                          {s.clinic_day && <span> · {s.clinic_day}요일</span>}
+              <div className="divide-y divide-slate-100/80">
+                {filteredStudents.map((s, i) => {
+                  const avatarColors = [
+                    'bg-blue-100 text-blue-600', 'bg-violet-100 text-violet-600',
+                    'bg-emerald-100 text-emerald-600', 'bg-amber-100 text-amber-600',
+                    'bg-rose-100 text-rose-600', 'bg-cyan-100 text-cyan-600',
+                  ]
+                  const avatarColor = avatarColors[i % avatarColors.length]
+                  return (
+                    <div key={s.id} className="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50/80 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-bold text-sm flex-shrink-0 ${avatarColor}`}>
+                          {s.name[0]}
+                        </div>
+                        <div>
+                          <div
+                            className="font-semibold text-gray-900 text-sm cursor-pointer hover:text-blue-600 transition-colors"
+                            onClick={() => openStudentHistory(s)}
+                          >{s.name}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {s.class} · {s.school}
+                            {s.oral_type && <span className="text-purple-400"> · {s.oral_type}</span>}
+                            {s.clinic_day && <span className="text-blue-400"> · {s.clinic_day}요일</span>}
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => navigator.clipboard.writeText(s.code)}
+                          title="코드 복사"
+                          className="font-mono text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors"
+                        >
+                          {s.code}
+                        </button>
+                        <button
+                          onClick={() => setEditTarget(s)}
+                          className="text-xs text-gray-400 hover:text-blue-500 bg-gray-100 hover:bg-blue-50 px-2.5 py-1.5 rounded-xl transition-colors"
+                          title="정보 수정"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStudent(s.id, s.name)}
+                          className="text-xs text-gray-300 hover:text-red-400 hover:bg-red-50 px-2.5 py-1.5 rounded-xl transition-colors"
+                          title="학생 삭제"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => navigator.clipboard.writeText(s.code)}
-                        title="코드 복사"
-                        className="font-mono text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors"
-                      >
-                        {s.code}
-                      </button>
-                      <button
-                        onClick={() => setEditTarget(s)}
-                        className="text-xs text-gray-400 hover:text-blue-500 transition-colors px-1"
-                        title="정보 수정"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStudent(s.id, s.name)}
-                        className="text-xs text-gray-300 hover:text-red-400 transition-colors px-1"
-                        title="학생 삭제"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -677,29 +687,28 @@ export default function AdminPage() {
 
       {/* ── 주차별 현황 탭 ── */}
       {tab === 'weekly' && (
-        <div className="px-6 space-y-4 pb-8 max-w-screen-2xl mx-auto">
+        <div className="px-6 space-y-3 pb-8 max-w-screen-2xl mx-auto pt-4">
           {/* 학기 관리 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-800">학기 선택</span>
+              <span className="text-sm font-bold text-gray-800">학기 선택</span>
               <button
                 onClick={() => { setShowTermModal(true); setTermFormError(''); setNewTermName(''); setNewTermDate('') }}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-sm shadow-blue-200 transition-all"
               >
                 + 학기 추가
               </button>
             </div>
-            {/* 학기 선택 버튼 */}
             {terms.length === 0 ? (
-              <p className="text-xs text-gray-400">등록된 학기가 없습니다. 아래에서 추가하세요.</p>
+              <p className="text-xs text-gray-400">등록된 학기가 없습니다.</p>
             ) : (
               <div className="flex gap-2 flex-wrap">
                 {terms.map(t => (
                   <div key={t.id} className="flex items-center gap-1">
                     <button
                       onClick={() => { setSelectedTermId(t.id); setSelectedWeek('') }}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                        selectedTermId === t.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+                        selectedTermId === t.id ? 'bg-blue-500 text-white shadow-sm shadow-blue-200' : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
                       }`}
                     >
                       {t.name}
@@ -707,7 +716,7 @@ export default function AdminPage() {
                     </button>
                     <button
                       onClick={() => handleDeleteTerm(t.id, t.name)}
-                      className="text-xs text-gray-300 hover:text-red-400 transition-colors px-1"
+                      className="text-xs text-gray-300 hover:text-red-400 hover:bg-red-50 px-1.5 py-1 rounded-xl transition-colors"
                     >
                       ✕
                     </button>
@@ -718,23 +727,23 @@ export default function AdminPage() {
           </div>
 
           {loading ? (
-            <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+            <div className="py-16 text-center text-gray-400 text-sm font-medium">불러오는 중...</div>
           ) : weekStarts.length === 0 ? (
-            <div className="py-16 text-center text-gray-400 text-sm">출석 기록이 없습니다.</div>
+            <div className="py-16 text-center text-gray-400 text-sm font-medium">출석 기록이 없습니다.</div>
           ) : (
             <>
               {/* 주차별 전용 필터 */}
-              <div className="flex items-center gap-2 flex-wrap bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <input
                   value={weeklySearch}
                   onChange={(e) => setWeeklySearch(e.target.value)}
                   placeholder="학생 이름 검색..."
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 w-40"
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-40 shadow-sm"
                 />
                 <select
                   value={weeklySchoolFilter}
                   onChange={(e) => setWeeklySchoolFilter(e.target.value)}
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-36"
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-36 shadow-sm"
                 >
                   <option value="">전체 학교</option>
                   {schools.map(s => <option key={s} value={s}>{s}</option>)}
@@ -742,7 +751,7 @@ export default function AdminPage() {
                 <select
                   value={weeklyClassFilter}
                   onChange={(e) => setWeeklyClassFilter(e.target.value)}
-                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32"
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32 shadow-sm"
                 >
                   <option value="">전체 선생님</option>
                   {classes.map(c => <option key={c} value={c}>{c}</option>)}
@@ -752,8 +761,8 @@ export default function AdminPage() {
                     <button
                       key={d}
                       onClick={() => setWeeklyDayFilter(d)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        weeklyDayFilter === d ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300'
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                        weeklyDayFilter === d ? 'bg-blue-500 text-white shadow-sm shadow-blue-200' : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300 shadow-sm'
                       }`}
                     >
                       {d || '전체'}
@@ -763,7 +772,7 @@ export default function AdminPage() {
                 {(weeklySearch || weeklyDayFilter || weeklySchoolFilter || weeklyClassFilter) && (
                   <button
                     onClick={() => { setWeeklySearch(''); setWeeklyDayFilter(''); setWeeklySchoolFilter(''); setWeeklyClassFilter('') }}
-                    className="text-xs text-gray-400 hover:text-red-400 border border-gray-200 rounded-lg px-2.5 py-1.5 transition-colors"
+                    className="text-xs text-gray-400 hover:text-red-500 bg-white border border-gray-200 rounded-xl px-2.5 py-2 transition-colors shadow-sm"
                   >
                     필터 초기화
                   </button>
@@ -830,7 +839,7 @@ export default function AdminPage() {
                 const WEEK_COLS = 10
 
                 return (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="text-xs border-collapse" style={{ minWidth: 'max-content' }}>
                         <thead>
@@ -953,7 +962,7 @@ export default function AdminPage() {
               {/* 전체 주차 기타 모달 */}
               {pivotNotesModal && createPortal(
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setPivotNotesModal(null)}>
-                  <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+                  <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-xl" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-semibold text-gray-800">{pivotNotesModal.name} 학생</h3>
                       <button onClick={() => setPivotNotesModal(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
@@ -981,7 +990,7 @@ export default function AdminPage() {
                     </div>
                     <button
                       onClick={() => setPivotNotesModal(null)}
-                      className="w-full mt-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 font-medium transition-colors"
+                      className="w-full mt-4 py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 font-medium transition-colors"
                     >
                       닫기
                     </button>
@@ -1027,7 +1036,7 @@ export default function AdminPage() {
                   ) : (
                     /* 반별 테이블 */
                     Object.entries(groupedByClass).map(([classKey, classRecords]) => (
-                      <div key={classKey} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div key={classKey} className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
                         <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
                           <span className="font-semibold text-gray-800 text-sm">{classKey}</span>
                           <span className="ml-2 text-xs text-gray-400">{classRecords.length}명</span>
@@ -1076,7 +1085,7 @@ export default function AdminPage() {
       )}
       {/* ── 누적 통계 탭 ── */}
       {tab === 'stats' && (
-        <div className="px-6 pb-8 space-y-3 max-w-screen-2xl mx-auto">
+        <div className="px-6 pb-8 space-y-3 max-w-screen-2xl mx-auto pt-4">
           {/* 학기 선택 */}
           {terms.length > 0 && (
             <div className="flex gap-2 flex-wrap">
@@ -1084,8 +1093,8 @@ export default function AdminPage() {
                 <button
                   key={t.id}
                   onClick={() => setSelectedTermId(t.id)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    selectedTermId === t.id ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+                    selectedTermId === t.id ? 'bg-blue-500 text-white shadow-sm shadow-blue-200' : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
                   }`}
                 >
                   {t.name}
@@ -1139,7 +1148,7 @@ export default function AdminPage() {
               }
 
               return (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                     <span className="font-semibold text-gray-800 text-sm">학생별 누적 현황</span>
                     <span className="text-xs text-gray-400">총 {totalWeeks}주차 기준</span>
@@ -1201,11 +1210,11 @@ export default function AdminPage() {
 
       {/* ── 재등원 관리 탭 ── */}
       {tab === 'absence' && (
-        <div className="px-6 pb-8 max-w-screen-xl mx-auto space-y-4">
+        <div className="px-6 pb-8 max-w-screen-xl mx-auto space-y-4 pt-4">
           <p className="text-xs text-gray-400">기준 주차: {absenceWeek ? `${absenceWeek} 주` : '계산 중...'}</p>
 
           {/* 미실시 학생 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 bg-red-50">
               <span className="font-semibold text-red-700 text-sm">미실시 학생 ({noShowStudents.filter(s => !absences.some(a => a.student_id === s.id && a.week_start_date === absenceWeek && a.type === '미실시')).length}명)</span>
               <span className="text-xs text-red-400 ml-2">직전 주 출석 기록 없음</span>
@@ -1227,7 +1236,7 @@ export default function AdminPage() {
                       <td className="px-3 py-2.5 text-center">
                         <button
                           onClick={() => setAbsenceReasonModal({ studentId: s.id, name: s.name, type: '미실시' })}
-                          className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded-lg transition-colors"
+                          className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded-xl transition-colors"
                         >사유 입력</button>
                       </td>
                     </tr>
@@ -1238,7 +1247,7 @@ export default function AdminPage() {
           </div>
 
           {/* 미재등원 학생 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 bg-orange-50">
               <span className="font-semibold text-orange-700 text-sm">미재등원 학생 ({overdueStudents.filter(r => !absences.some(a => a.student_id === r.student_id && a.type === '미재등원')).length}명)</span>
               <span className="text-xs text-orange-400 ml-2">다음에 올게요 날짜 경과</span>
@@ -1262,7 +1271,7 @@ export default function AdminPage() {
                       <td className="px-3 py-2.5 text-center">
                         <button
                           onClick={() => setAbsenceReasonModal({ studentId: r.student_id, name: r.students.name, type: '미재등원' })}
-                          className="text-xs bg-orange-50 hover:bg-orange-100 text-orange-600 px-2.5 py-1 rounded-lg transition-colors"
+                          className="text-xs bg-orange-50 hover:bg-orange-100 text-orange-600 px-2.5 py-1 rounded-xl transition-colors"
                         >사유 입력</button>
                       </td>
                     </tr>
@@ -1273,7 +1282,7 @@ export default function AdminPage() {
           </div>
 
           {/* 처리된 기록 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
               <span className="font-semibold text-gray-700 text-sm">처리된 기록 ({absences.filter(a => a.week_start_date === absenceWeek).length}건)</span>
             </div>
@@ -1308,7 +1317,7 @@ export default function AdminPage() {
       {/* 학기 추가 모달 */}
       {showTermModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-bold text-gray-800">새 학기 추가</h3>
               <button
@@ -1323,7 +1332,7 @@ export default function AdminPage() {
                   value={newTermName}
                   onChange={(e) => setNewTermName(e.target.value)}
                   placeholder="예: 2026 중간고사 후"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                 />
               </div>
               <div>
@@ -1332,7 +1341,7 @@ export default function AdminPage() {
                   type="date"
                   value={newTermDate}
                   onChange={(e) => setNewTermDate(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                 />
                 <p className="text-xs text-gray-400 mt-1">선택한 날짜가 포함된 주의 월요일로 저장됩니다.</p>
               </div>
@@ -1366,7 +1375,7 @@ export default function AdminPage() {
         const dailySchools = [...new Set(dailyRecords.map(r => r.students.school))].filter(Boolean).sort()
         const dailyClasses = [...new Set(dailyRecords.map(r => r.students.class))].filter(Boolean).sort()
         return (
-        <div className="px-6 pb-8 max-w-screen-xl mx-auto space-y-4">
+        <div className="px-6 pb-8 max-w-screen-xl mx-auto space-y-4 pt-4">
           {/* 날짜 피커 + 필터 */}
           <div className="flex items-center gap-3 flex-wrap">
             <input
@@ -1377,7 +1386,7 @@ export default function AdminPage() {
                 setSelectedDate(e.target.value)
                 fetchDailyRecords(e.target.value)
               }}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 shadow-sm"
             />
             <span className="text-sm text-gray-500">
               {new Date(selectedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
@@ -1386,12 +1395,12 @@ export default function AdminPage() {
               value={dailySearch}
               onChange={(e) => setDailySearch(e.target.value)}
               placeholder="이름 검색..."
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-36"
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 w-36"
             />
             <select
               value={dailySchoolFilter}
               onChange={(e) => setDailySchoolFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-36"
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-36"
             >
               <option value="">전체 학교</option>
               {dailySchools.map(s => <option key={s} value={s}>{s}</option>)}
@@ -1399,7 +1408,7 @@ export default function AdminPage() {
             <select
               value={dailyClassFilter}
               onChange={(e) => setDailyClassFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32"
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700 w-32"
             >
               <option value="">전체 선생님</option>
               {dailyClasses.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1423,7 +1432,7 @@ export default function AdminPage() {
           </div>
 
           {/* 기록 테이블 */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
             {dailyLoading ? (
               <div className="py-16 text-center text-gray-400 text-sm">불러오는 중...</div>
             ) : dailyFiltered.length === 0 ? (
@@ -1497,7 +1506,7 @@ export default function AdminPage() {
       {/* 학생 등록 모달 */}
       {showRegisterModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-bold text-gray-800">새 학생 등록</h3>
               <button
@@ -1515,7 +1524,7 @@ export default function AdminPage() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="홍길동"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   />
                 </div>
                 <div>
@@ -1524,7 +1533,7 @@ export default function AdminPage() {
                     value={form.class}
                     onChange={(e) => setForm({ ...form, class: e.target.value })}
                     placeholder="김선생님반"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   />
                 </div>
                 <div>
@@ -1533,7 +1542,7 @@ export default function AdminPage() {
                     value={form.school}
                     onChange={(e) => setForm({ ...form, school: e.target.value })}
                     placeholder="신봉고등학교"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   />
                 </div>
                 <div>
@@ -1543,7 +1552,7 @@ export default function AdminPage() {
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     placeholder="010-0000-0000"
                     inputMode="numeric"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   />
                   {form.phone.replace(/\D/g, '').length >= 4 && (
                     <p className="text-xs text-blue-500 mt-1">코드: <span className="font-mono font-bold">{extractCode(form.phone)}</span></p>
@@ -1554,7 +1563,7 @@ export default function AdminPage() {
                   <select
                     value={form.oral_type}
                     onChange={(e) => setForm({ ...form, oral_type: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700"
                   >
                     <option value="">선택 안 함</option>
                     {ORAL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -1565,7 +1574,7 @@ export default function AdminPage() {
                   <select
                     value={form.clinic_day}
                     onChange={(e) => setForm({ ...form, clinic_day: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-gray-700"
                   >
                     <option value="">선택 안 함</option>
                     {CLINIC_DAYS.map((d) => <option key={d} value={d}>{d}요일</option>)}
@@ -1576,13 +1585,13 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={() => { setShowRegisterModal(false); setForm({ name: '', class: '', school: '', oral_type: '', clinic_day: '', phone: '' }); setFormError('') }}
-                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
+                    className="flex-1 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
                   >
                     다음 →
                   </button>
@@ -1626,14 +1635,14 @@ export default function AdminPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowRegisterConfirm(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
                   >
                     ← 수정
                   </button>
                   <button
                     onClick={handleRegisterSubmit}
                     disabled={formLoading}
-                    className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold text-sm transition-colors"
+                    className="flex-1 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold text-sm transition-colors"
                   >
                     {formLoading ? '등록 중...' : '확인 등록'}
                   </button>
@@ -1647,7 +1656,7 @@ export default function AdminPage() {
       {/* 사유 입력 모달 */}
       {absenceReasonModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-5 shadow-xl">
             <h3 className="font-semibold text-gray-800 mb-1">{absenceReasonModal.name} — {absenceReasonModal.type}</h3>
             <p className="text-xs text-gray-400 mb-4">사유를 입력하면 재등원탭에서 제거되고 주차별 현황에 기록됩니다.</p>
             <textarea
@@ -1862,7 +1871,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
         </button>
         {showNotesModal && createPortal(
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
+            <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-xl">
               <h3 className="font-semibold text-gray-800 mb-1">{record.students.name} 학생</h3>
               <p className="text-xs text-gray-400 mb-4">{record.date} · 메모 편집</p>
               <div className="space-y-3">
@@ -1901,14 +1910,14 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
               <div className="flex gap-2 mt-4">
                 <button
                   onClick={() => setShowNotesModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleSaveModal}
                   disabled={saving}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white text-sm font-semibold transition-colors"
+                  className="flex-1 py-2.5 rounded-2xl bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white text-sm font-semibold transition-colors"
                 >
                   {saving ? '저장 중...' : '저장'}
                 </button>
@@ -1924,7 +1933,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     {showEditModal && (
       <tr><td colSpan={99}>
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-800">기록 수정</h3>
@@ -1940,7 +1949,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                     value={editForm.word_score}
                     onChange={(e) => setEditForm(f => ({ ...f, word_score: e.target.value }))}
                     placeholder="예: 85"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   />
                 </div>
                 <div>
@@ -1949,7 +1958,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                     value={editForm.clinic_score}
                     onChange={(e) => setEditForm(f => ({ ...f, clinic_score: e.target.value }))}
                     placeholder="예: 90"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   />
                 </div>
               </div>
@@ -1959,7 +1968,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                   <select
                     value={editForm.oral_status}
                     onChange={(e) => setEditForm(f => ({ ...f, oral_status: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   >
                     <option value="">-</option>
                     <option value="pass">Pass</option>
@@ -1975,7 +1984,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                   <select
                     value={VALID_STATUSES.includes(editForm.homework) ? editForm.homework : ''}
                     onChange={(e) => setEditForm(f => ({ ...f, homework: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   >
                     <option value="">-</option>
                     <option value="pass">Pass</option>
@@ -1991,7 +2000,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                   value={editForm.oral_memo}
                   onChange={(e) => setEditForm(f => ({ ...f, oral_memo: e.target.value }))}
                   placeholder="구두 관련 메모..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                 />
               </div>
               <div>
@@ -2000,7 +2009,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                   value={editForm.homework_memo}
                   onChange={(e) => setEditForm(f => ({ ...f, homework_memo: e.target.value }))}
                   placeholder="과제 관련 메모..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
                 />
               </div>
               <div>
@@ -2009,7 +2018,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
                   value={editForm.notes}
                   onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="기타 메모..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                 />
               </div>
               <div className="flex gap-2 pt-1">
@@ -2036,19 +2045,19 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     {showEditConfirm && (
       <tr><td colSpan={99}>
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-xl">
             <h3 className="font-semibold text-gray-800 mb-2 text-center">정말 수정하시겠습니까?</h3>
             <p className="text-xs text-gray-400 text-center mb-6">{record.students.name} · {record.date}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowEditConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleEditSubmit}
-                className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
               >
                 확인
               </button>
@@ -2067,8 +2076,10 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-        active ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600'
+      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+        active
+          ? 'bg-white shadow-md shadow-slate-100 text-blue-600'
+          : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
       }`}
     >
       {children}
