@@ -1379,24 +1379,24 @@ export default function DashboardPage() {
       {/* 승인 확인 모달 */}
       {approveModal && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onKeyDown={(e) => { if (e.key === 'Enter') handleApprove() }}
           tabIndex={-1}
           ref={(el) => el?.focus()}
         >
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-1">{approveModal.name} 학생 승인</h3>
             <p className="text-sm text-gray-500 mb-5">정말 학생이 등원하였습니까?</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setApproveModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleApprove}
-                className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-all shadow-sm shadow-emerald-200"
               >
                 승인
               </button>
@@ -1408,12 +1408,12 @@ export default function DashboardPage() {
       {/* 하원 확인 모달 */}
       {checkoutConfirmModal && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onKeyDown={(e) => { if (e.key === 'Enter') { handleCheckOut(checkoutConfirmModal.id); setCheckoutConfirmModal(null) } }}
           tabIndex={-1}
           ref={(el) => el?.focus()}
         >
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">하원 처리</h3>
             <p className="text-sm text-gray-500 text-center mb-1">
               <span className="font-semibold text-gray-700">{checkoutConfirmModal.name}</span> 학생을
@@ -1422,13 +1422,13 @@ export default function DashboardPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setCheckoutConfirmModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={() => { handleCheckOut(checkoutConfirmModal.id); setCheckoutConfirmModal(null) }}
-                className="flex-1 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold transition-all shadow-sm shadow-indigo-200"
               >
                 확인
               </button>
@@ -1440,12 +1440,12 @@ export default function DashboardPage() {
       {/* 다음에 올게요 요청 취소 모달 */}
       {cancelNextClinicModal && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onKeyDown={(e) => { if (e.key === 'Enter') { handleCancelNextClinic(cancelNextClinicModal.id); setCancelNextClinicModal(null) } }}
           tabIndex={-1}
           ref={(el) => el?.focus()}
         >
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">요청 취소</h3>
             <p className="text-sm text-gray-500 text-center mb-1">
               <span className="font-semibold text-gray-700">{cancelNextClinicModal.name}</span> 학생의
@@ -1454,13 +1454,13 @@ export default function DashboardPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setCancelNextClinicModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={() => { handleCancelNextClinic(cancelNextClinicModal.id); setCancelNextClinicModal(null) }}
-                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-all shadow-sm shadow-red-200"
               >
                 확인
               </button>
@@ -1472,12 +1472,12 @@ export default function DashboardPage() {
       {/* 하원 취소 확인 모달 */}
       {cancelCheckoutModal && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onKeyDown={(e) => { if (e.key === 'Enter') { handleCancelCheckOut(cancelCheckoutModal.id); setCancelCheckoutModal(null) } }}
           tabIndex={-1}
           ref={(el) => el?.focus()}
         >
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">하원 취소</h3>
             <p className="text-sm text-gray-500 text-center mb-1">
               <span className="font-semibold text-gray-700">{cancelCheckoutModal.name}</span> 학생의
@@ -1486,13 +1486,13 @@ export default function DashboardPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setCancelCheckoutModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={() => { handleCancelCheckOut(cancelCheckoutModal.id); setCancelCheckoutModal(null) }}
-                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-all shadow-sm shadow-red-200"
               >
                 확인
               </button>
@@ -1503,8 +1503,8 @@ export default function DashboardPage() {
 
       {/* 재등원 날짜 설정 모달 */}
       {nextClinicSetModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-1 text-center">{nextClinicSetModal.name} 학생</h3>
             <p className="text-sm text-gray-500 text-center mb-4">재등원 예정일을 설정하세요</p>
             <input
@@ -1516,7 +1516,7 @@ export default function DashboardPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => { setNextClinicSetModal(null); setNextClinicDateInput('') }}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
@@ -1538,8 +1538,8 @@ export default function DashboardPage() {
 
       {/* 강제하원 모달 */}
       {forceCheckoutModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs shadow-2xl">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-bold text-gray-800">강제 하원</h3>
               <button onClick={() => setForceCheckoutModal(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
@@ -1587,8 +1587,8 @@ export default function DashboardPage() {
 
       {/* 승인 취소 확인 모달 */}
       {cancelApproveModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">승인 취소</h3>
             <p className="text-sm text-gray-500 text-center mb-1">
               <span className="font-semibold text-gray-700">{cancelApproveModal.name}</span> 학생의
@@ -1597,13 +1597,13 @@ export default function DashboardPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setCancelApproveModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={() => handleCancelApprove(cancelApproveModal.id)}
-                className="flex-1 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold transition-all shadow-sm shadow-amber-200"
               >
                 승인 취소
               </button>
@@ -1614,8 +1614,8 @@ export default function DashboardPage() {
 
       {/* 거절 사유 모달 */}
       {rejectModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-1">{rejectModal.name} 학생 거절</h3>
             <p className="text-sm text-gray-500 mb-3">사유를 입력하면 학생 화면에 표시됩니다. (선택)</p>
             <textarea
@@ -1628,13 +1628,13 @@ export default function DashboardPage() {
             <div className="flex gap-2 mt-3">
               <button
                 onClick={() => { setRejectModal(null); setRejectReason('') }}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleReject}
-                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-all shadow-sm shadow-red-200"
               >
                 거절 확정
               </button>
@@ -1645,20 +1645,20 @@ export default function DashboardPage() {
 
       {/* 일괄 승인 확인 모달 */}
       {showBulkApproveConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">일괄 승인 처리</h3>
             <p className="text-sm text-gray-500 text-center mb-6">대기 중인 학생 {pendingList.length}명을<br/>모두 승인하시겠습니까?</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowBulkApproveConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-500 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={() => { setShowBulkApproveConfirm(false); handleBulkApprove() }}
-                className="flex-1 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-semibold text-sm transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-all shadow-sm shadow-amber-200"
               >
                 확인
               </button>
@@ -1669,20 +1669,20 @@ export default function DashboardPage() {
 
       {/* 일괄 하원 확인 모달 */}
       {showBulkConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">일괄 하원 처리</h3>
             <p className="text-sm text-gray-500 text-center mb-6">정말 일괄처리 하시겠습니까?</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowBulkConfirm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-500 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={() => { setShowBulkConfirm(false); handleBulkCheckOut() }}
-                className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-sm transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm transition-all shadow-sm shadow-blue-200"
               >
                 확인
               </button>
@@ -1693,8 +1693,8 @@ export default function DashboardPage() {
 
       {/* 부모님 알림 전송 모달 */}
       {parentNotifyModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl text-center">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl text-center">
             <div className="text-3xl mb-3">📨</div>
             <h3 className="font-semibold text-gray-800 text-base mb-1">부모님 알림 전송</h3>
             <p className="text-sm text-gray-500 mb-1">{parentNotifyModal.label} 부모님께</p>
@@ -1703,14 +1703,14 @@ export default function DashboardPage() {
               <button
                 onClick={() => setParentNotifyModal(null)}
                 disabled={parentNotifySending}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-500 font-medium transition-colors disabled:opacity-50"
               >
                 취소
               </button>
               <button
                 onClick={() => handleSendParentNotify(parentNotifyModal.list)}
                 disabled={parentNotifySending}
-                className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold text-sm transition-colors disabled:opacity-50"
+                className="flex-1 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm transition-all shadow-sm shadow-blue-200 disabled:opacity-50"
               >
                 {parentNotifySending ? '전송 중...' : '전송'}
               </button>
@@ -1721,8 +1721,8 @@ export default function DashboardPage() {
 
       {/* 🔔 호출 확인 모달 */}
       {callConfirmModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <div className="text-center mb-4">
               <div className="text-2xl mb-1">🔔</div>
               <h3 className="font-semibold text-gray-800 text-base">{callConfirmModal.students.name} 학생 호출</h3>
@@ -1756,7 +1756,7 @@ export default function DashboardPage() {
             </div>
             <button
               onClick={() => setCallConfirmModal(null)}
-              className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+              className="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-500 font-medium transition-colors"
             >
               취소
             </button>
@@ -1766,8 +1766,8 @@ export default function DashboardPage() {
 
       {/* 조교 선택 모달 */}
       {callerModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-4 text-center">호출하는 조교 선택</h3>
             <div className="flex flex-col gap-2">
               {CALLERS.map((t) => (
@@ -1792,8 +1792,8 @@ export default function DashboardPage() {
 
       {/* 구두 완료 성적 입력 모달 */}
       {oralDoneModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-gray-800">{oralDoneModal.studentName} 학생</h3>
@@ -1906,13 +1906,13 @@ export default function DashboardPage() {
             <div className="px-6 pb-5 flex gap-2">
               <button
                 onClick={() => setOralDoneModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleOralDoneSubmit}
-                className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-all shadow-sm shadow-emerald-200"
               >
                 저장 & 완료
               </button>
@@ -1923,8 +1923,8 @@ export default function DashboardPage() {
 
       {/* 클리닉 → 수업+클리닉 이동 확인 모달 */}
       {moveToClassClinicModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <div className="text-center mb-4">
               <div className="text-3xl mb-2">🔄</div>
               <h3 className="font-bold text-gray-800 text-base">유형 변경</h3>
@@ -1941,13 +1941,13 @@ export default function DashboardPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setMoveToClassClinicModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleMoveToClassClinic}
-                className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-all shadow-sm shadow-emerald-200"
               >
                 이동 확인
               </button>
@@ -1958,8 +1958,8 @@ export default function DashboardPage() {
 
       {/* 수업+클리닉 → 클리닉 이동 확인 모달 */}
       {moveToClinicModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <div className="text-center mb-4">
               <div className="text-3xl mb-2">🔄</div>
               <h3 className="font-bold text-gray-800 text-base">유형 변경</h3>
@@ -1976,13 +1976,13 @@ export default function DashboardPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setMoveToClinicModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleMoveToClinic}
-                className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold transition-all shadow-sm shadow-blue-200"
               >
                 이동 확인
               </button>
@@ -1995,8 +1995,8 @@ export default function DashboardPage() {
       {maxScoreModal && (() => {
         const weekStart = getThisWeekMonday()
         return (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-gray-800">만점 설정</h3>
@@ -2041,13 +2041,13 @@ export default function DashboardPage() {
               <div className="px-6 pb-5 flex gap-2">
                 <button
                   onClick={() => setMaxScoreModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleSaveMaxScores}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors"
+                  className="flex-1 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold transition-all shadow-sm shadow-blue-200"
                 >
                   저장
                 </button>
@@ -2454,8 +2454,8 @@ function AttendanceRow({
           </button>
         )}
         {showNotesModal && createPortal(
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl">
               <h3 className="font-semibold text-gray-800 mb-1">{record.students.name} 학생</h3>
               <p className="text-xs text-gray-400 mb-4">메모</p>
               {/* 1행: 구두/과제/기타 메모 */}
@@ -2518,13 +2518,13 @@ function AttendanceRow({
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowNotesModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleSaveModal}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors"
+                  className="flex-1 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold transition-all shadow-sm shadow-blue-200"
                 >
                   저장
                 </button>
@@ -2534,7 +2534,7 @@ function AttendanceRow({
           document.body
         )}
         {confirmEdit && createPortal(
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setConfirmEdit(null)}>
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setConfirmEdit(null)}>
             <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
               <p className="font-semibold text-gray-800 mb-1">상속값 수정</p>
               <p className="text-xs text-gray-400 mb-4">이번 주 다른 날 기록에서 가져온 값입니다.<br />수정하면 오늘 기록에 저장됩니다.</p>
@@ -2566,13 +2566,13 @@ function AttendanceRow({
               <div className="flex gap-2">
                 <button
                   onClick={() => setConfirmEdit(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleConfirmEdit}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors"
+                  className="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-all shadow-sm shadow-red-200"
                 >
                   수정
                 </button>

@@ -961,8 +961,8 @@ export default function AdminPage() {
 
               {/* 전체 주차 기타 모달 */}
               {pivotNotesModal && createPortal(
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setPivotNotesModal(null)}>
-                  <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setPivotNotesModal(null)}>
+                  <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-semibold text-gray-800">{pivotNotesModal.name} 학생</h3>
                       <button onClick={() => setPivotNotesModal(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
@@ -990,7 +990,7 @@ export default function AdminPage() {
                     </div>
                     <button
                       onClick={() => setPivotNotesModal(null)}
-                      className="w-full mt-4 py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 font-medium transition-colors"
+                      className="w-full mt-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-600 font-medium transition-colors"
                     >
                       닫기
                     </button>
@@ -1316,7 +1316,7 @@ export default function AdminPage() {
 
       {/* 학기 추가 모달 */}
       {showTermModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-bold text-gray-800">새 학기 추가</h3>
@@ -1505,7 +1505,7 @@ export default function AdminPage() {
 
       {/* 학생 등록 모달 */}
       {showRegisterModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-bold text-gray-800">새 학생 등록</h3>
@@ -1585,13 +1585,13 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={() => { setShowRegisterModal(false); setForm({ name: '', class: '', school: '', oral_type: '', clinic_day: '', phone: '' }); setFormError('') }}
-                    className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 font-medium text-sm text-gray-500 hover:bg-gray-50 transition-colors"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
+                    className="flex-1 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm transition-all shadow-sm shadow-blue-200"
                   >
                     다음 →
                   </button>
@@ -1635,14 +1635,14 @@ export default function AdminPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowRegisterConfirm(false)}
-                    className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 font-medium text-sm text-gray-500 hover:bg-gray-50 transition-colors"
                   >
                     ← 수정
                   </button>
                   <button
                     onClick={handleRegisterSubmit}
                     disabled={formLoading}
-                    className="flex-1 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold text-sm transition-colors"
+                    className="flex-1 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white font-bold text-sm transition-all shadow-sm shadow-blue-200"
                   >
                     {formLoading ? '등록 중...' : '확인 등록'}
                   </button>
@@ -1655,8 +1655,8 @@ export default function AdminPage() {
 
       {/* 사유 입력 모달 */}
       {absenceReasonModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-5 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-1">{absenceReasonModal.name} — {absenceReasonModal.type}</h3>
             <p className="text-xs text-gray-400 mb-4">사유를 입력하면 재등원탭에서 제거되고 주차별 현황에 기록됩니다.</p>
             <textarea
@@ -1870,8 +1870,8 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
           <span className={`text-xs flex-shrink-0 ${notes ? 'text-gray-400 group-hover:text-gray-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
         </button>
         {showNotesModal && createPortal(
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-xl">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
               <h3 className="font-semibold text-gray-800 mb-1">{record.students.name} 학생</h3>
               <p className="text-xs text-gray-400 mb-4">{record.date} · 메모 편집</p>
               <div className="space-y-3">
@@ -1910,14 +1910,14 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
               <div className="flex gap-2 mt-4">
                 <button
                   onClick={() => setShowNotesModal(false)}
-                  className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 font-medium text-sm text-gray-600 hover:bg-gray-50 transition-colors"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleSaveModal}
                   disabled={saving}
-                  className="flex-1 py-2.5 rounded-2xl bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white text-sm font-semibold transition-colors"
+                  className="flex-1 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white text-sm font-bold transition-all shadow-sm shadow-blue-200"
                 >
                   {saving ? '저장 중...' : '저장'}
                 </button>
@@ -1932,7 +1932,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     {/* 수정 모달 */}
     {showEditModal && (
       <tr><td colSpan={99}>
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl w-full max-w-sm shadow-xl">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
@@ -2044,14 +2044,14 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     {/* 수정 확인 모달 */}
     {showEditConfirm && (
       <tr><td colSpan={99}>
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
             <h3 className="font-semibold text-gray-800 mb-2 text-center">정말 수정하시겠습니까?</h3>
             <p className="text-xs text-gray-400 text-center mb-6">{record.students.name} · {record.date}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowEditConfirm(false)}
-                className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 font-medium text-sm text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 취소
               </button>
