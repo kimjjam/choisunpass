@@ -646,35 +646,33 @@ export default function AttendPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F2F3F5] flex flex-col items-center pt-12 pb-24 px-0">
 
       {/* Android 설치 배너 */}
       {installPrompt && (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-4 flex items-center gap-3 max-w-sm mx-auto">
-            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-lg">최</div>
+          <div className="bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3 max-w-sm mx-auto">
+            <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 text-white font-black text-base">최</div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-800">홈 화면에 추가</p>
+              <p className="text-sm font-bold text-gray-900">홈 화면에 추가</p>
               <p className="text-xs text-gray-400">앱처럼 빠르게 열 수 있어요</p>
             </div>
             <div className="flex gap-2 flex-shrink-0">
               <button onClick={dismissAttendBanner} className="text-xs text-gray-400 px-2 py-1.5">나중에</button>
-              <button onClick={handleAttendInstall} className="text-xs bg-blue-600 text-white font-semibold px-3 py-1.5 rounded-xl">추가</button>
+              <button onClick={handleAttendInstall} className="text-xs bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg">추가</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Android 설치 안내 (installPrompt 없을 때) */}
+      {/* Android 설치 안내 */}
       {showAndroidGuide && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/30" onClick={() => setShowAndroidGuide(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-bold text-gray-800">홈 화면에 추가하기</p>
-              <button onClick={() => setShowAndroidGuide(false)} className="text-gray-400 text-lg leading-none">✕</button>
-            </div>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              브라우저 상단의 <span className="font-semibold text-gray-700">⋮ 메뉴</span>를 누른 후<br/>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowAndroidGuide(false)}>
+          <div className="bg-white rounded-t-3xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+            <p className="text-base font-bold text-gray-900 mb-2">홈 화면에 추가하기</p>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              브라우저 상단의 <span className="font-semibold text-gray-700">⋮ 메뉴</span>를 누른 후{' '}
               <span className="font-semibold text-gray-700">"홈 화면에 추가"</span>를 선택해주세요
             </p>
           </div>
@@ -683,14 +681,15 @@ export default function AttendPage() {
 
       {/* iOS 설치 안내 배너 */}
       {showIosGuide && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-4 max-w-sm mx-auto">
+        <div className="fixed bottom-0 left-0 right-0 z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-sm mx-auto p-6 shadow-2xl">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-bold text-gray-800">홈 화면에 추가하기</p>
-              <button onClick={dismissAttendBanner} className="text-gray-400 text-lg leading-none">✕</button>
+              <p className="text-base font-bold text-gray-900">홈 화면에 추가하기</p>
+              <button onClick={dismissAttendBanner} className="text-gray-400 text-xl leading-none">✕</button>
             </div>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              하단의 <span className="text-blue-500 font-semibold">공유</span> 버튼을 누른 후<br/>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              하단의 <span className="text-blue-500 font-semibold">공유</span> 버튼을 누른 후{' '}
               <span className="font-semibold text-gray-700">"홈 화면에 추가"</span>를 선택해주세요
             </p>
           </div>
@@ -699,295 +698,348 @@ export default function AttendPage() {
 
       <div className="w-full max-w-sm">
         {/* 헤더 */}
-        <div className="text-center mb-8">
-          <div className="text-3xl font-bold text-blue-600 mb-1">최선 패스</div>
-          <div className="text-sm text-gray-500">최선어학원 클리닉 출석</div>
+        <div className="text-center px-5 mb-5">
+          <div className="text-2xl font-black text-gray-900 mb-0.5">최선 패스</div>
+          <div className="text-sm text-gray-400">최선어학원 클리닉 출석</div>
         </div>
 
         {/* 코드 입력 화면 */}
         {pageState === 'input' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-1">출석 코드 입력</h2>
-            <p className="text-sm text-gray-500 mb-1">본인의 개인 코드를 입력하세요.</p>
-            <p className="text-xs text-gray-400 mb-5">코드는 전화번호 마지막 4자리거나 중간 4자리입니다.</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                ref={inputRef}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={code}
-                onChange={(e) => {
-                  setCode(e.target.value)
-                  setError('')
-                }}
-                placeholder="코드 입력"
-                maxLength={4}
-                autoFocus
-                className="w-full text-center text-2xl font-bold tracking-[0.5em] border-2 border-gray-200 rounded-xl py-4 focus:border-blue-500 focus:outline-none transition-colors"
-              />
-              {error && (
-                <p className="text-sm text-red-500 text-center">{error}</p>
-              )}
-              <button
-                type="submit"
-                disabled={loading || !code.trim()}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-3.5 rounded-xl transition-colors text-base"
-              >
-                {loading ? '확인 중...' : '출석 요청'}
-              </button>
-            </form>
+          <div className="bg-white">
+            <div className="px-5 pt-6 pb-7">
+              <h2 className="text-lg font-bold text-gray-900 mb-1">출석 코드 입력</h2>
+              <p className="text-sm text-gray-400 mb-6">전화번호 마지막 또는 중간 4자리를 입력하세요</p>
+              <form onSubmit={handleSubmit}>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={code}
+                  onChange={(e) => { setCode(e.target.value); setError('') }}
+                  placeholder="0000"
+                  maxLength={4}
+                  autoFocus
+                  className="w-full text-center text-4xl font-black tracking-[0.5em] bg-[#F2F3F5] rounded-xl py-5 focus:outline-none placeholder:text-gray-300 placeholder:tracking-[0.5em] mb-4"
+                />
+                {error && <p className="text-sm text-red-500 text-center mb-3">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={loading || !code.trim()}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-4 rounded-xl text-base transition-colors"
+                >
+                  {loading ? '확인 중...' : '출석 요청'}
+                </button>
+              </form>
+            </div>
           </div>
         )}
 
         {/* 승인 대기 화면 */}
         {pageState === 'pending' && student && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-yellow-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+          <div className="bg-white">
+            <div className="px-5 pt-8 pb-7 text-center">
+              <div className="w-16 h-16 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-5">
+                <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-400 mb-0.5">{student.class}</p>
+              <h2 className="text-xl font-black text-gray-900 mb-1">{student.name} 학생</h2>
+              <p className="text-2xl font-black text-yellow-500 mb-3">승인 대기 중</p>
+              <p className="text-sm text-gray-400 leading-relaxed mb-6">
+                조교 선생님이 확인 중이에요<br />잠시만 기다려주세요
+              </p>
+              <div className="flex justify-center gap-2 mb-6">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
             </div>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">{student.name} 학생</h2>
-            <p className="text-2xl font-bold text-yellow-600 mb-2">승인 대기 중</p>
-            <p className="text-sm text-gray-500 mb-6">조교 선생님께서 확인 중입니다.<br />잠시만 기다려주세요.</p>
-            <div className="flex justify-center gap-1.5 mb-2">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce"
-                  style={{ animationDelay: `${i * 0.15}s` }}
-                />
-              ))}
+            <div className="h-2.5 bg-[#F2F3F5]" />
+            <div className="px-5 py-5 text-center">
+              <button onClick={handleCancelPending} className="text-sm text-gray-400 hover:text-red-400 transition-colors">
+                출석 취소
+              </button>
             </div>
-            <p className="text-xs text-gray-400 mt-4">{student.class}</p>
-            <button
-              onClick={handleCancelPending}
-              className="mt-4 text-sm text-gray-400 hover:text-red-400 underline transition-colors"
-            >
-              출석 취소
-            </button>
           </div>
         )}
 
         {/* 승인 완료 화면 */}
         {pageState === 'approved' && student && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-9 h-9 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">{student.name} 학생</h2>
-            <p className="text-2xl font-bold text-green-600 mb-2">출석 완료!</p>
-            <p className="text-sm text-gray-500 mb-4">
-              등원이 확인되었습니다.<br />오늘도 열심히 해봐요!
-            </p>
-            {(attendance?.approved_at || attendance?.rechecked_in_at) && (
-              <p className="text-xs text-gray-400 mb-4 space-y-0.5">
-                {attendance.approved_at && (
-                  <span className="block">등원: {new Date(attendance.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
-                )}
-                {attendance.rechecked_in_at && (
-                  <span className="block text-blue-400">재등원: {new Date(attendance.rechecked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>
-                )}
-              </p>
-            )}
-
-            {/* 미완료 항목 버튼 */}
-            {incompleteItems && (
-              <button
-                onClick={() => setIncompleteModal(incompleteItems)}
-                className="w-full flex items-center justify-center gap-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-600 text-sm font-medium py-2.5 rounded-xl transition-colors mb-3"
-              >
-                <span className="text-base">⚠️</span>
-                미완료 항목 확인
-              </button>
-            )}
-
-            {/* 대기 등록 */}
-            {!oralQueue && (
-              <button
-                onClick={() => setShowQueueTypeModal(true)}
-                className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-xl transition-colors text-base mb-3"
-              >
-                대기 등록
-              </button>
-            )}
-            {oralQueue && oralQueue.status === 'waiting' && (
-              <div className={`border rounded-xl p-4 mb-3 ${oralQueue.type === 'homework_check' ? 'bg-pink-50 border-pink-100' : 'bg-purple-50 border-purple-100'}`}>
-                <p className={`text-sm font-medium mb-1 ${oralQueue.type === 'homework_check' ? 'text-pink-600' : 'text-purple-600'}`}>
-                  {oralQueue.type === 'homework_check' ? '숙제검사 대기 중' : '구두 대기 중'}
+          <div className="bg-white">
+            {/* 상태 헤더 */}
+            <div className="px-5 pt-8 pb-6 text-center">
+              <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-400 mb-0.5">{student.name} 학생</p>
+              <h2 className="text-2xl font-black text-gray-900 mb-1">출석 완료</h2>
+              <p className="text-sm text-gray-400">등원이 확인되었어요. 오늘도 화이팅!</p>
+              {(attendance?.approved_at || attendance?.rechecked_in_at) && (
+                <p className="text-xs text-gray-300 mt-1.5">
+                  {attendance?.approved_at && `등원 ${new Date(attendance.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`}
+                  {attendance?.rechecked_in_at && ` · 재등원 ${new Date(attendance.rechecked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`}
                 </p>
-                <p className={`text-3xl font-bold mb-1 ${oralQueue.type === 'homework_check' ? 'text-pink-700' : 'text-purple-700'}`}>{queuePosition}번째</p>
-                <p className={`text-xs mb-3 ${oralQueue.type === 'homework_check' ? 'text-pink-400' : 'text-purple-400'}`}>호출되면 알려드릴게요</p>
+              )}
+            </div>
+
+            {/* 정보 섹션 */}
+            {(incompleteItems || !oralQueue || (oralQueue && oralQueue.status === 'waiting') || (attendance?.next_clinic_date && attendance.visit_type === 'clinic')) && (
+              <>
+                <div className="h-2.5 bg-[#F2F3F5]" />
+                <div className="px-5 py-4 space-y-2">
+                  {/* 미완료 항목 */}
+                  {incompleteItems && (
+                    <button
+                      onClick={() => setIncompleteModal(incompleteItems)}
+                      className="w-full flex items-center gap-3 bg-orange-50 rounded-xl px-4 py-3.5 text-left"
+                    >
+                      <span className="text-orange-400 text-lg flex-shrink-0">⚠</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-orange-700">미완료 항목이 있어요</p>
+                        <p className="text-xs text-orange-400 mt-0.5">탭해서 확인하기</p>
+                      </div>
+                      <svg className="w-4 h-4 text-orange-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* 대기 등록 */}
+                  {!oralQueue && (
+                    <button
+                      onClick={() => setShowQueueTypeModal(true)}
+                      className="w-full flex items-center gap-3 bg-purple-50 rounded-xl px-4 py-3.5 text-left"
+                    >
+                      <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4.5 h-4.5 text-purple-500 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-bold text-purple-700 flex-1">대기 등록</p>
+                      <svg className="w-4 h-4 text-purple-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* 대기 현황 */}
+                  {oralQueue && oralQueue.status === 'waiting' && (
+                    <div className={`flex items-center gap-3 rounded-xl px-4 py-3.5 ${oralQueue.type === 'homework_check' ? 'bg-pink-50' : 'bg-purple-50'}`}>
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${oralQueue.type === 'homework_check' ? 'bg-pink-100' : 'bg-purple-100'}`}>
+                        <span className={`text-sm font-black ${oralQueue.type === 'homework_check' ? 'text-pink-600' : 'text-purple-600'}`}>{queuePosition}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-xs mb-0.5 ${oralQueue.type === 'homework_check' ? 'text-pink-400' : 'text-purple-400'}`}>
+                          {oralQueue.type === 'homework_check' ? '숙제검사' : '구두'} 대기 중
+                        </p>
+                        <p className={`text-sm font-bold ${oralQueue.type === 'homework_check' ? 'text-pink-700' : 'text-purple-700'}`}>
+                          {queuePosition}번째 차례예요
+                        </p>
+                      </div>
+                      <button onClick={handleLeaveQueue} className="text-xs text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
+                        취소
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 다음 클리닉 날짜 */}
+                  {attendance?.next_clinic_date && attendance.visit_type === 'clinic' && (
+                    <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3.5">
+                      <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs text-blue-400 mb-0.5">다음 클리닉</p>
+                        <p className="text-sm font-bold text-blue-700">{attendance.next_clinic_date}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* 액션 섹션 */}
+            <div className="h-2.5 bg-[#F2F3F5]" />
+            <div className="px-5 pt-5 pb-6 space-y-2.5">
+              {!canCheckOut && (
+                <p className="text-xs text-center text-gray-400 pb-1">조교 선생님 확인 후 하원할 수 있어요</p>
+              )}
+              <button
+                onClick={handleCheckOut}
+                disabled={!canCheckOut}
+                className={`w-full py-4 rounded-xl font-bold text-base transition-colors ${
+                  canCheckOut
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                }`}
+              >
+                하원할게요
+              </button>
+              {/* 다음에 올게요: next_clinic_date 없을 때 + 하원취소로 인해 class_clinic인데 next_clinic_date만 남은 비정상 상태도 포함 */}
+              {(!attendance?.next_clinic_date || (attendance.visit_type === 'class_clinic' && !attendance.checked_out_at)) && (
                 <button
-                  onClick={handleLeaveQueue}
-                  className="text-xs text-gray-400 hover:text-red-400 underline transition-colors"
+                  onClick={() => {
+                    if (attendance?.next_clinic_date) setNextClinicDate(attendance.next_clinic_date)
+                    setShowNextClinicModal(true)
+                  }}
+                  className="w-full py-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-sm transition-colors"
                 >
-                  대기 취소
+                  다음에 올게요
+                </button>
+              )}
+              <div className="text-center pt-1">
+                <button onClick={handleReset} className="text-sm text-gray-300 hover:text-gray-500 transition-colors">
+                  처음으로
                 </button>
               </div>
-            )}
-
-            {/* 다음에 올게요 - 조교확인 대기 중 */}
-            {attendance?.next_clinic_date && attendance.visit_type === 'clinic' && (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3 text-xs text-blue-600">
-                다음 클리닉: <span className="font-bold">{attendance.next_clinic_date}</span><br />
-                조교 선생님 확인 후 하원 처리됩니다.
-              </div>
-            )}
-
-            {!canCheckOut && (
-              <p className="text-xs text-orange-500 bg-orange-50 rounded-xl py-2 px-3 mb-3">
-                조교 선생님의 확인이 완료되면 하원 버튼이 활성화됩니다.
-              </p>
-            )}
-            <button
-              onClick={handleCheckOut}
-              disabled={!canCheckOut}
-              className={`w-full font-semibold py-3.5 rounded-xl transition-colors text-base mb-3 ${
-                canCheckOut
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              하원할게요
-            </button>
-            {/* 다음에 올게요: next_clinic_date 없을 때 + 하원취소로 인해 class_clinic인데 next_clinic_date만 남은 비정상 상태도 포함 */}
-            {(!attendance?.next_clinic_date || (attendance.visit_type === 'class_clinic' && !attendance.checked_out_at)) && (
-              <button
-                onClick={() => {
-                  if (attendance?.next_clinic_date) setNextClinicDate(attendance.next_clinic_date)
-                  setShowNextClinicModal(true)
-                }}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-3 rounded-xl transition-colors text-sm mb-3"
-              >
-                다음에 올게요
-              </button>
-            )}
-            <button
-              onClick={handleReset}
-              className="text-sm text-gray-400 hover:text-gray-600 underline transition-colors"
-            >
-              처음으로
-            </button>
+            </div>
           </div>
         )}
 
         {/* 하원 완료 화면 */}
         {pageState === 'checked_out' && student && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-9 h-9 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">{student.name} 학생</h2>
-            <p className="text-2xl font-bold text-indigo-600 mb-2">하원 완료!</p>
-            <p className="text-sm text-gray-500 mb-4">
-              오늘도 수고했어요!<br />다음 수업 때 만나요! 😊
-            </p>
-            {attendance?.checked_out_at && (
-              <div className="bg-indigo-50 rounded-xl p-3 mb-4 text-xs text-indigo-600 space-y-1">
-                {attendance.approved_at && (
-                  <div>등원: {new Date(attendance.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
-                )}
-                {attendance.rechecked_in_at && (
-                  <div>재등원: {new Date(attendance.rechecked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
-                )}
-                <div>하원: {new Date(attendance.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
+          <div className="bg-white">
+            <div className="px-5 pt-8 pb-6 text-center">
+              <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
               </div>
+              <p className="text-sm text-gray-400 mb-0.5">{student.name} 학생</p>
+              <h2 className="text-2xl font-black text-gray-900 mb-1">하원 완료</h2>
+              <p className="text-sm text-gray-400">오늘도 수고했어요!</p>
+            </div>
+
+            {attendance?.checked_out_at && (
+              <>
+                <div className="h-2.5 bg-[#F2F3F5]" />
+                <div className="px-5 py-1">
+                  {attendance.approved_at && (
+                    <div className="flex items-center justify-between py-4 border-b border-[#F2F3F5]">
+                      <span className="text-sm text-gray-400">등원</span>
+                      <span className="text-sm font-bold text-gray-700">
+                        {new Date(attendance.approved_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  {attendance.rechecked_in_at && (
+                    <div className="flex items-center justify-between py-4 border-b border-[#F2F3F5]">
+                      <span className="text-sm text-gray-400">재등원</span>
+                      <span className="text-sm font-bold text-blue-500">
+                        {new Date(attendance.rechecked_in_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between py-4">
+                    <span className="text-sm text-gray-400">하원</span>
+                    <span className="text-sm font-bold text-indigo-600">
+                      {new Date(attendance.checked_out_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              </>
             )}
-            <button
-              onClick={() => setShowReCheckInModal(true)}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors text-base mb-3"
-            >
-              재등원
-            </button>
-            <button
-              onClick={handleReset}
-              className="text-sm text-gray-400 hover:text-gray-600 underline transition-colors"
-            >
-              처음으로
-            </button>
+
+            <div className="h-2.5 bg-[#F2F3F5]" />
+            <div className="px-5 pt-5 pb-6 space-y-2.5">
+              <button
+                onClick={() => setShowReCheckInModal(true)}
+                className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base transition-colors"
+              >
+                재등원
+              </button>
+              <div className="text-center pt-1">
+                <button onClick={handleReset} className="text-sm text-gray-300 hover:text-gray-500 transition-colors">
+                  처음으로
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
         {/* 거절 화면 */}
         {pageState === 'rejected' && student && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-9 h-9 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-bold text-gray-800 mb-1">{student.name} 학생</h2>
-            <p className="text-2xl font-bold text-red-600 mb-2">출석 거절</p>
-            {attendance?.reject_reason ? (
-              <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-5">
-                <p className="text-sm text-red-700">{attendance.reject_reason}</p>
+          <div className="bg-white">
+            <div className="px-5 pt-8 pb-6 text-center">
+              <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </div>
-            ) : (
-              <p className="text-sm text-gray-500 mb-5">조교 선생님께 문의해주세요.</p>
-            )}
-            <button
-              onClick={handleReset}
-              className="w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3.5 rounded-xl transition-colors text-base"
-            >
-              다시 시도
-            </button>
+              <p className="text-sm text-gray-400 mb-0.5">{student.name} 학생</p>
+              <h2 className="text-2xl font-black text-gray-900 mb-1">출석 거절</h2>
+              {attendance?.reject_reason ? (
+                <p className="text-sm text-gray-500 mt-1">{attendance.reject_reason}</p>
+              ) : (
+                <p className="text-sm text-gray-400 mt-1">조교 선생님께 문의해주세요</p>
+              )}
+            </div>
+            <div className="h-2.5 bg-[#F2F3F5]" />
+            <div className="px-5 pt-5 pb-6">
+              <button
+                onClick={handleReset}
+                className="w-full py-4 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-base transition-colors"
+              >
+                다시 시도
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* 재등원 확인 모달 */}
+      {/* 재등원 확인 모달 — bottom sheet */}
       {showReCheckInModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl text-center">
-            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-sm shadow-2xl">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
-            <h3 className="font-bold text-gray-800 text-base mb-2">재등원 확인</h3>
-            <p className="text-sm text-gray-500 mb-6">정말 학원에 다시 방문했나요?</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowReCheckInModal(false)}
-                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => { setShowReCheckInModal(false); handleReCheckIn() }}
-                className="flex-1 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold transition-colors"
-              >
-                네, 방문했어요
-              </button>
+            <div className="px-5 pt-4 pb-6">
+              <h3 className="font-black text-gray-900 text-lg mb-1 text-center">재등원 확인</h3>
+              <p className="text-sm text-gray-400 mb-6 text-center">정말 학원에 다시 방문했나요?</p>
+              <div className="flex gap-2.5">
+                <button
+                  onClick={() => setShowReCheckInModal(false)}
+                  className="flex-1 py-4 rounded-xl bg-gray-100 text-sm text-gray-600 font-bold"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => { setShowReCheckInModal(false); handleReCheckIn() }}
+                  className="flex-1 py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors"
+                >
+                  네, 방문했어요
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 미완료 항목 안내 모달 */}
+      {/* 미완료 항목 모달 — bottom sheet */}
       {incompleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl">
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-sm shadow-2xl max-h-[80vh] flex flex-col">
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
-            <h3 className="font-bold text-gray-800 text-center mb-1">미완료 항목 안내</h3>
-            <p className="text-xs text-gray-400 text-center mb-4">아직 완료되지 않은 항목이 있어요</p>
-            <div className="space-y-3">
+            <div className="px-5 pt-4 pb-2 flex-shrink-0">
+              <h3 className="font-black text-gray-900 text-lg mb-0.5 text-center">미완료 항목</h3>
+              <p className="text-xs text-gray-400 text-center mb-4">아직 완료되지 않은 항목이 있어요</p>
+            </div>
+            <div className="px-5 overflow-y-auto flex-1 space-y-2.5 pb-2">
               {incompleteModal.map((week) => (
-                <div key={week.label} className="bg-orange-50 rounded-xl p-3">
-                  <p className="text-xs font-semibold text-orange-600 mb-1.5">{week.label}</p>
-                  <ul className="space-y-0.5">
+                <div key={week.label} className="bg-[#F2F3F5] rounded-xl p-4">
+                  <p className="text-xs font-bold text-gray-500 mb-2">{week.label}</p>
+                  <ul className="space-y-1.5">
                     {week.fields.map((f) => (
-                      <li key={f} className="text-xs text-gray-600 flex items-center gap-1.5">
+                      <li key={f} className="text-sm text-gray-700 flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
                         {f}
                       </li>
@@ -996,132 +1048,154 @@ export default function AttendPage() {
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => setIncompleteModal(null)}
-              className="w-full mt-4 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors"
-            >
-              확인했어요
-            </button>
+            <div className="px-5 pt-4 pb-6 flex-shrink-0">
+              <button
+                onClick={() => setIncompleteModal(null)}
+                className="w-full py-4 rounded-xl bg-gray-900 text-white text-sm font-bold"
+              >
+                확인했어요
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* visit_type 선택 모달 */}
+      {/* visit_type 선택 모달 — bottom sheet */}
       {showVisitTypeModal && student && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl">
-            <h3 className="font-bold text-gray-800 text-center text-lg mb-1">{student.name} 학생</h3>
-            <p className="text-sm text-gray-500 text-center mb-6">오늘 방문 목적을 선택하세요</p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => handleVisitTypeSelect('class_clinic')}
-                className="py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base transition-colors"
-              >
-                수업 + 클리닉
-              </button>
-              <button
-                onClick={() => handleVisitTypeSelect('clinic')}
-                className="py-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-base transition-colors"
-              >
-                클리닉만
-              </button>
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-sm shadow-2xl">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
-            <button
-              onClick={() => { setShowVisitTypeModal(false); setStudent(null); setPendingStudentData(null) }}
-              className="w-full mt-3 py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              취소
-            </button>
+            <div className="px-5 pt-4 pb-6">
+              <h3 className="font-black text-gray-900 text-lg mb-0.5 text-center">{student.name} 학생</h3>
+              <p className="text-sm text-gray-400 text-center mb-6">오늘 방문 목적을 선택해주세요</p>
+              <div className="flex flex-col gap-2.5">
+                <button
+                  onClick={() => handleVisitTypeSelect('class_clinic')}
+                  className="py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base transition-colors"
+                >
+                  수업 + 클리닉
+                </button>
+                <button
+                  onClick={() => handleVisitTypeSelect('clinic')}
+                  className="py-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-base transition-colors"
+                >
+                  클리닉만
+                </button>
+                <button
+                  onClick={() => { setShowVisitTypeModal(false); setStudent(null); setPendingStudentData(null) }}
+                  className="py-3 text-sm text-gray-400 font-medium"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 대기 타입 선택 모달 */}
+      {/* 대기 타입 선택 모달 — bottom sheet */}
       {showQueueTypeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl text-center">
-            <h3 className="font-bold text-gray-800 text-lg mb-1">대기 등록</h3>
-            <p className="text-sm text-gray-400 mb-6">어떤 대기를 등록할까요?</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleJoinQueue('oral')}
-                className="flex-1 py-4 rounded-2xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-base transition-colors"
-              >
-                구두
-              </button>
-              <button
-                onClick={() => handleJoinQueue('homework_check')}
-                className="flex-1 py-4 rounded-2xl bg-pink-500 hover:bg-pink-600 text-white font-bold text-base transition-colors"
-              >
-                숙제검사
-              </button>
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-sm shadow-2xl">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
-            <button
-              onClick={() => setShowQueueTypeModal(false)}
-              className="mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              취소
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 다음에 올게요 모달 */}
-      {showNextClinicModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl">
-            <h3 className="font-bold text-gray-800 text-center text-lg mb-1">다음에 올게요</h3>
-            <p className="text-sm text-gray-500 text-center mb-5">다음 클리닉 날짜를 입력해주세요</p>
-            <input
-              type="date"
-              value={nextClinicDate}
-              onChange={(e) => setNextClinicDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-              className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-blue-400 mb-4"
-            />
-            {attendance?.visit_type === 'clinic' && (
-              <p className="text-xs text-orange-500 bg-orange-50 rounded-lg p-2 mb-4">
-                클리닉 학생은 조교 선생님 확인 후 하원 처리됩니다.
-              </p>
-            )}
-            <div className="flex gap-2">
+            <div className="px-5 pt-4 pb-6">
+              <h3 className="font-black text-gray-900 text-lg mb-0.5 text-center">대기 등록</h3>
+              <p className="text-sm text-gray-400 text-center mb-6">어떤 대기를 등록할까요?</p>
+              <div className="flex gap-2.5 mb-2.5">
+                <button
+                  onClick={() => handleJoinQueue('oral')}
+                  className="flex-1 py-5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-base transition-colors"
+                >
+                  구두
+                </button>
+                <button
+                  onClick={() => handleJoinQueue('homework_check')}
+                  className="flex-1 py-5 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-bold text-base transition-colors"
+                >
+                  숙제검사
+                </button>
+              </div>
               <button
-                onClick={() => { setShowNextClinicModal(false); setNextClinicDate('') }}
-                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600"
+                onClick={() => setShowQueueTypeModal(false)}
+                className="w-full py-3 text-sm text-gray-400 font-medium"
               >
                 취소
               </button>
-              <button
-                onClick={handleNextClinic}
-                disabled={!nextClinicDate || nextClinicLoading}
-                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-sm font-semibold transition-colors"
-              >
-                {nextClinicLoading ? '처리 중...' : '확인'}
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 수업/하원 선택 모달 (class_clinic 다음에 올게요 후) */}
+      {/* 다음에 올게요 모달 — bottom sheet */}
+      {showNextClinicModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-sm shadow-2xl">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
+            <div className="px-5 pt-4 pb-6">
+              <h3 className="font-black text-gray-900 text-lg mb-0.5 text-center">다음에 올게요</h3>
+              <p className="text-sm text-gray-400 text-center mb-5">다음 클리닉 날짜를 선택해주세요</p>
+              <input
+                type="date"
+                value={nextClinicDate}
+                onChange={(e) => setNextClinicDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full bg-[#F2F3F5] rounded-xl px-4 py-3.5 text-sm focus:outline-none mb-3"
+              />
+              {attendance?.visit_type === 'clinic' && (
+                <p className="text-xs text-gray-400 bg-[#F2F3F5] rounded-xl p-3 mb-4">
+                  클리닉 학생은 조교 선생님 확인 후 하원 처리돼요
+                </p>
+              )}
+              <div className="flex gap-2.5">
+                <button
+                  onClick={() => { setShowNextClinicModal(false); setNextClinicDate('') }}
+                  className="flex-1 py-4 rounded-xl bg-gray-100 text-sm text-gray-600 font-bold"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleNextClinic}
+                  disabled={!nextClinicDate || nextClinicLoading}
+                  className="flex-1 py-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-300 text-white text-sm font-bold transition-colors"
+                >
+                  {nextClinicLoading ? '처리 중...' : '확인'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 수업/하원 선택 모달 — bottom sheet */}
       {showNextClinicActionModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-2xl text-center">
-            <h3 className="font-bold text-gray-800 text-lg mb-1">오늘 어떻게 하실 건가요?</h3>
-            <p className="text-sm text-gray-400 mb-6">클리닉 날짜가 저장되었습니다</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowNextClinicActionModal(false)}
-                className="flex-1 py-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-base transition-colors"
-              >
-                수업있어요
-              </button>
-              <button
-                onClick={handleNextClinicCheckOut}
-                className="flex-1 py-4 rounded-2xl bg-gray-700 hover:bg-gray-800 text-white font-bold text-base transition-colors"
-              >
-                하원할게요
-              </button>
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-3xl w-full max-w-sm shadow-2xl">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
+            <div className="px-5 pt-4 pb-6">
+              <h3 className="font-black text-gray-900 text-lg mb-0.5 text-center">오늘 어떻게 하실 건가요?</h3>
+              <p className="text-sm text-gray-400 text-center mb-6">클리닉 날짜가 저장되었어요</p>
+              <div className="flex gap-2.5">
+                <button
+                  onClick={() => setShowNextClinicActionModal(false)}
+                  className="flex-1 py-5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-base transition-colors"
+                >
+                  수업있어요
+                </button>
+                <button
+                  onClick={handleNextClinicCheckOut}
+                  className="flex-1 py-5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-base transition-colors"
+                >
+                  하원할게요
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1129,37 +1203,38 @@ export default function AttendPage() {
 
       {/* 구두 호출 모달 */}
       {showCalledModal && student && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center shadow-2xl">
-            <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-5">
+        <div className="fixed inset-0 bg-purple-900/80 flex items-center justify-center z-50 p-5">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl">
+            <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-5 animate-pulse">
               <svg className="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">{student.name} 학생</h2>
-            <p className="text-3xl font-bold text-purple-600 mb-3">지금 오세요!</p>
+            <p className="text-sm text-gray-400 mb-0.5">{student.name} 학생</p>
+            <p className="text-3xl font-black text-purple-600 mb-3">지금 오세요!</p>
             {oralQueue?.caller ? (
               <p className="text-sm text-gray-500 mb-6">
-                <span className="font-bold text-purple-700">{oralQueue.caller}</span> 님이 호출했습니다.<br />조교님께 가주세요.
+                <span className="font-bold text-purple-700">{oralQueue.caller}</span> 님이 호출했어요<br />조교님께 가주세요
               </p>
             ) : (
-              <p className="text-sm text-gray-500 mb-6">구두 테스트 차례입니다.<br />조교 선생님께 가주세요.</p>
+              <p className="text-sm text-gray-500 mb-6">구두 테스트 차례예요<br />조교 선생님께 가주세요</p>
             )}
             <button
               onClick={() => setShowCalledModal(false)}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3.5 rounded-xl transition-colors"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl transition-colors"
             >
               확인
             </button>
           </div>
         </div>
       )}
-      {/* 홈화면 추가 버튼 - standalone이 아닐 때 항상 표시 */}
+
+      {/* 홈화면 추가 버튼 */}
       {!isStandalone && (
-        <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-40">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
           <button
             onClick={installPrompt ? handleAttendInstall : isIos ? () => setShowIosGuide(true) : () => setShowAndroidGuide(true)}
-            className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-full border border-gray-200 bg-white/80 backdrop-blur-sm transition-colors whitespace-nowrap"
+            className="text-xs text-gray-400 hover:text-gray-600 px-4 py-2 rounded-full border border-gray-200 bg-white/90 backdrop-blur-sm transition-colors whitespace-nowrap shadow-sm"
           >
             + 홈화면에 추가
           </button>

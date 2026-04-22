@@ -254,6 +254,10 @@ limit 20;
 
 ## 최근 변경 이력
 
+### [2026-04-22] AttendPage 카카오뱅크 스타일 UI 리디자인
+- `src/pages/AttendPage.tsx` — 배경 `#F2F3F5`, 카드 flat white + `h-2.5` 두꺼운 divider로 섹션 구분
+- 모든 모달 center popup → bottom sheet(`rounded-t-3xl` + 핸들바) 통일, 버튼 계층 명확화
+
 ### [2026-04-22] ParentsPage 한눈에 보이도록 UI 컴팩트화
 - `src/pages/ParentsPage.tsx` — 결과 있을 때 상단 로고 축소(w-10, 헤딩 숨김), 페이지 패딩 py-3으로 축소
 - 카드 헤더 pt-6 pb-5, 학생명 1.5rem, 타이밍 카드 py-2.5, 학습결과 행 py-2.5, 버튼 py-2.5로 전반적 여백 축소
