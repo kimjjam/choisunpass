@@ -2658,7 +2658,7 @@ function AttendanceRow({
                 onClick={onMoveToClassClinic}
                 className="text-xs px-2 py-0.5 rounded-md bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-800 transition-colors whitespace-nowrap border border-green-200"
               >
-                수업+클리닉↑
+                수업+클리닉▶
               </button>
             )}
             {onMoveToClinic && record.visit_type === 'class_clinic' && !record.checked_out_at && (
@@ -2666,7 +2666,7 @@ function AttendanceRow({
                 onClick={onMoveToClinic}
                 className="text-xs px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-800 transition-colors whitespace-nowrap border border-blue-200"
               >
-                클리닉↓
+                ◀클리닉
               </button>
             )}
           </div>
