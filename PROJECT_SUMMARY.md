@@ -254,6 +254,10 @@ limit 20;
 
 ## 최근 변경 이력
 
+### [2026-04-22] DashboardPage Toss/카카오뱅크 스타일 UI 리디자인
+- `src/pages/DashboardPage.tsx` — 헤더 sticky + shadow-md, StatPill 카드형(숫자 굵게+컬러 그림자), 탭 전체 iOS segmented control 스타일로 통합(구두대기·수업미출석도 탭 바로 이동)
+- 테이블 컨테이너 rounded-3xl/shadow-md, 필터 바 탭 아래 별도 줄로 분리, 전체 배경 bg-slate-50
+
 ### [2026-04-22] AttendPage 카카오뱅크 스타일 UI 리디자인
 - `src/pages/AttendPage.tsx` — 배경 `#F2F3F5`, 카드 flat white + `h-2.5` 두꺼운 divider로 섹션 구분
 - 모든 모달 center popup → bottom sheet(`rounded-t-3xl` + 핸들바) 통일, 버튼 계층 명확화
