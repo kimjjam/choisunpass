@@ -485,7 +485,7 @@ export default function ParentsPage() {
               <div className="absolute -left-10 top-20 h-40 w-40 rounded-full bg-white/10" />
               <div className="absolute -right-8 top-0 h-28 w-28 rounded-full bg-white/10" />
 
-              <div className="relative mx-auto mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/18 px-1 text-xs font-semibold leading-tight text-white">
+              <div className="relative mx-auto mb-3 inline-flex items-center justify-center rounded-full bg-white/18 px-3 py-1 text-xs font-semibold whitespace-nowrap text-white">
                 {record.students.school}
               </div>
               <h2 className="relative text-[1.5rem] font-bold leading-none">{record.students.name} 학생</h2>
@@ -544,6 +544,16 @@ export default function ParentsPage() {
                 ))}
               </div>
 
+              {record.next_clinic_date && (
+                <div className="mt-3 flex items-center gap-3 rounded-[16px] border border-indigo-100 bg-indigo-50 px-3 py-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-white text-sm shadow-sm flex-shrink-0">📅</span>
+                  <div>
+                    <p className="text-xs font-semibold text-indigo-500">재등원 예정</p>
+                    <p className="text-sm font-bold text-indigo-900">{record.next_clinic_date}</p>
+                  </div>
+                </div>
+              )}
+
               {historyRecords.length > 0 && (
                 <button
                   onClick={() => setShowHistory(true)}
@@ -552,13 +562,6 @@ export default function ParentsPage() {
                   📋 지난 기록 <span className="text-slate-400">({historyRecords.length}건)</span>
                 </button>
               )}
-
-              <button
-                onClick={handleChangeCode}
-                className="mt-2.5 w-full rounded-[18px] border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-400 shadow-[0_6px_18px_rgba(15,23,42,0.04)] hover:bg-slate-50 transition-colors"
-              >
-                학생코드 입력
-              </button>
             </div>
           </div>
 
@@ -585,17 +588,12 @@ export default function ParentsPage() {
             </div>
           )}
 
-          {record.next_clinic_date && (
-            <div className="rounded-[20px] border border-indigo-100 bg-indigo-50 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
-              <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-base shadow-sm">📅</span>
-                <div>
-                  <p className="text-xs font-semibold text-indigo-500">재등원 예정</p>
-                  <p className="text-base font-bold text-indigo-900">{record.next_clinic_date}</p>
-                </div>
-              </div>
-            </div>
-          )}
+          <button
+            onClick={handleChangeCode}
+            className="w-full rounded-[18px] border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-400 shadow-[0_6px_18px_rgba(15,23,42,0.04)] hover:bg-slate-50 transition-colors"
+          >
+            학생코드 입력
+          </button>
         </div>
       )}
 
