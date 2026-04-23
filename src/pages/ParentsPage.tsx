@@ -8,8 +8,23 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-function getToday() {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
+function getThisWeekBounds() {
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const day = kst.getUTCDay() // 0=일
+  const diffToMon = day === 0 ? -6 : 1 - day
+  const mon = new Date(kst)
+  mon.setUTCDate(kst.getUTCDate() + diffToMon)
+  const sun = new Date(mon)
+  sun.setUTCDate(mon.getUTCDate() + 6)
+  const fmt = (d: Date) => d.toISOString().split('T')[0]
+  return { weekStart: fmt(mon), weekEnd: fmt(sun) }
+}
+
+function formatDateFull(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const days = ['일', '월', '화', '수', '목', '금', '토']
+  return `${y}년 ${m}월 ${d}일 ${days[date.getDay()]}요일`
 }
 
 function formatTime(iso: string | null) {
@@ -261,31 +276,33 @@ export default function ParentsPage() {
     setSavedStudentName(student.name)
     subscribePush(student.id)
 
-    const today = getToday()
+    const { weekStart, weekEnd } = getThisWeekBounds()
 
-    // 오늘 기록 + 전체 히스토리 병렬 조회
-    const [{ data: att }, { data: history }] = await Promise.all([
-      supabase
-        .from('attendances')
-        .select('*, students(*)')
-        .eq('student_id', student.id)
-        .eq('date', today)
-        .eq('status', 'approved')
-        .order('checked_in_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    // 이번 주 기록 + 지난 기록 병렬 조회
+    const [{ data: thisWeek }, { data: pastHistory }] = await Promise.all([
       supabase
         .from('attendances')
         .select('*, students(*)')
         .eq('student_id', student.id)
         .eq('status', 'approved')
-        .neq('date', today)
+        .gte('date', weekStart)
+        .lte('date', weekEnd)
+        .order('date', { ascending: false }),
+      supabase
+        .from('attendances')
+        .select('*, students(*)')
+        .eq('student_id', student.id)
+        .eq('status', 'approved')
+        .lt('date', weekStart)
         .order('date', { ascending: false }),
     ])
 
+    const thisWeekRecords = thisWeek ?? []
+    const mainRecord = thisWeekRecords[0] ?? null
+
     setLoading(false)
-    setRecord(att ?? 'notfound')
-    setHistoryRecords(history ?? [])
+    setRecord(mainRecord ?? 'notfound')
+    setHistoryRecords([...thisWeekRecords.slice(1), ...(pastHistory ?? [])])
   }
 
   async function handleSubmit() {
@@ -413,7 +430,7 @@ export default function ParentsPage() {
       {!loading && !record && (
         /* 코드 입력 카드 */
         <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8">
-          <h2 className="text-lg font-bold text-gray-800 text-center mb-1">오늘 수업 확인</h2>
+          <h2 className="text-lg font-bold text-gray-800 text-center mb-1">이번 주 수업 확인</h2>
           <p className="text-sm text-gray-400 text-center mb-8">{today}</p>
           <p className="text-sm font-medium text-gray-600 text-center mb-4">학생 코드 4자리를 입력해주세요</p>
           <div className="flex gap-3 justify-center mb-6">
@@ -454,7 +471,7 @@ export default function ParentsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="font-bold text-gray-800 mb-2">오늘 수업 기록이 없어요</h3>
+            <h3 className="font-bold text-gray-800 mb-2">이번 주 수업 기록이 없어요</h3>
             <p className="text-sm text-gray-400 mb-6">수업이 끝난 후 다시 확인해주세요</p>
             {savedStudentId && (
               <button onClick={() => submitCode(localStorage.getItem('parents-student-code') ?? '')} className="w-full py-3 rounded-2xl bg-blue-50 text-blue-600 font-semibold text-sm hover:bg-blue-100 transition-colors mb-3">
@@ -489,7 +506,7 @@ export default function ParentsPage() {
                 {record.students.school}
               </div>
               <h2 className="relative text-[1.5rem] font-bold leading-none">{record.students.name} 학생</h2>
-              <p className="relative mt-1.5 text-sm text-blue-100">{today}</p>
+              <p className="relative mt-1.5 text-sm text-blue-100">{formatDateFull(record.date)}</p>
             </div>
 
             <div className={`grid gap-3 bg-white px-4 pt-3 pb-4 ${record.rechecked_in_at ? 'grid-cols-3' : 'grid-cols-2'}`}>
