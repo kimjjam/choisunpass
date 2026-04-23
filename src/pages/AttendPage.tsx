@@ -8,7 +8,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-type PageState = 'input' | 'pending' | 'approved' | 'checked_out' | 'rejected'
+type PageState = 'input' | 'pending' | 'approved' | 'checked_out' | 'rejected' | 'absent'
 
 // 한국 로컬 날짜 (UTC 기준 toISOString은 오전 9시 전에 날짜가 하루 늦음)
 function getLocalDateStr() {
@@ -1007,6 +1007,23 @@ export default function AttendPage() {
               >
                 다시 시도
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* 결석 화면 */}
+        {pageState === 'absent' && student && (
+          <div className="bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.07)] overflow-hidden">
+            <div className="px-6 pt-8 pb-6 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-400 mb-0.5">{student.name} 학생</p>
+              <h2 className="text-2xl font-black text-gray-900 mb-1">결석 처리됨</h2>
+              <p className="text-sm text-gray-400 mt-1">오늘은 결석으로 처리되었어요</p>
+              <p className="text-sm text-gray-400">문의사항은 조교 선생님께 알려주세요</p>
             </div>
           </div>
         )}

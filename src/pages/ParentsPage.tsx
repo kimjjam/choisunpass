@@ -278,13 +278,13 @@ export default function ParentsPage() {
 
     const { weekStart, weekEnd } = getThisWeekBounds()
 
-    // 이번 주 기록 + 지난 기록 병렬 조회
+    // 이번 주 기록 + 지난 기록 병렬 조회 (approved + absent 포함)
     const [{ data: thisWeek }, { data: pastHistory }] = await Promise.all([
       supabase
         .from('attendances')
         .select('*, students(*)')
         .eq('student_id', student.id)
-        .eq('status', 'approved')
+        .in('status', ['approved', 'absent'])
         .gte('date', weekStart)
         .lte('date', weekEnd)
         .order('date', { ascending: false }),
@@ -292,7 +292,7 @@ export default function ParentsPage() {
         .from('attendances')
         .select('*, students(*)')
         .eq('student_id', student.id)
-        .eq('status', 'approved')
+        .in('status', ['approved', 'absent'])
         .lt('date', weekStart)
         .order('date', { ascending: false }),
     ])
@@ -495,7 +495,38 @@ export default function ParentsPage() {
         </div>
       )}
 
-      {!loading && record && record !== 'notfound' && (
+      {!loading && record && record !== 'notfound' && record.status === 'absent' && (
+        <div className="w-full max-w-sm space-y-4">
+          <div className="overflow-hidden rounded-[32px] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
+            <div className="px-6 pt-8 pb-8 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-400 mb-0.5">{record.students.name} 학생</p>
+              <h2 className="text-2xl font-black text-gray-900 mb-1">결석</h2>
+              <p className="text-sm text-gray-400">{formatDateFull(record.date)}</p>
+            </div>
+          </div>
+          {historyRecords.length > 0 && (
+            <button
+              onClick={() => setShowHistory(true)}
+              className="w-full rounded-[18px] border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-600 shadow-[0_6px_18px_rgba(15,23,42,0.04)] hover:bg-slate-50 transition-colors"
+            >
+              📋 지난 기록 <span className="text-slate-400">({historyRecords.length}건)</span>
+            </button>
+          )}
+          <button
+            onClick={handleChangeCode}
+            className="w-full rounded-[18px] border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-400 shadow-[0_6px_18px_rgba(15,23,42,0.04)] hover:bg-slate-50 transition-colors"
+          >
+            학생코드 입력
+          </button>
+        </div>
+      )}
+
+      {!loading && record && record !== 'notfound' && record.status === 'approved' && (
         <div className="w-full max-w-sm space-y-4">
           <div className="overflow-hidden rounded-[32px] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)]">
             <div className="relative overflow-hidden bg-[#556be7] px-6 pt-6 pb-5 text-center text-white">
