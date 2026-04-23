@@ -1,7 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
-import { supabase } from '../lib/supabase'
-
-const PIN = import.meta.env.VITE_BOMB_PIN ?? ''
+import { useState, useRef } from 'react'
 
 function delay(ms: number) {
   return new Promise(res => setTimeout(res, ms))
@@ -9,41 +6,46 @@ function delay(ms: number) {
 
 type Phase = 'idle' | 'counting' | 'exploding'
 
+async function callMaintenanceApi(pin: string, action: 'verify' | 'toggle', value?: boolean) {
+  const res = await fetch('/api/admin/toggle-maintenance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pin, action, value }),
+  })
+  if (!res.ok) throw new Error('API error')
+  return res.json() as Promise<{ ok: boolean; maintenance: boolean }>
+}
+
 export default function BombPage() {
   const [pin, setPin] = useState('')
   const [unlocked, setUnlocked] = useState(false)
   const [pinError, setPinError] = useState(false)
+  const [verifying, setVerifying] = useState(false)
   const pinInputRef = useRef<HTMLInputElement>(null)
 
+  const [savedPin, setSavedPin] = useState('')
   const [maintenance, setMaintenance] = useState<boolean | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
   const [count, setCount] = useState(3)
   const [shake, setShake] = useState(false)
   const [nextMaintenance, setNextMaintenance] = useState(false)
 
-  useEffect(() => {
-    if (unlocked) fetchStatus()
-  }, [unlocked])
-
-  async function fetchStatus() {
-    const { data } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'maintenance_mode')
-      .single()
-    setMaintenance(data?.value === 'true')
-  }
-
-  function handlePinInput(val: string) {
+  async function handlePinInput(val: string) {
     const digits = val.replace(/\D/g, '').slice(0, 12)
     setPin(digits)
     setPinError(false)
-    if (digits.length === 12) {
-      if (digits === PIN) {
+    if (digits.length === 12 && !verifying) {
+      setVerifying(true)
+      try {
+        const { maintenance: current } = await callMaintenanceApi(digits, 'verify')
+        setSavedPin(digits)
+        setMaintenance(current)
         setUnlocked(true)
-      } else {
+      } catch {
         setPinError(true)
         setTimeout(() => { setPin(''); setPinError(false) }, 800)
+      } finally {
+        setVerifying(false)
       }
     }
   }
@@ -64,12 +66,12 @@ export default function BombPage() {
     }
 
     setPhase('exploding')
-    await supabase.from('app_settings').upsert({
-      key: 'maintenance_mode',
-      value: String(newVal),
-      updated_at: new Date().toISOString(),
-    })
-    setMaintenance(newVal)
+    try {
+      await callMaintenanceApi(savedPin, 'toggle', newVal)
+      setMaintenance(newVal)
+    } catch {
+      // 실패해도 UI는 복원
+    }
     await delay(2000)
     setPhase('idle')
   }
@@ -109,7 +111,8 @@ export default function BombPage() {
           ))}
         </div>
 
-        {pinError && <p className="text-red-500 text-xs font-mono tracking-widest">INVALID CODE</p>}
+        {verifying && <p className="text-yellow-500 text-xs font-mono tracking-widest">VERIFYING...</p>}
+        {pinError && !verifying && <p className="text-red-500 text-xs font-mono tracking-widest">INVALID CODE</p>}
 
         {/* 숨겨진 input (키보드 트리거용) */}
         <input
@@ -127,11 +130,12 @@ export default function BombPage() {
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map((k, i) => (
             <button
               key={i}
+              disabled={verifying}
               onClick={() => {
                 if (k === '⌫') handlePinInput(pin.slice(0, -1))
                 else if (k !== '') handlePinInput(pin + String(k))
               }}
-              className={`w-16 h-16 rounded-2xl text-xl font-semibold transition-all active:scale-90
+              className={`w-16 h-16 rounded-2xl text-xl font-semibold transition-all active:scale-90 disabled:opacity-50
                 ${k === '' ? 'opacity-0 pointer-events-none' :
                   k === '⌫' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' :
                   'bg-gray-800 text-white hover:bg-gray-700 border border-gray-700'}`}

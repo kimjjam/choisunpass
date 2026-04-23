@@ -15,7 +15,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/parents" element={<ParentsPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

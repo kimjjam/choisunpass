@@ -166,6 +166,31 @@ function WeekCard({ label, records }: { label: string; records: AttendanceWithSt
   )
 }
 
+const RATE_LIMIT_MAX = 5
+const RATE_LIMIT_SECONDS = 60
+
+function getRateLimitState() {
+  const count = parseInt(localStorage.getItem('parents-fail-count') ?? '0', 10)
+  const until = parseInt(localStorage.getItem('parents-locked-until') ?? '0', 10)
+  return { count, until }
+}
+
+function incrementFailCount() {
+  const { count, until } = getRateLimitState()
+  // 잠금 해제 후 첫 실패면 카운트 리셋
+  const base = Date.now() > until ? 0 : count
+  const next = base + 1
+  localStorage.setItem('parents-fail-count', String(next))
+  if (next >= RATE_LIMIT_MAX) {
+    localStorage.setItem('parents-locked-until', String(Date.now() + RATE_LIMIT_SECONDS * 1000))
+  }
+}
+
+function resetFailCount() {
+  localStorage.removeItem('parents-fail-count')
+  localStorage.removeItem('parents-locked-until')
+}
+
 export default function ParentsPage() {
   useManifest('/manifest-parents.webmanifest')
 
@@ -175,6 +200,7 @@ export default function ParentsPage() {
   const [error, setError] = useState('')
   const [savedStudentId, setSavedStudentId] = useState<string | null>(null)
   const [savedStudentName, setSavedStudentName] = useState('')
+  const [lockedUntil, setLockedUntil] = useState<number>(() => getRateLimitState().until)
 
   // 히스토리
   const [historyRecords, setHistoryRecords] = useState<AttendanceWithStudent[]>([])
@@ -252,23 +278,38 @@ export default function ParentsPage() {
 
   async function submitCode(code: string) {
     if (code.length < 4) { setError('4자리를 모두 입력해주세요'); return }
+
+    const { until } = getRateLimitState()
+    if (Date.now() < until) {
+      const secs = Math.ceil((until - Date.now()) / 1000)
+      setLockedUntil(until)
+      setError(`잠시 후 다시 시도해주세요 (${secs}초)`)
+      return
+    }
+
     setError('')
     setLoading(true)
     setRecord(null)
     setHistoryRecords([])
     setShowHistory(false)
 
-    const { data: student } = await supabase
-      .from('students')
-      .select('*')
-      .eq('code', code)
-      .maybeSingle()
+    // students 테이블 직접 접근 대신 RPC 경유 (push_subscription 미노출)
+    const { data: studentData } = await supabase
+      .rpc('lookup_student_by_code', { p_code: code })
 
-    if (!student) {
+    if (!studentData) {
+      incrementFailCount()
+      const { until: newUntil } = getRateLimitState()
+      if (newUntil > Date.now()) setLockedUntil(newUntil)
       setLoading(false)
       setRecord('notfound')
       return
     }
+
+    const student = studentData as { id: string; name: string; class: string }
+
+    resetFailCount()
+    setLockedUntil(0)
 
     // 코드 저장 + push 구독
     localStorage.setItem('parents-student-code', code)
@@ -278,31 +319,28 @@ export default function ParentsPage() {
 
     const { weekStart, weekEnd } = getThisWeekBounds()
 
-    // 이번 주 기록 + 지난 기록 병렬 조회 (approved + absent 포함)
-    const [{ data: thisWeek }, { data: pastHistory }] = await Promise.all([
-      supabase
-        .from('attendances')
-        .select('*, students(*)')
-        .eq('student_id', student.id)
-        .in('status', ['approved', 'absent'])
-        .gte('date', weekStart)
-        .lte('date', weekEnd)
-        .order('date', { ascending: false }),
-      supabase
-        .from('attendances')
-        .select('*, students(*)')
-        .eq('student_id', student.id)
-        .in('status', ['approved', 'absent'])
-        .lt('date', weekStart)
-        .order('date', { ascending: false }),
+    // 지난 기록 끝 날짜: weekStart 하루 전
+    const d = new Date(weekStart)
+    d.setDate(d.getDate() - 1)
+    const pastEnd = d.toISOString().split('T')[0]
+
+    // 이번 주 + 지난 기록 병렬 조회 (RPC 경유 — students 직접 접근 없이)
+    const [thisWeekRes, pastRes] = await Promise.all([
+      supabase.rpc('get_attendance_by_student_code', {
+        p_code: code, p_date_from: weekStart, p_date_to: weekEnd,
+      }),
+      supabase.rpc('get_attendance_by_student_code', {
+        p_code: code, p_date_to: pastEnd,
+      }),
     ])
 
-    const thisWeekRecords = thisWeek ?? []
-    const mainRecord = thisWeekRecords[0] ?? null
+    const thisWeekRecords = ((thisWeekRes.data?.records ?? []) as AttendanceWithStudent[])
+    const pastRecords     = ((pastRes.data?.records     ?? []) as AttendanceWithStudent[])
+    const mainRecord      = thisWeekRecords[0] ?? null
 
     setLoading(false)
     setRecord(mainRecord ?? 'notfound')
-    setHistoryRecords([...thisWeekRecords.slice(1), ...(pastHistory ?? [])])
+    setHistoryRecords([...thisWeekRecords.slice(1), ...pastRecords])
   }
 
   async function handleSubmit() {
@@ -323,9 +361,11 @@ export default function ParentsPage() {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       })
-      await supabase.from('students').update({
-        parent_push_subscription: sub.toJSON(),
-      }).eq('id', studentId)
+      // students 직접 접근 대신 RPC 경유
+      await supabase.rpc('update_parent_push_subscription', {
+        p_student_id:   studentId,
+        p_subscription: sub.toJSON(),
+      })
     } catch (e) {
       console.warn('parent push subscribe failed', e)
     }
@@ -454,10 +494,10 @@ export default function ParentsPage() {
           {error && <p className="text-red-400 text-sm text-center mb-4">{error}</p>}
           <button
             onClick={handleSubmit}
-            disabled={loading || digits.join('').length < 4}
+            disabled={loading || digits.join('').length < 4 || lockedUntil > Date.now()}
             className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold text-base transition-all shadow-md active:scale-95"
           >
-            확인하기
+            {lockedUntil > Date.now() ? '잠김' : '확인하기'}
           </button>
         </div>
       )}

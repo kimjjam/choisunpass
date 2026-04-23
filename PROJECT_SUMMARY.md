@@ -254,6 +254,25 @@ limit 20;
 
 ## 최근 변경 이력
 
+### [2026-04-24] RPC 마이그레이션 — students 테이블 anonymous 접근 완전 차단
+- `src/pages/AttendPage.tsx` — 학생 조회 `lookup_student_by_code` RPC, 출석 INSERT `insert_attendance_by_code` RPC, 상태 복원 시 `attendance_code` localStorage 활용
+- `src/pages/ParentsPage.tsx` — 학생 조회·출석 이력 조회·push 구독 저장 모두 RPC 경유
+- `supabase/schema.sql` — students 완전 authenticated 전용, attendances/oral_queue anonymous 정책 최소화 복원, `update_parent_push_subscription` RPC 추가
+- **Supabase SQL Editor에서 신규 schema.sql 실행 필요** (RPC 함수 4개 + RLS 정책 교체)
+
+### [2026-04-24] 보안 취약점 수정 (P0~P2)
+- `src/sw.ts` — 알림 클릭 시 기존 창을 올바른 URL로 navigate 후 focus (기존: focus만)
+- `src/components/ProtectedRoute.tsx` + `src/App.tsx` — `requiredRole="admin"` prop 추가, /admin은 app_metadata.role==="admin" 계정만 접근
+- `src/pages/BombPage.tsx` — VITE_BOMB_PIN 제거, PIN 검증·토글 모두 서버 API 경유로 변경
+- `api/admin/toggle-maintenance.ts` — 신규 Vercel Function (PIN 서버 검증 + app_settings 토글)
+- `supabase/schema.sql` — using(true) 익명 정책 전부 제거, authenticated 전용 정책으로 교체, 비로그인 접근용 RPC 함수 3개 추가
+- `src/pages/ParentsPage.tsx` — 코드 5회 실패 시 60초 잠금 (localStorage 기반)
+
+**⚠ 배포 후 수동 작업 필요:**
+1. Vercel 환경변수: `VITE_BOMB_PIN` → `BOMB_PIN` 으로 교체, `SUPABASE_SERVICE_ROLE_KEY` 추가
+2. Supabase Dashboard: 관리자 계정 app_metadata에 `{"role":"admin"}` 설정
+3. Supabase SQL Editor: 신규 schema.sql 실행 (RLS 정책 교체 + RPC 함수 생성)
+
 ### [2026-04-23] 수업 미출석 탭 결석처리 기능 추가
 - `src/pages/DashboardPage.tsx` — 수업 미출석 탭에 "결석처리" 버튼 추가, `markAbsent()` 함수로 `attendances(status='absent')` INSERT, 탭 진입 시 기존 결석처리 학생 자동 조회
 - `src/components/StudentHistoryModal.tsx` — `status='absent'` 시 "결석" 배지 표시 처리

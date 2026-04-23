@@ -98,25 +98,29 @@ export default function AttendPage() {
 
   // 새로고침 후 상태 복원
   useEffect(() => {
-    const savedId = localStorage.getItem('attendance_id')
-    if (!savedId) return
+    const savedId   = localStorage.getItem('attendance_id')
+    const savedCode = localStorage.getItem('attendance_code')
+    if (!savedId || !savedCode) return
 
-    supabase
-      .from('attendances')
-      .select('*, students(*)')
-      .eq('id', savedId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!data) { localStorage.removeItem('attendance_id'); return }
-        // 오늘 날짜가 아닌 기록이면 초기화 (날짜 넘어갔을 때 어제 기록 복원 방지)
-        if (data.date !== getLocalDateStr()) { localStorage.removeItem('attendance_id'); return }
-        const att = { ...data, students: undefined } as Attendance
-        const stu = data.students as Student
-        setAttendance(att)
-        setStudent(stu)
-        if (data.checked_out_at) setPageState('checked_out')
-        else setPageState(data.status as PageState)
-      })
+    Promise.all([
+      supabase.from('attendances').select('*').eq('id', savedId).maybeSingle(),
+      supabase.rpc('lookup_student_by_code', { p_code: savedCode }),
+    ]).then(([{ data: attData }, { data: studentData }]) => {
+      if (!attData || !studentData) {
+        localStorage.removeItem('attendance_id')
+        localStorage.removeItem('attendance_code')
+        return
+      }
+      if (attData.date !== getLocalDateStr()) {
+        localStorage.removeItem('attendance_id')
+        localStorage.removeItem('attendance_code')
+        return
+      }
+      setAttendance(attData as Attendance)
+      setStudent(studentData as unknown as Student)
+      if (attData.checked_out_at) setPageState('checked_out')
+      else setPageState(attData.status as PageState)
+    })
   }, [])
 
   // attendance 변경시 localStorage 동기화
@@ -430,17 +434,17 @@ export default function AttendPage() {
 
     setLoading(true)
     try {
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('code', code.trim())
-        .single()
+      // students 테이블 직접 접근 대신 RPC 경유 (push_subscription 등 민감 정보 미노출)
+      const { data: studentResult, error: studentError } = await supabase
+        .rpc('lookup_student_by_code', { p_code: code.trim() })
 
-      if (studentError || !studentData) {
+      if (studentError || !studentResult) {
         setError('코드가 올바르지 않습니다. 다시 확인해주세요.')
         setLoading(false)
         return
       }
+
+      const studentData = studentResult as unknown as Student
 
       const today = getLocalDateStr()
       const { data: existing } = await supabase
@@ -451,6 +455,7 @@ export default function AttendPage() {
         .maybeSingle()
 
       if (existing) {
+        localStorage.setItem('attendance_code', code.trim())
         setStudent(studentData)
         setAttendance(existing)
         if (existing.checked_out_at) setPageState('checked_out')
@@ -469,45 +474,45 @@ export default function AttendPage() {
   }
 
   async function handleVisitTypeSelect(visitType: VisitType) {
-    if (!pendingStudentData || loading) return  // loading 중 중복 탭 방지
+    if (!pendingStudentData || loading) return
     setShowVisitTypeModal(false)
     setLoading(true)
-    const today = getLocalDateStr()
 
-    // 혹시 이미 등록된 출석이 있는지 한 번 더 확인 (빠른 중복 탭 방지)
-    const { data: existing } = await supabase
-      .from('attendances')
-      .select('*')
-      .eq('student_id', pendingStudentData.id)
-      .eq('date', today)
-      .maybeSingle()
-
-    if (existing) {
-      setAttendance(existing)
-      if (existing.checked_out_at) setPageState('checked_out')
-      else setPageState(existing.status as PageState)
-      setLoading(false)
-      return
-    }
-
-    const { data: newAttendance, error: insertError } = await supabase
-      .from('attendances')
-      .insert({
-        student_id: pendingStudentData.id,
-        date: today,
-        status: 'pending',
-        visit_type: visitType,
-        checked_in_at: new Date().toISOString(),
+    // RPC로 출석 INSERT (students 직접 접근 없이, 중복 체크 내장)
+    const { data: result, error: insertError } = await supabase
+      .rpc('insert_attendance_by_code', {
+        p_code:       code.trim(),
+        p_visit_type: visitType,
       })
-      .select()
-      .single()
 
-    if (insertError || !newAttendance) {
+    if (insertError) {
       setError('출석 요청 중 오류가 발생했습니다. 다시 시도해주세요.')
       setLoading(false)
       return
     }
-    setAttendance(newAttendance)
+
+    // 이미 출석한 경우 (빠른 중복 탭 등)
+    if (result?.error === 'already_attended') {
+      const { data: existing } = await supabase
+        .from('attendances').select('*').eq('id', result.id).maybeSingle()
+      if (existing) {
+        localStorage.setItem('attendance_code', code.trim())
+        setAttendance(existing)
+        if (existing.checked_out_at) setPageState('checked_out')
+        else setPageState(existing.status as PageState)
+        setLoading(false)
+        return
+      }
+    }
+
+    if (result?.error) {
+      setError('출석 요청 중 오류가 발생했습니다. 다시 시도해주세요.')
+      setLoading(false)
+      return
+    }
+
+    localStorage.setItem('attendance_code', code.trim())
+    setAttendance(result as unknown as Attendance)
     setPageState('pending')
     setLoading(false)
   }
@@ -627,6 +632,7 @@ export default function AttendPage() {
     setNextClinicDate('')
     setError('')
     localStorage.removeItem('attendance_id')
+    localStorage.removeItem('attendance_code')
     if (subscriptionRef.current) {
       supabase.removeChannel(subscriptionRef.current)
     }
