@@ -73,6 +73,8 @@ export default function DashboardPage() {
   const [absentTeacherFilter, setAbsentTeacherFilter] = useState<string | null>(null)
   const [absentMarking, setAbsentMarking] = useState<Set<string>>(new Set())
   const [markedAbsentIds, setMarkedAbsentIds] = useState<Set<string>>(new Set())
+  const [bulkAbsentConfirm, setBulkAbsentConfirm] = useState<{ school: string; students: Student[] } | null>(null)
+  const [bulkAbsentLoading, setBulkAbsentLoading] = useState(false)
   const [maxScores, setMaxScores] = useState<Record<string, { word: string; clinic: string }>>({})
   const [maxScoreModal, setMaxScoreModal] = useState(false)
   const [maxScoreEdit, setMaxScoreEdit] = useState<Record<string, { word: string; clinic: string }>>({})
@@ -448,6 +450,21 @@ export default function DashboardPage() {
       alert('결석 처리에 실패했습니다. 다시 시도해주세요.')
     } else {
       setMarkedAbsentIds(prev => new Set(prev).add(student.id))
+    }
+  }
+
+  async function markBulkAbsent(students: Student[]) {
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    const today = kst.toISOString().split('T')[0]
+    setBulkAbsentLoading(true)
+    const rows = students.map(s => ({ student_id: s.id, date: today, status: 'absent' as const, checked_in_at: null }))
+    const { error } = await supabase.from('attendances').insert(rows)
+    setBulkAbsentLoading(false)
+    setBulkAbsentConfirm(null)
+    if (error) {
+      alert('일괄 결석 처리에 실패했습니다. 다시 시도해주세요.')
+    } else {
+      setMarkedAbsentIds(prev => new Set([...prev, ...students.map(s => s.id)]))
     }
   }
 
@@ -1203,9 +1220,20 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2 text-xs">
                           <span className="text-gray-400">전체 {students.length}명</span>
                           {absentCount > 0 && (
-                            <span className="bg-rose-100 text-rose-600 font-semibold px-2 py-0.5 rounded-full">
-                              미출석 {absentCount}명
-                            </span>
+                            <>
+                              <span className="bg-rose-100 text-rose-600 font-semibold px-2 py-0.5 rounded-full">
+                                미출석 {absentCount}명
+                              </span>
+                              <button
+                                onClick={() => setBulkAbsentConfirm({
+                                  school,
+                                  students: students.filter(s => !s.attended && !markedAbsentIds.has(s.id)),
+                                })}
+                                className="font-semibold px-2.5 py-0.5 rounded-full bg-rose-500 text-white hover:bg-rose-600 transition-colors"
+                              >
+                                일괄 결석처리
+                              </button>
+                            </>
                           )}
                           {absentCount === 0 && (
                             <span className="bg-green-100 text-green-600 font-semibold px-2 py-0.5 rounded-full">
@@ -1734,6 +1762,33 @@ export default function DashboardPage() {
                 className="flex-1 py-3 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm transition-all shadow-sm shadow-blue-200"
               >
                 확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 일괄 결석처리 확인 모달 */}
+      {bulkAbsentConfirm && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xs p-6 shadow-2xl">
+            <h3 className="font-semibold text-gray-800 mb-2 text-center text-base">일괄 결석처리</h3>
+            <p className="text-sm text-gray-500 text-center mb-1">{bulkAbsentConfirm.school}</p>
+            <p className="text-sm text-gray-500 text-center mb-6">미출석 {bulkAbsentConfirm.students.length}명을<br/>모두 결석처리 하시겠습니까?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setBulkAbsentConfirm(null)}
+                disabled={bulkAbsentLoading}
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-500 font-medium transition-colors disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => markBulkAbsent(bulkAbsentConfirm.students)}
+                disabled={bulkAbsentLoading}
+                className="flex-1 py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm transition-all shadow-sm shadow-rose-200 disabled:opacity-50"
+              >
+                {bulkAbsentLoading ? '처리 중...' : '확인'}
               </button>
             </div>
           </div>
