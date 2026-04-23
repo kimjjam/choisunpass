@@ -1,4 +1,4 @@
-export type AttendanceStatus = 'pending' | 'approved' | 'rejected'
+export type AttendanceStatus = 'pending' | 'approved' | 'rejected' | 'absent'
 
 export interface Term {
   id: string
