@@ -254,6 +254,11 @@ limit 20;
 
 ## 최근 변경 이력
 
+### [2026-04-23] 수업 미출석 탭 결석처리 기능 추가
+- `src/pages/DashboardPage.tsx` — 수업 미출석 탭에 "결석처리" 버튼 추가, `markAbsent()` 함수로 `attendances(status='absent')` INSERT, 탭 진입 시 기존 결석처리 학생 자동 조회
+- `src/components/StudentHistoryModal.tsx` — `status='absent'` 시 "결석" 배지 표시 처리
+- `supabase/schema.sql` — `attendances.status` check constraint에 `'absent'` 추가 (Supabase SQL Editor에서 수동 실행 필요)
+
 ### [2026-04-22] DashboardPage Toss/카카오뱅크 스타일 UI 리디자인
 - `src/pages/DashboardPage.tsx` — 헤더 sticky + shadow-md, StatPill 카드형(숫자 굵게+컬러 그림자), 탭 전체 iOS segmented control 스타일로 통합(구두대기·수업미출석도 탭 바로 이동)
 - 테이블 컨테이너 rounded-3xl/shadow-md, 필터 바 탭 아래 별도 줄로 분리, 전체 배경 bg-slate-50

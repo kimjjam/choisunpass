@@ -71,6 +71,8 @@ export default function DashboardPage() {
   const [absentStudents, setAbsentStudents] = useState<Student[]>([])
   const [absentLoading, setAbsentLoading] = useState(false)
   const [absentTeacherFilter, setAbsentTeacherFilter] = useState<string | null>(null)
+  const [absentMarking, setAbsentMarking] = useState<Set<string>>(new Set())
+  const [markedAbsentIds, setMarkedAbsentIds] = useState<Set<string>>(new Set())
   const [maxScores, setMaxScores] = useState<Record<string, { word: string; clinic: string }>>({})
   const [maxScoreModal, setMaxScoreModal] = useState(false)
   const [maxScoreEdit, setMaxScoreEdit] = useState<Record<string, { word: string; clinic: string }>>({})
@@ -407,15 +409,47 @@ export default function DashboardPage() {
     const todaySchedule = SCHOOL_SCHEDULE[todayDay] ?? []
     if (todaySchedule.length === 0) { setAbsentStudents([]); return }
     setAbsentLoading(true)
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    const today = kst.toISOString().split('T')[0]
     const schools = todaySchedule.map(s => s.school)
-    const { data } = await supabase.from('students').select('*').in('school', schools).order('name')
-    setAbsentStudents((data as Student[]) ?? [])
+    const { data: students } = await supabase.from('students').select('*').in('school', schools).order('name')
+    setAbsentStudents((students as Student[]) ?? [])
+    // 오늘 이미 결석처리된 학생 ID 조회
+    const studentIds = (students ?? []).map((s: Student) => s.id)
+    if (studentIds.length > 0) {
+      const { data: absRecs } = await supabase
+        .from('attendances')
+        .select('student_id')
+        .eq('date', today)
+        .eq('status', 'absent')
+        .in('student_id', studentIds)
+      if (absRecs) setMarkedAbsentIds(new Set(absRecs.map((r: { student_id: string }) => r.student_id)))
+    }
     setAbsentLoading(false)
   }
 
   useEffect(() => {
     if (tab === 'absent') fetchAbsentStudents()
   }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function markAbsent(student: Student) {
+    if (absentMarking.has(student.id)) return
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    const today = kst.toISOString().split('T')[0]
+    setAbsentMarking(prev => new Set(prev).add(student.id))
+    const { error } = await supabase.from('attendances').insert({
+      student_id: student.id,
+      date: today,
+      status: 'absent',
+      checked_in_at: null,
+    })
+    setAbsentMarking(prev => { const s = new Set(prev); s.delete(student.id); return s })
+    if (error) {
+      alert('결석 처리에 실패했습니다. 다시 시도해주세요.')
+    } else {
+      setMarkedAbsentIds(prev => new Set(prev).add(student.id))
+    }
+  }
 
   async function openHistory(student: Student) {
     setHistoryTarget(student)
@@ -1182,29 +1216,44 @@ export default function DashboardPage() {
                       </div>
                       {/* 학생 목록 */}
                       <div className="divide-y divide-gray-50">
-                        {students.map(s => (
-                          <div
-                            key={s.id}
-                            className={`px-5 py-3 flex items-center justify-between transition-colors ${
-                              s.attended ? 'bg-green-50' : 'bg-white hover:bg-rose-50'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s.attended ? 'bg-green-400' : 'bg-rose-300'}`} />
-                              <span className={`text-sm font-medium ${s.attended ? 'text-green-700' : 'text-gray-800'}`}>
-                                {s.name}
-                              </span>
-                              <span className="text-xs text-gray-400">{s.class}</span>
+                        {students.map(s => {
+                          const isMarked = markedAbsentIds.has(s.id)
+                          const isMarking = absentMarking.has(s.id)
+                          return (
+                            <div
+                              key={s.id}
+                              className={`px-5 py-3 flex items-center justify-between transition-colors ${
+                                s.attended ? 'bg-green-50' : isMarked ? 'bg-gray-50' : 'bg-white hover:bg-rose-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s.attended ? 'bg-green-400' : isMarked ? 'bg-gray-300' : 'bg-rose-300'}`} />
+                                <span className={`text-sm font-medium ${s.attended ? 'text-green-700' : isMarked ? 'text-gray-400' : 'text-gray-800'}`}>
+                                  {s.name}
+                                </span>
+                                <span className="text-xs text-gray-400">{s.class}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {s.attended ? (
+                                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-600">출석</span>
+                                ) : isMarked ? (
+                                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">결석처리됨</span>
+                                ) : (
+                                  <>
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-500">미출석</span>
+                                    <button
+                                      onClick={() => markAbsent(s)}
+                                      disabled={isMarking}
+                                      className="text-xs font-semibold px-3 py-1 rounded-lg bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      {isMarking ? '처리 중...' : '결석처리'}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                              s.attended
-                                ? 'bg-green-100 text-green-600'
-                                : 'bg-rose-100 text-rose-500'
-                            }`}>
-                              {s.attended ? '출석' : '미출석'}
-                            </span>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   )

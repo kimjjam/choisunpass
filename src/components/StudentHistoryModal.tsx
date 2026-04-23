@@ -176,6 +176,8 @@ export default function StudentHistoryModal({ student, records, onClose, showCha
                             ? <span className="text-green-600">✓</span>
                             : r.status === 'rejected'
                             ? <span className="text-red-400">✕</span>
+                            : r.status === 'absent'
+                            ? <span className="text-gray-400">결석</span>
                             : <span className="text-yellow-500">대기</span>}
                         </td>
                         <td className="px-2 py-2 text-center"><ScoreBadge value={r.word_score} /></td>

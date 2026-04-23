@@ -18,7 +18,7 @@ create table if not exists public.attendances (
   student_id      uuid not null references public.students(id) on delete cascade,
   date            date not null default current_date,
   status          text not null default 'pending'
-                    check (status in ('pending', 'approved', 'rejected')),
+                    check (status in ('pending', 'approved', 'rejected', 'absent')),
   checked_in_at   timestamptz default now(),
   approved_at     timestamptz,
   word_status     text check (word_status in ('pass', 'fail', 'delay')),
