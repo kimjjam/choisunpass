@@ -89,10 +89,15 @@ export default function AdminPage() {
     clinic_score: '',
     oral_status: '',
     homework: '',
+    oral_memo: '',
+    homework_memo: '',
     notes: '',
   })
   const [addRecordLoading, setAddRecordLoading] = useState(false)
   const [addRecordError, setAddRecordError] = useState('')
+  const [addRecordStudentSearch, setAddRecordStudentSearch] = useState('')
+  const [addRecordSchoolFilter, setAddRecordSchoolFilter] = useState('')
+  const [addRecordClassFilter, setAddRecordClassFilter] = useState('')
   // 미실시 학생 (이번 선택 주차에 출석 없는 학생)
   const [noShowStudents, setNoShowStudents] = useState<Student[]>([])
   // 미재등원 학생 (next_clinic_date 지났는데 미등원)
@@ -442,9 +447,14 @@ export default function AdminPage() {
       clinic_score: '',
       oral_status: '',
       homework: '',
+      oral_memo: '',
+      homework_memo: '',
       notes: '',
     })
     setAddRecordError('')
+    setAddRecordStudentSearch('')
+    setAddRecordSchoolFilter('')
+    setAddRecordClassFilter('')
     setShowAddRecordModal(true)
   }
 
@@ -482,6 +492,8 @@ export default function AdminPage() {
       clinic_score: addRecordForm.clinic_score || null,
       oral_status: addRecordForm.oral_status || null,
       homework: addRecordForm.homework || null,
+      oral_memo: addRecordForm.oral_memo || null,
+      homework_memo: addRecordForm.homework_memo || null,
       notes: addRecordForm.notes || null,
     })
 
@@ -911,6 +923,18 @@ export default function AdminPage() {
                 ))}
               </div>
 
+              {/* 전체 주차 뷰 출석 추가 버튼 */}
+              {selectedWeek === 'all' && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={openAddRecordModal}
+                    className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+                  >
+                    + 출석 추가
+                  </button>
+                </div>
+              )}
+
               {/* ── 전체 주차 피벗 뷰 ── */}
               {selectedWeek === 'all' && (() => {
                 const filteredAll = termRecords
@@ -1196,7 +1220,8 @@ export default function AdminPage() {
 
       {/* ── 출석 추가 모달 ── */}
       {showAddRecordModal && (() => {
-        const weekDates = selectedWeek && selectedWeek !== 'all'
+        const isAllWeeks = !selectedWeek || selectedWeek === 'all'
+        const weekDates = !isAllWeeks
           ? Array.from({ length: 7 }, (_, i) => {
               const d = new Date(selectedWeek + 'T00:00:00')
               d.setDate(d.getDate() + i)
@@ -1205,160 +1230,268 @@ export default function AdminPage() {
               return { value: str, label: `${d.getMonth()+1}/${d.getDate()}(${dayNames[d.getDay()]})` }
             })
           : []
-        const sortedStudents = [...students].sort((a, b) =>
-          `${a.school} ${a.class} ${a.name}`.localeCompare(`${b.school} ${b.class} ${b.name}`, 'ko')
-        )
+        const modalSchools = [...new Set(students.map(s => s.school))].filter(Boolean).sort()
+        const modalClasses = [...new Set(
+          students
+            .filter(s => !addRecordSchoolFilter || s.school === addRecordSchoolFilter)
+            .map(s => s.class)
+        )].filter(Boolean).sort()
+        const filteredModalStudents = [...students]
+          .filter(s => !addRecordSchoolFilter || s.school === addRecordSchoolFilter)
+          .filter(s => !addRecordClassFilter || s.class === addRecordClassFilter)
+          .filter(s => !addRecordStudentSearch || s.name.includes(addRecordStudentSearch.trim()))
+          .sort((a, b) => `${a.school} ${a.class} ${a.name}`.localeCompare(`${b.school} ${b.class} ${b.name}`, 'ko'))
+        const selectedStudent = students.find(s => s.id === addRecordForm.student_id)
+
         return createPortal(
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[92vh]">
+              {/* 헤더 */}
+              <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                 <div>
-                  <h3 className="font-bold text-gray-800">출석 기록 추가</h3>
+                  <h3 className="font-bold text-gray-800 text-lg">출석 기록 추가</h3>
                   <p className="text-xs text-gray-400 mt-0.5">과거 기록을 직접 입력합니다</p>
                 </div>
-                <button onClick={() => setShowAddRecordModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <button onClick={() => setShowAddRecordModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
               </div>
-              <div className="px-6 py-5 space-y-4">
-                {/* 학생 */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">학생</label>
-                  <select
-                    value={addRecordForm.student_id}
-                    onChange={e => setAddRecordForm(f => ({ ...f, student_id: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                  >
-                    <option value="">학생 선택</option>
-                    {sortedStudents.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.school} · {s.class})</option>
-                    ))}
-                  </select>
-                </div>
-                {/* 날짜 */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">날짜</label>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {weekDates.map(d => (
+
+              {/* 바디 — 좌/우 2패널 */}
+              <div className="flex flex-1 overflow-hidden">
+
+                {/* ── 좌: 학생 선택 패널 ── */}
+                <div className="w-80 flex-shrink-0 border-r border-gray-100 flex flex-col">
+                  <div className="px-6 pt-5 pb-3 space-y-2 flex-shrink-0">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">학생 선택</p>
+                    {/* 검색 */}
+                    <input
+                      value={addRecordStudentSearch}
+                      onChange={e => setAddRecordStudentSearch(e.target.value)}
+                      placeholder="이름 검색..."
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    />
+                    {/* 학교 필터 */}
+                    <div className="flex gap-1.5 flex-wrap">
                       <button
-                        key={d.value}
-                        onClick={() => setAddRecordForm(f => ({ ...f, date: d.value }))}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                          addRecordForm.date === d.value
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
-                        }`}
-                      >
-                        {d.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {/* 방문 유형 + 출석 상태 */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">방문 유형</label>
-                    <select
-                      value={addRecordForm.visit_type}
-                      onChange={e => setAddRecordForm(f => ({ ...f, visit_type: e.target.value as 'class_clinic' | 'clinic' }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                    >
-                      <option value="class_clinic">수업+클리닉</option>
-                      <option value="clinic">클리닉</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">출석 상태</label>
-                    <select
-                      value={addRecordForm.status}
-                      onChange={e => setAddRecordForm(f => ({ ...f, status: e.target.value as 'approved' | 'absent' }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                    >
-                      <option value="approved">출석 완료</option>
-                      <option value="absent">결석</option>
-                    </select>
-                  </div>
-                </div>
-                {/* 점수 (출석 완료일 때만) */}
-                {addRecordForm.status === 'approved' && (
-                  <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">단어 점수</label>
-                        <input
-                          value={addRecordForm.word_score}
-                          onChange={e => setAddRecordForm(f => ({ ...f, word_score: e.target.value }))}
-                          placeholder="예: 85"
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">클리닉 점수</label>
-                        <input
-                          value={addRecordForm.clinic_score}
-                          onChange={e => setAddRecordForm(f => ({ ...f, clinic_score: e.target.value }))}
-                          placeholder="예: 90"
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                        />
-                      </div>
+                        onClick={() => { setAddRecordSchoolFilter(''); setAddRecordClassFilter('') }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${!addRecordSchoolFilter ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
+                      >전체</button>
+                      {modalSchools.map(sch => (
+                        <button key={sch}
+                          onClick={() => { setAddRecordSchoolFilter(sch); setAddRecordClassFilter('') }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${addRecordSchoolFilter === sch ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'}`}
+                        >{sch}</button>
+                      ))}
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">구두</label>
-                        <select
-                          value={addRecordForm.oral_status}
-                          onChange={e => setAddRecordForm(f => ({ ...f, oral_status: e.target.value }))}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                        >
-                          <option value="">-</option>
-                          <option value="pass">Pass</option>
-                          <option value="word_pass">단어Pass</option>
-                          <option value="sentence_pass">문장Pass</option>
-                          <option value="exempt">면제</option>
-                          <option value="fail">Fail</option>
-                          <option value="delay">Delay</option>
-                        </select>
+                    {/* 반 필터 */}
+                    {addRecordSchoolFilter && (
+                      <div className="flex gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => setAddRecordClassFilter('')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${!addRecordClassFilter ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
+                        >전체반</button>
+                        {modalClasses.map(cls => (
+                          <button key={cls}
+                            onClick={() => setAddRecordClassFilter(cls)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${addRecordClassFilter === cls ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300'}`}
+                          >{cls}</button>
+                        ))}
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">과제</label>
-                        <select
-                          value={addRecordForm.homework}
-                          onChange={e => setAddRecordForm(f => ({ ...f, homework: e.target.value }))}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    )}
+                  </div>
+                  {/* 학생 목록 */}
+                  <div className="flex-1 overflow-y-auto px-3 pb-4">
+                    {filteredModalStudents.length === 0
+                      ? <p className="text-xs text-gray-400 text-center py-6">검색 결과 없음</p>
+                      : filteredModalStudents.map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => setAddRecordForm(f => ({ ...f, student_id: s.id }))}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl mb-1 transition-all ${
+                            addRecordForm.student_id === s.id
+                              ? 'bg-blue-600 text-white'
+                              : 'hover:bg-gray-50 text-gray-800'
+                          }`}
                         >
-                          <option value="">-</option>
-                          <option value="pass">Pass</option>
-                          <option value="partial_pass">일부Pass</option>
-                          <option value="fail">Fail</option>
-                          <option value="delay">Delay</option>
-                        </select>
+                          <span className="text-sm font-semibold">{s.name}</span>
+                          <span className={`ml-2 text-xs ${addRecordForm.student_id === s.id ? 'text-blue-100' : 'text-gray-400'}`}>{s.school} · {s.class}</span>
+                        </button>
+                      ))
+                    }
+                  </div>
+                </div>
+
+                {/* ── 우: 기록 입력 패널 ── */}
+                <div className="flex-1 overflow-y-auto px-8 py-5 space-y-5">
+                  {/* 선택된 학생 표시 */}
+                  <div className={`rounded-2xl px-4 py-3 text-sm font-medium ${selectedStudent ? 'bg-blue-50 text-blue-800' : 'bg-gray-50 text-gray-400'}`}>
+                    {selectedStudent ? `${selectedStudent.name} (${selectedStudent.school} · ${selectedStudent.class})` : '← 좌측에서 학생을 선택하세요'}
+                  </div>
+
+                  {/* 날짜 */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">날짜</label>
+                    {isAllWeeks ? (
+                      <input
+                        type="date"
+                        value={addRecordForm.date}
+                        onChange={e => setAddRecordForm(f => ({ ...f, date: e.target.value }))}
+                        className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="flex gap-2 flex-wrap">
+                        {weekDates.map(d => (
+                          <button
+                            key={d.value}
+                            onClick={() => setAddRecordForm(f => ({ ...f, date: d.value }))}
+                            className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                              addRecordForm.date === d.value
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+                            }`}
+                          >
+                            {d.label}
+                          </button>
+                        ))}
                       </div>
+                    )}
+                  </div>
+
+                  {/* 방문 유형 + 출석 상태 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">방문 유형</label>
+                      <select
+                        value={addRecordForm.visit_type}
+                        onChange={e => setAddRecordForm(f => ({ ...f, visit_type: e.target.value as 'class_clinic' | 'clinic' }))}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
+                      >
+                        <option value="class_clinic">수업+클리닉</option>
+                        <option value="clinic">클리닉</option>
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">기타 메모</label>
-                      <input
-                        value={addRecordForm.notes}
-                        onChange={e => setAddRecordForm(f => ({ ...f, notes: e.target.value }))}
-                        placeholder="기타 메모..."
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                      />
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">출석 상태</label>
+                      <select
+                        value={addRecordForm.status}
+                        onChange={e => setAddRecordForm(f => ({ ...f, status: e.target.value as 'approved' | 'absent' }))}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
+                      >
+                        <option value="approved">출석 완료</option>
+                        <option value="absent">결석</option>
+                      </select>
                     </div>
-                  </>
-                )}
-                {addRecordError && <p className="text-xs text-red-500">{addRecordError}</p>}
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => setShowAddRecordModal(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleAddRecord}
-                    disabled={addRecordLoading}
-                    className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-sm font-semibold transition-colors"
-                  >
-                    {addRecordLoading ? '저장 중...' : '추가'}
-                  </button>
+                  </div>
+
+                  {/* 출석 완료일 때만: 점수·메모 */}
+                  {addRecordForm.status === 'approved' && (
+                    <>
+                      <div className="border-t border-gray-100 pt-4">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">점수</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">단어 점수</label>
+                            <input
+                              value={addRecordForm.word_score}
+                              onChange={e => setAddRecordForm(f => ({ ...f, word_score: e.target.value }))}
+                              placeholder="예: 85"
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">클리닉 점수</label>
+                            <input
+                              value={addRecordForm.clinic_score}
+                              onChange={e => setAddRecordForm(f => ({ ...f, clinic_score: e.target.value }))}
+                              placeholder="예: 90"
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">구두</label>
+                            <select
+                              value={addRecordForm.oral_status}
+                              onChange={e => setAddRecordForm(f => ({ ...f, oral_status: e.target.value }))}
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                            >
+                              <option value="">-</option>
+                              <option value="pass">Pass</option>
+                              <option value="word_pass">단어Pass</option>
+                              <option value="sentence_pass">문장Pass</option>
+                              <option value="exempt">면제</option>
+                              <option value="fail">Fail</option>
+                              <option value="delay">Delay</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">과제</label>
+                            <select
+                              value={addRecordForm.homework}
+                              onChange={e => setAddRecordForm(f => ({ ...f, homework: e.target.value }))}
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                            >
+                              <option value="">-</option>
+                              <option value="pass">Pass</option>
+                              <option value="partial_pass">일부Pass</option>
+                              <option value="fail">Fail</option>
+                              <option value="delay">Delay</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-100 pt-4">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">메모</p>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs font-medium text-blue-500 mb-1">구두 메모</label>
+                            <input
+                              value={addRecordForm.oral_memo}
+                              onChange={e => setAddRecordForm(f => ({ ...f, oral_memo: e.target.value }))}
+                              placeholder="구두 관련 메모..."
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-purple-500 mb-1">과제 메모</label>
+                            <input
+                              value={addRecordForm.homework_memo}
+                              onChange={e => setAddRecordForm(f => ({ ...f, homework_memo: e.target.value }))}
+                              placeholder="과제 관련 메모..."
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">기타 메모</label>
+                            <input
+                              value={addRecordForm.notes}
+                              onChange={e => setAddRecordForm(f => ({ ...f, notes: e.target.value }))}
+                              placeholder="기타 메모..."
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {addRecordError && <p className="text-sm text-red-500 font-medium">{addRecordError}</p>}
                 </div>
+              </div>
+
+              {/* 푸터 */}
+              <div className="px-8 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+                <button
+                  onClick={() => setShowAddRecordModal(false)}
+                  className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors font-medium"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleAddRecord}
+                  disabled={addRecordLoading || !addRecordForm.student_id || !addRecordForm.date}
+                  className="flex-1 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-sm font-bold transition-colors"
+                >
+                  {addRecordLoading ? '저장 중...' : '추가'}
+                </button>
               </div>
             </div>
           </div>,
