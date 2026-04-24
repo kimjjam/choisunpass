@@ -127,15 +127,15 @@ create policy "authenticated can read students"
 
 create policy "authenticated can insert students"
   on public.students for insert
-  with check (auth.role() = 'authenticated');
+  with check ((auth.jwt()->'app_metadata'->>'role') = 'admin');
 
 create policy "authenticated can update students"
   on public.students for update
-  using (auth.role() = 'authenticated');
+  using ((auth.jwt()->'app_metadata'->>'role') = 'admin');
 
 create policy "authenticated can delete students"
   on public.students for delete
-  using (auth.role() = 'authenticated');
+  using ((auth.jwt()->'app_metadata'->>'role') = 'admin');
 
 -- =============================================
 -- attendances: anonymous 허용 (AttendPage 비로그인 동작 필요)
@@ -145,17 +145,8 @@ create policy "anyone can read attendances"
   on public.attendances for select
   using (true);
 
--- 학생 화면에서 하원/취소/재등원/push구독 저장 등 필요
-create policy "anyone can update attendance"
-  on public.attendances for update
-  using (true)
-  with check (true);
-
-create policy "anyone can delete attendance"
-  on public.attendances for delete
-  using (true);
-
 -- INSERT는 RPC만 허용 (service definer 함수가 직접 INSERT)
+-- UPDATE/DELETE는 모두 RPC 함수 경유 (코드 검증 포함)
 create policy "authenticated can insert attendance"
   on public.attendances for insert
   with check (auth.role() = 'authenticated');
@@ -191,19 +182,19 @@ create policy "anyone can read app_settings"
 -- =============================================
 create policy "authenticated can manage terms"
   on public.terms for all
-  using (auth.role() = 'authenticated')
-  with check (auth.role() = 'authenticated');
+  using ((auth.jwt()->'app_metadata'->>'role') = 'admin')
+  with check ((auth.jwt()->'app_metadata'->>'role') = 'admin');
 
 create policy "authenticated can manage clinic_absences"
   on public.clinic_absences for all
-  using (auth.role() = 'authenticated')
-  with check (auth.role() = 'authenticated');
+  using ((auth.jwt()->'app_metadata'->>'role') = 'admin')
+  with check ((auth.jwt()->'app_metadata'->>'role') = 'admin');
 
 -- =============================================
 -- RPC 함수: security definer (RLS 우회, 최소 정보만 반환)
 -- =============================================
 
--- 학생 출석·부모용: 코드로 학생 조회 (id, name, class만 반환 — push_subscription 미포함)
+-- 학생 출석·부모용: 코드로 학생 조회 (id, name, class, school 반환 — push_subscription 미포함)
 create or replace function public.lookup_student_by_code(p_code text)
 returns json
 language plpgsql
@@ -213,7 +204,7 @@ as $$
 declare
   v_student record;
 begin
-  select id, name, class into v_student
+  select id, name, class, school into v_student
   from students
   where code = p_code
   limit 1;
@@ -222,7 +213,12 @@ begin
     return null;
   end if;
 
-  return json_build_object('id', v_student.id, 'name', v_student.name, 'class', v_student.class);
+  return json_build_object(
+    'id',     v_student.id,
+    'name',   v_student.name,
+    'class',  v_student.class,
+    'school', v_student.school
+  );
 end;
 $$;
 
@@ -319,6 +315,132 @@ begin
     'student_id', v_student_id,
     'records',    coalesce(v_result, '[]'::json)
   );
+end;
+$$;
+
+-- 학생 하원 처리 (코드로 소유자 검증, attendances 직접 UPDATE 대신 사용)
+create or replace function public.checkout_attendance(
+  p_attendance_id uuid,
+  p_code          text
+)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_student_id uuid;
+  v_row        attendances;
+begin
+  select id into v_student_id from students where code = p_code limit 1;
+  if not found then
+    return json_build_object('error', 'invalid_code');
+  end if;
+
+  update attendances
+  set checked_out_at = now()
+  where id = p_attendance_id and student_id = v_student_id
+  returning * into v_row;
+
+  if not found then
+    return json_build_object('error', 'not_found');
+  end if;
+
+  return row_to_json(v_row);
+end;
+$$;
+
+-- 출석 취소 (코드로 소유자 검증 후 DELETE)
+create or replace function public.cancel_attendance(
+  p_attendance_id uuid,
+  p_code          text
+)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_student_id uuid;
+begin
+  select id into v_student_id from students where code = p_code limit 1;
+  if not found then
+    return json_build_object('error', 'invalid_code');
+  end if;
+
+  delete from attendances
+  where id = p_attendance_id and student_id = v_student_id;
+
+  return json_build_object('ok', true);
+end;
+$$;
+
+-- 재등원 처리 (코드로 소유자 검증)
+create or replace function public.recheckin_attendance(
+  p_attendance_id uuid,
+  p_code          text
+)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_student_id uuid;
+  v_row        attendances;
+begin
+  select id into v_student_id from students where code = p_code limit 1;
+  if not found then
+    return json_build_object('error', 'invalid_code');
+  end if;
+
+  update attendances
+  set checked_out_at = null, rechecked_in_at = now()
+  where id = p_attendance_id and student_id = v_student_id
+  returning * into v_row;
+
+  if not found then
+    return json_build_object('error', 'not_found');
+  end if;
+
+  return row_to_json(v_row);
+end;
+$$;
+
+-- 다음 클리닉 날짜 설정 (코드로 소유자 검증)
+create or replace function public.set_next_clinic(
+  p_attendance_id      uuid,
+  p_code               text,
+  p_next_date          date,
+  p_checkout_requested bool default false,
+  p_force_next_clinic  bool default false
+)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_student_id uuid;
+  v_row        attendances;
+begin
+  select id into v_student_id from students where code = p_code limit 1;
+  if not found then
+    return json_build_object('error', 'invalid_code');
+  end if;
+
+  update attendances
+  set next_clinic_date   = p_next_date,
+      checkout_requested = p_checkout_requested,
+      force_next_clinic  = p_force_next_clinic
+  where id = p_attendance_id and student_id = v_student_id
+  returning * into v_row;
+
+  if not found then
+    return json_build_object('error', 'not_found');
+  end if;
+
+  return row_to_json(v_row);
 end;
 $$;
 

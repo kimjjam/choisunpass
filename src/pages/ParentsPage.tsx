@@ -200,6 +200,7 @@ export default function ParentsPage() {
   const [error, setError] = useState('')
   const [savedStudentId, setSavedStudentId] = useState<string | null>(null)
   const [savedStudentName, setSavedStudentName] = useState('')
+  const [savedStudentSchool, setSavedStudentSchool] = useState('')
   const [lockedUntil, setLockedUntil] = useState<number>(() => getRateLimitState().until)
 
   // 히스토리
@@ -306,7 +307,7 @@ export default function ParentsPage() {
       return
     }
 
-    const student = studentData as { id: string; name: string; class: string }
+    const student = studentData as { id: string; name: string; class: string; school: string }
 
     resetFailCount()
     setLockedUntil(0)
@@ -315,6 +316,7 @@ export default function ParentsPage() {
     localStorage.setItem('parents-student-code', code)
     setSavedStudentId(student.id)
     setSavedStudentName(student.name)
+    setSavedStudentSchool(student.school ?? '')
     subscribePush(student.id)
 
     const { weekStart, weekEnd } = getThisWeekBounds()
@@ -376,6 +378,7 @@ export default function ParentsPage() {
     localStorage.removeItem('parents-student-code')
     setSavedStudentId(null)
     setSavedStudentName('')
+    setSavedStudentSchool('')
     setDigits(['', '', '', ''])
     setRecord(null)
     setHistoryRecords([])
@@ -544,7 +547,7 @@ export default function ParentsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <p className="text-xs text-gray-400 mb-0.5">{record.students.name} 학생</p>
+              <p className="text-xs text-gray-400 mb-0.5">{savedStudentName} 학생</p>
               <h2 className="text-2xl font-black text-gray-900 mb-1">결석</h2>
               <p className="text-sm text-gray-400">{formatDateFull(record.date)}</p>
             </div>
@@ -574,9 +577,9 @@ export default function ParentsPage() {
               <div className="absolute -right-8 top-0 h-28 w-28 rounded-full bg-white/10" />
 
               <div className="relative mx-auto mb-3 inline-flex items-center justify-center rounded-full bg-white/18 px-3 py-1 text-xs font-semibold whitespace-nowrap text-white">
-                {record.students.school}
+                {savedStudentSchool}
               </div>
-              <h2 className="relative text-[1.5rem] font-bold leading-none">{record.students.name} 학생</h2>
+              <h2 className="relative text-[1.5rem] font-bold leading-none">{savedStudentName} 학생</h2>
               <p className="relative mt-1.5 text-sm text-blue-100">{formatDateFull(record.date)}</p>
             </div>
 
