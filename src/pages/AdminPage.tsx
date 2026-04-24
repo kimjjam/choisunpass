@@ -140,6 +140,8 @@ export default function AdminPage() {
   const classroomPcRef = useRef<RTCPeerConnection | null>(null)
   const classroomChRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const classroomViewerId = useRef(crypto.randomUUID())
+  const classroomPendingIceRef = useRef<RTCIceCandidateInit[]>([])
+  const classroomRequestRetryRef = useRef<number | null>(null)
 
   // 교실 호출 알림
   const [classroomCall, setClassroomCall] = useState<{ id: string; room_name: string; called_at: string } | null>(null)
@@ -167,15 +169,31 @@ export default function AdminPage() {
     if (classroomChRef.current) { supabase.removeChannel(classroomChRef.current) }
     setClassroomConnecting(true)
     setClassroomConnected(false)
+    if (classroomRequestRetryRef.current !== null) {
+      window.clearInterval(classroomRequestRetryRef.current)
+      classroomRequestRetryRef.current = null
+    }
+    classroomPendingIceRef.current = []
 
     const viewerId = classroomViewerId.current
     const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
     classroomPcRef.current = pc
+    let offerReceived = false
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate && classroomChRef.current) {
+        classroomChRef.current.send({ type: 'broadcast', event: 'signal', payload: { type: 'ice', viewerId, from: 'viewer', candidate: e.candidate.toJSON() } })
+      }
+    }
 
     pc.ontrack = (e) => {
       if (classroomVideoRef.current) classroomVideoRef.current.srcObject = e.streams[0]
       setClassroomConnected(true)
       setClassroomConnecting(false)
+      if (classroomRequestRetryRef.current !== null) {
+        window.clearInterval(classroomRequestRetryRef.current)
+        classroomRequestRetryRef.current = null
+      }
     }
 
     pc.onconnectionstatechange = () => {
@@ -184,32 +202,69 @@ export default function AdminPage() {
       }
     }
 
-    const ch = supabase.channel(`classroom:signal:${room}`, { config: { broadcast: { self: false } } })
+    let ch: ReturnType<typeof supabase.channel>
+    const sendRequest = () => {
+      ch.send({ type: 'broadcast', event: 'signal', payload: { type: 'request', viewerId } })
+    }
+
+    ch = supabase.channel(`classroom:signal:${room}`, { config: { broadcast: { self: false } } })
       .on('broadcast', { event: 'signal' }, async ({ payload }: { payload: { type: string; viewerId: string; sdp?: string; candidate?: RTCIceCandidateInit; from?: string } }) => {
         if (payload.type === 'offer' && payload.viewerId === viewerId) {
-          pc.onicecandidate = (e) => {
-            if (e.candidate) ch.send({ type: 'broadcast', event: 'signal', payload: { type: 'ice', viewerId, from: 'viewer', candidate: e.candidate.toJSON() } })
+          offerReceived = true
+          if (classroomRequestRetryRef.current !== null) {
+            window.clearInterval(classroomRequestRetryRef.current)
+            classroomRequestRetryRef.current = null
           }
           await pc.setRemoteDescription({ type: 'offer', sdp: payload.sdp! })
+          for (const candidate of classroomPendingIceRef.current) {
+            await pc.addIceCandidate(candidate).catch(() => {})
+          }
+          classroomPendingIceRef.current = []
           const answer = await pc.createAnswer()
           await pc.setLocalDescription(answer)
           ch.send({ type: 'broadcast', event: 'signal', payload: { type: 'answer', viewerId, sdp: answer.sdp } })
         } else if (payload.type === 'ice' && payload.from === 'classroom' && payload.viewerId === viewerId) {
-          await pc.addIceCandidate(payload.candidate!).catch(() => {})
+          if (pc.remoteDescription) {
+            await pc.addIceCandidate(payload.candidate!).catch(() => {})
+          } else {
+            classroomPendingIceRef.current.push(payload.candidate!)
+          }
         }
       })
-      .subscribe(() => {
-        ch.send({ type: 'broadcast', event: 'signal', payload: { type: 'request', viewerId } })
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') return
+        sendRequest()
+        let attempts = 0
+        classroomRequestRetryRef.current = window.setInterval(() => {
+          if (offerReceived || pc.connectionState === 'connected') {
+            if (classroomRequestRetryRef.current !== null) {
+              window.clearInterval(classroomRequestRetryRef.current)
+              classroomRequestRetryRef.current = null
+            }
+            return
+          }
+          attempts += 1
+          sendRequest()
+          if (attempts >= 4 && classroomRequestRetryRef.current !== null) {
+            window.clearInterval(classroomRequestRetryRef.current)
+            classroomRequestRetryRef.current = null
+          }
+        }, 1500)
       })
 
     classroomChRef.current = ch
     setClassroomRoom(room)
     setTimeout(() => {
-      if (!classroomConnected) setClassroomConnecting(false)
+      if (!offerReceived && pc.connectionState !== 'connected') setClassroomConnecting(false)
     }, 12000)
   }
 
   function disconnectClassroom() {
+    if (classroomRequestRetryRef.current !== null) {
+      window.clearInterval(classroomRequestRetryRef.current)
+      classroomRequestRetryRef.current = null
+    }
+    classroomPendingIceRef.current = []
     classroomPcRef.current?.close()
     classroomPcRef.current = null
     if (classroomChRef.current) supabase.removeChannel(classroomChRef.current)
@@ -222,6 +277,9 @@ export default function AdminPage() {
 
   useEffect(() => {
     return () => {
+      if (classroomRequestRetryRef.current !== null) {
+        window.clearInterval(classroomRequestRetryRef.current)
+      }
       classroomPcRef.current?.close()
       if (classroomChRef.current) supabase.removeChannel(classroomChRef.current)
     }

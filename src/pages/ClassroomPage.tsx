@@ -7,29 +7,18 @@ const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }]
 
 type SignalPayload =
   | { type: 'request'; viewerId: string }
+  | { type: 'offer'; viewerId: string; sdp: string }
   | { type: 'answer'; viewerId: string; sdp: string }
-  | { type: 'ice'; viewerId: string; from: 'viewer'; candidate: RTCIceCandidateInit }
+  | { type: 'ice'; viewerId: string; from: 'viewer' | 'classroom'; candidate: RTCIceCandidateInit }
 
 export default function ClassroomPage() {
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
 
-  // 비밀번호 재확인
   const [verified, setVerified] = useState(false)
   const [pwInput, setPwInput] = useState('')
   const [pwError, setPwError] = useState('')
   const [pwLoading, setPwLoading] = useState(false)
-
-  async function handleVerify(e: React.FormEvent) {
-    e.preventDefault()
-    if (!currentUser || !pwInput) return
-    setPwLoading(true)
-    setPwError('')
-    const { error } = await supabase.auth.signInWithPassword({ email: currentUser, password: pwInput })
-    setPwLoading(false)
-    if (error) { setPwError('비밀번호가 올바르지 않습니다.'); return }
-    setVerified(true)
-  }
 
   const [roomInput, setRoomInput] = useState('')
   const [roomName, setRoomName] = useState(() => localStorage.getItem('classroom_room') ?? '')
@@ -38,29 +27,60 @@ export default function ClassroomPage() {
   const [viewerCount, setViewerCount] = useState(0)
   const [calling, setCalling] = useState(false)
   const [callSent, setCallSent] = useState(false)
+  const [callError, setCallError] = useState('')
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map())
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const pendingViewerIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map())
+
+  const stopRoom = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+    if (channelRef.current) supabase.removeChannel(channelRef.current)
+    channelRef.current = null
+    peersRef.current.forEach((pc) => pc.close())
+    peersRef.current.clear()
+    pendingViewerIceRef.current.clear()
+    setViewerCount(0)
+    setActive(false)
+  }, [])
+
+  const getCameraStream = useCallback(async (facing: 'environment' | 'user') => {
+    try {
+      return await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false })
+    } catch {
+      return await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    }
+  }, [])
 
   const createPeer = useCallback((viewerId: string, ch: ReturnType<typeof supabase.channel>, stream: MediaStream) => {
     const existing = peersRef.current.get(viewerId)
-    if (existing) { existing.close(); peersRef.current.delete(viewerId) }
+    if (existing) {
+      existing.close()
+      peersRef.current.delete(viewerId)
+    }
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
-    stream.getTracks().forEach(t => pc.addTrack(t, stream))
+    stream.getTracks().forEach((t) => pc.addTrack(t, stream))
 
     pc.onicecandidate = (e) => {
       if (e.candidate) {
-        ch.send({ type: 'broadcast', event: 'signal', payload: { type: 'ice', viewerId, from: 'classroom', candidate: e.candidate.toJSON() } })
+        ch.send({
+          type: 'broadcast',
+          event: 'signal',
+          payload: { type: 'ice', viewerId, from: 'classroom', candidate: e.candidate.toJSON() },
+        })
       }
     }
 
     pc.onconnectionstatechange = () => {
       if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
         peersRef.current.delete(viewerId)
+        pendingViewerIceRef.current.delete(viewerId)
         setViewerCount(peersRef.current.size)
       }
     }
@@ -72,59 +92,107 @@ export default function ClassroomPage() {
 
   const startRoom = useCallback(async (name: string, facing: 'environment' | 'user' = 'environment') => {
     setCamError('')
-    let stream: MediaStream
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false })
-    } catch {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-      } catch (err) {
-        setCamError('카메라 접근 권한이 필요합니다.')
-        console.error(err)
-        return
-      }
-    }
+      stopRoom()
+      const stream = await getCameraStream(facing)
+      streamRef.current = stream
+      if (videoRef.current) videoRef.current.srcObject = stream
 
-    streamRef.current = stream
-    if (videoRef.current) { videoRef.current.srcObject = stream }
-
-    const ch = supabase.channel(`classroom:signal:${name}`, { config: { broadcast: { self: false } } })
-      .on('broadcast', { event: 'signal' }, async ({ payload }: { payload: SignalPayload }) => {
-        if (payload.type === 'request') {
-          const pc = createPeer(payload.viewerId, ch, stream)
-          const offer = await pc.createOffer()
-          await pc.setLocalDescription(offer)
-          ch.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', viewerId: payload.viewerId, sdp: offer.sdp } })
-        } else if (payload.type === 'answer') {
-          const pc = peersRef.current.get(payload.viewerId)
-          if (pc && pc.signalingState === 'have-local-offer') {
-            await pc.setRemoteDescription({ type: 'answer', sdp: payload.sdp })
+      const ch = supabase.channel(`classroom:signal:${name}`, { config: { broadcast: { self: false } } })
+        .on('broadcast', { event: 'signal' }, async ({ payload }: { payload: SignalPayload }) => {
+          if (payload.type === 'request') {
+            const activeStream = streamRef.current
+            if (!activeStream) return
+            const pc = createPeer(payload.viewerId, ch, activeStream)
+            const offer = await pc.createOffer()
+            await pc.setLocalDescription(offer)
+            ch.send({
+              type: 'broadcast',
+              event: 'signal',
+              payload: { type: 'offer', viewerId: payload.viewerId, sdp: offer.sdp ?? '' },
+            })
+            return
           }
-        } else if (payload.type === 'ice' && payload.from === 'viewer') {
-          const pc = peersRef.current.get(payload.viewerId)
-          if (pc) await pc.addIceCandidate(payload.candidate).catch(() => {})
-        }
-      })
-      .subscribe()
 
-    channelRef.current = ch
-    setActive(true)
-  }, [createPeer])
+          if (payload.type === 'answer') {
+            const pc = peersRef.current.get(payload.viewerId)
+            if (!pc || pc.signalingState !== 'have-local-offer') return
+            await pc.setRemoteDescription({ type: 'answer', sdp: payload.sdp })
+            const queued = pendingViewerIceRef.current.get(payload.viewerId) ?? []
+            for (const candidate of queued) {
+              await pc.addIceCandidate(candidate).catch(() => {})
+            }
+            pendingViewerIceRef.current.delete(payload.viewerId)
+            return
+          }
+
+          if (payload.type === 'ice' && payload.from === 'viewer') {
+            const pc = peersRef.current.get(payload.viewerId)
+            if (!pc) return
+            if (pc.remoteDescription) {
+              await pc.addIceCandidate(payload.candidate).catch(() => {})
+            } else {
+              const queued = pendingViewerIceRef.current.get(payload.viewerId) ?? []
+              queued.push(payload.candidate)
+              pendingViewerIceRef.current.set(payload.viewerId, queued)
+            }
+          }
+        })
+        .subscribe()
+
+      channelRef.current = ch
+      setActive(true)
+    } catch (err) {
+      setCamError('카메라 접근 권한이 필요합니다.')
+      console.error(err)
+    }
+  }, [createPeer, getCameraStream, stopRoom])
 
   useEffect(() => {
-    if (roomName) startRoom(roomName)
-    return () => {
-      streamRef.current?.getTracks().forEach(t => t.stop())
-      if (channelRef.current) supabase.removeChannel(channelRef.current)
-      peersRef.current.forEach(pc => pc.close())
+    if (verified && roomName && !active) {
+      startRoom(roomName, facingMode)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [active, facingMode, roomName, startRoom, verified])
+
+  useEffect(() => {
+    return () => {
+      stopRoom()
+    }
+  }, [stopRoom])
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault()
+    if (!currentUser || !pwInput) return
+    setPwLoading(true)
+    setPwError('')
+    const { error } = await supabase.auth.signInWithPassword({ email: currentUser, password: pwInput })
+    setPwLoading(false)
+    if (error) {
+      setPwError('비밀번호가 올바르지 않습니다.')
+      return
+    }
+    setVerified(true)
+  }
 
   async function handleCallAdmin() {
     if (calling) return
     setCalling(true)
-    await supabase.from('classroom_calls').insert({ room_name: roomName, called_by: currentUser ?? '' })
+    setCallError('')
+
+    const payload = { room_name: roomName, called_by: currentUser ?? '' }
+    let { error } = await supabase.from('classroom_calls').insert(payload)
+    if (error?.message?.includes('called_by')) {
+      const retry = await supabase.from('classroom_calls').insert({ room_name: roomName })
+      error = retry.error
+    }
+
     setCalling(false)
+    if (error) {
+      console.error('classroom call insert failed:', error)
+      setCallError('호출 전송에 실패했습니다. 다시 시도해주세요.')
+      return
+    }
+
     setCallSent(true)
     setTimeout(() => setCallSent(false), 4000)
   }
@@ -138,31 +206,32 @@ export default function ClassroomPage() {
   }
 
   async function flipCamera() {
+    const currentStream = streamRef.current
+    if (!currentStream) return
+
     const next: 'environment' | 'user' = facingMode === 'environment' ? 'user' : 'environment'
-    setFacingMode(next)
+    setCamError('')
 
-    // 기존 스트림 정지
-    streamRef.current?.getTracks().forEach(t => t.stop())
-
-    // 새 스트림으로 교체
-    let newStream: MediaStream
     try {
-      newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: next }, audio: false })
-    } catch {
-      newStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-    }
-    streamRef.current = newStream
-    if (videoRef.current) videoRef.current.srcObject = newStream
+      const newStream = await getCameraStream(next)
+      const [newTrack] = newStream.getVideoTracks()
+      if (!newTrack) throw new Error('No video track available')
 
-    // 기존 peer connection 트랙 교체
-    const [newTrack] = newStream.getVideoTracks()
-    peersRef.current.forEach(pc => {
-      const sender = pc.getSenders().find(s => s.track?.kind === 'video')
-      if (sender) sender.replaceTrack(newTrack)
-    })
+      await Promise.all(Array.from(peersRef.current.values()).map(async (pc) => {
+        const sender = pc.getSenders().find((s) => s.track?.kind === 'video')
+        if (sender) await sender.replaceTrack(newTrack)
+      }))
+
+      streamRef.current = newStream
+      if (videoRef.current) videoRef.current.srcObject = newStream
+      currentStream.getTracks().forEach((t) => t.stop())
+      setFacingMode(next)
+    } catch (err) {
+      setCamError('카메라 전환에 실패했습니다.')
+      console.error(err)
+    }
   }
 
-  // 비밀번호 미확인
   if (!verified) {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8">
@@ -190,7 +259,6 @@ export default function ClassroomPage() {
     )
   }
 
-  // 방 이름 미설정
   if (!roomName || !active) {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8">
@@ -221,7 +289,6 @@ export default function ClassroomPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* 상단 상태 바 */}
       <div className="flex items-center justify-between px-5 py-3">
         <div>
           <div className="text-white font-black text-base">{roomName}</div>
@@ -240,11 +307,8 @@ export default function ClassroomPage() {
           <button
             onClick={() => {
               localStorage.removeItem('classroom_room')
-              streamRef.current?.getTracks().forEach(t => t.stop())
-              if (channelRef.current) supabase.removeChannel(channelRef.current)
-              peersRef.current.forEach(pc => pc.close())
+              stopRoom()
               setRoomName('')
-              setActive(false)
             }}
             className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
           >
@@ -253,7 +317,6 @@ export default function ClassroomPage() {
         </div>
       </div>
 
-      {/* 카메라 미리보기 */}
       <div className="flex-1 relative mx-4 mb-4 rounded-3xl overflow-hidden bg-gray-900">
         <video
           ref={videoRef}
@@ -265,7 +328,6 @@ export default function ClassroomPage() {
         {camError && (
           <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm">{camError}</div>
         )}
-        {/* 카메라 전환 버튼 */}
         <button
           onClick={flipCamera}
           className="absolute bottom-4 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 active:scale-95 transition-all text-white text-xl"
@@ -275,10 +337,12 @@ export default function ClassroomPage() {
         </button>
       </div>
 
-      {/* 호출 버튼 */}
       <div className="px-6 pb-10 flex flex-col items-center gap-3">
         {callSent && (
           <div className="text-green-400 text-sm font-semibold animate-pulse">관리자에게 호출을 보냈습니다</div>
+        )}
+        {callError && (
+          <div className="text-red-400 text-sm text-center">{callError}</div>
         )}
         <button
           onClick={handleCallAdmin}
