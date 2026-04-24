@@ -209,12 +209,14 @@ export default function ClassroomPage() {
     const currentStream = streamRef.current
     if (!currentStream) return
 
+    const currentFacing = facingMode
     const next: 'environment' | 'user' = facingMode === 'environment' ? 'user' : 'environment'
     setCamError('')
 
-    try {
-      const newStream = await getCameraStream(next)
-      const [newTrack] = newStream.getVideoTracks()
+    const waitForCameraRelease = () => new Promise((resolve) => window.setTimeout(resolve, 300))
+
+    async function attachStream(nextStream: MediaStream, nextFacing: 'environment' | 'user') {
+      const [newTrack] = nextStream.getVideoTracks()
       if (!newTrack) throw new Error('No video track available')
 
       await Promise.all(Array.from(peersRef.current.values()).map(async (pc) => {
@@ -222,13 +224,37 @@ export default function ClassroomPage() {
         if (sender) await sender.replaceTrack(newTrack)
       }))
 
-      streamRef.current = newStream
-      if (videoRef.current) videoRef.current.srcObject = newStream
+      streamRef.current = nextStream
+      if (videoRef.current) videoRef.current.srcObject = nextStream
+      setFacingMode(nextFacing)
+    }
+
+    try {
+      const newStream = await getCameraStream(next)
+      await attachStream(newStream, next)
       currentStream.getTracks().forEach((t) => t.stop())
-      setFacingMode(next)
+      return
     } catch (err) {
-      setCamError('카메라 전환에 실패했습니다.')
-      console.error(err)
+      console.warn('camera switch retry after active-stream failure', err)
+    }
+
+    currentStream.getTracks().forEach((t) => t.stop())
+    if (videoRef.current) videoRef.current.srcObject = null
+    await waitForCameraRelease()
+
+    try {
+      const retryStream = await getCameraStream(next)
+      await attachStream(retryStream, next)
+    } catch (retryErr) {
+      console.error('camera switch failed:', retryErr)
+      try {
+        await waitForCameraRelease()
+        const recoveredStream = await getCameraStream(currentFacing)
+        await attachStream(recoveredStream, currentFacing)
+      } catch (recoverErr) {
+        console.error('camera recovery failed:', recoverErr)
+        setCamError('카메라 전환에 실패했습니다.')
+      }
     }
   }
 
