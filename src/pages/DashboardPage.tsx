@@ -792,7 +792,7 @@ export default function DashboardPage() {
             {(() => {
               const todayDay = new Date().getDay()
               const todaySchedule = SCHOOL_SCHEDULE[todayDay] ?? []
-              const attendedIds = new Set(records.map(r => r.student_id))
+              const attendedIds = new Set(records.filter(r => r.status !== 'absent').map(r => r.student_id))
               const absentCount = absentStudents.filter(s => todaySchedule.some(sc => sc.school === s.school) && !attendedIds.has(s.id)).length
               return absentCount > 0 ? (
                 <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold ${tab === 'absent' ? 'bg-rose-100 text-rose-500' : 'bg-white text-gray-500'}`}>
@@ -1164,7 +1164,7 @@ export default function DashboardPage() {
         {tab === 'absent' && (() => {
           const todayDay = new Date().getDay()
           const todaySchedule = SCHOOL_SCHEDULE[todayDay] ?? []
-          const attendedIds = new Set(records.map(r => r.student_id))
+          const attendedIds = new Set(records.filter(r => r.status !== 'absent').map(r => r.student_id))
           const filteredSchedule = absentTeacherFilter
             ? todaySchedule.filter(s => s.teacher === absentTeacherFilter)
             : todaySchedule
