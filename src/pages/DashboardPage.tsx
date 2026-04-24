@@ -75,6 +75,10 @@ export default function DashboardPage() {
   const [markedAbsentIds, setMarkedAbsentIds] = useState<Set<string>>(new Set())
   const [bulkAbsentConfirm, setBulkAbsentConfirm] = useState<{ school: string; students: Student[] } | null>(null)
   const [bulkAbsentLoading, setBulkAbsentLoading] = useState(false)
+  const [attendModal, setAttendModal] = useState<{ student: Student } | null>(null)
+  const [attendModalTime, setAttendModalTime] = useState('')
+  const [attendModalLoading, setAttendModalLoading] = useState(false)
+  const [attendMarkingIds, setAttendMarkingIds] = useState<Set<string>>(new Set())
   const [maxScores, setMaxScores] = useState<Record<string, { word: string; clinic: string }>>({})
   const [maxScoreModal, setMaxScoreModal] = useState(false)
   const [maxScoreEdit, setMaxScoreEdit] = useState<Record<string, { word: string; clinic: string }>>({})
@@ -534,6 +538,28 @@ export default function DashboardPage() {
       alert('결석 처리에 실패했습니다. 다시 시도해주세요.')
     } else {
       setMarkedAbsentIds(prev => new Set(prev).add(student.id))
+    }
+  }
+
+  async function markAttended(student: Student, checkedInAt: string) {
+    setAttendModalLoading(true)
+    setAttendMarkingIds(prev => new Set(prev).add(student.id))
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    const today = kst.toISOString().split('T')[0]
+    const { error } = await supabase.from('attendances').insert({
+      student_id: student.id,
+      date: today,
+      status: 'approved',
+      checked_in_at: checkedInAt,
+      approved_at: new Date().toISOString(),
+    })
+    setAttendModalLoading(false)
+    setAttendMarkingIds(prev => { const s = new Set(prev); s.delete(student.id); return s })
+    if (error) {
+      alert('출석 처리에 실패했습니다. 다시 시도해주세요.')
+    } else {
+      setAttendModal(null)
+      fetchRecordsRef.current()
     }
   }
 
@@ -1365,6 +1391,19 @@ export default function DashboardPage() {
                                   <>
                                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-500">미출석</span>
                                     <button
+                                      onClick={() => {
+                                        const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+                                        const hh = String(nowKst.getUTCHours()).padStart(2, '0')
+                                        const mm = String(nowKst.getUTCMinutes()).padStart(2, '0')
+                                        setAttendModalTime(`${hh}:${mm}`)
+                                        setAttendModal({ student: s })
+                                      }}
+                                      disabled={attendMarkingIds.has(s.id)}
+                                      className="text-xs font-semibold px-3 py-1 rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      출석처리
+                                    </button>
+                                    <button
                                       onClick={() => markAbsent(s)}
                                       disabled={isMarking}
                                       className="text-xs font-semibold px-3 py-1 rounded-lg bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -1886,6 +1925,65 @@ export default function DashboardPage() {
                 {bulkAbsentLoading ? '처리 중...' : '확인'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 출석처리 모달 */}
+      {attendModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
+            <h3 className="font-semibold text-gray-800 text-base text-center mb-1">출석처리</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              <span className="font-semibold text-gray-700">{attendModal.student.name}</span> 학생을 출석 처리합니다
+            </p>
+
+            {/* 지금 출석 */}
+            <button
+              onClick={() => markAttended(attendModal.student, new Date().toISOString())}
+              disabled={attendModalLoading}
+              className="w-full py-3.5 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold text-sm transition-all shadow-sm shadow-green-200 disabled:opacity-50 mb-4"
+            >
+              {attendModalLoading ? '처리 중...' : '지금 출석'}
+            </button>
+
+            {/* 구분선 */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 h-px bg-gray-100" />
+              <span className="text-xs text-gray-400 font-medium">또는 시간 직접 입력</span>
+              <div className="flex-1 h-px bg-gray-100" />
+            </div>
+
+            {/* 시간 입력 후 출석 */}
+            <div className="flex gap-2 mb-4">
+              <input
+                type="time"
+                value={attendModalTime}
+                onChange={e => setAttendModalTime(e.target.value)}
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-300"
+              />
+              <button
+                onClick={() => {
+                  if (!attendModalTime) return
+                  const [hh, mm] = attendModalTime.split(':').map(Number)
+                  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+                  kst.setUTCHours(hh, mm, 0, 0)
+                  markAttended(attendModal.student, kst.toISOString())
+                }}
+                disabled={attendModalLoading || !attendModalTime}
+                className="px-4 py-2.5 rounded-xl bg-green-100 hover:bg-green-200 text-green-700 font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                입력한 시간으로 출석
+              </button>
+            </div>
+
+            <button
+              onClick={() => setAttendModal(null)}
+              disabled={attendModalLoading}
+              className="w-full py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-sm text-gray-500 font-medium transition-colors disabled:opacity-50"
+            >
+              취소
+            </button>
           </div>
         </div>
       )}
