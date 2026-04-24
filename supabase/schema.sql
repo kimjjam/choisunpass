@@ -482,7 +482,7 @@ create policy "ta_memos_insert" on public.ta_memos
   for insert to authenticated with check (true);
 
 create policy "ta_memos_delete" on public.ta_memos
-  for delete to authenticated using (author_name = (select email from auth.users where id = auth.uid()));
+  for delete to authenticated using (author_name = (auth.jwt() ->> 'email'));
 
 -- =============================================
 -- Realtime 활성화 (조교 대시보드 실시간 갱신)
