@@ -86,20 +86,27 @@ export default function DashboardPage() {
   const [memos, setMemos] = useState<{ id: string; content: string; author_name: string; created_at: string }[]>([])
   const [memoInput, setMemoInput] = useState('')
   const [memoSubmitting, setMemoSubmitting] = useState(false)
-  const memoInputRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => {
+  const [memoViewDate, setMemoViewDate] = useState(() => {
     const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
-    const today = kst.toISOString().split('T')[0]
+    return kst.toISOString().split('T')[0]
+  })
+  const memoInputRef = useRef<HTMLTextAreaElement>(null)
+  const memoToday = (() => { const kst = new Date(Date.now() + 9 * 60 * 60 * 1000); return kst.toISOString().split('T')[0] })()
+  const isViewingToday = memoViewDate === memoToday
 
-    supabase.from('ta_memos').select('id, content, author_name, created_at').eq('date', today).order('created_at')
+  // 날짜 변경 시 해당 날짜 메모 조회
+  useEffect(() => {
+    supabase.from('ta_memos').select('id, content, author_name, created_at').eq('date', memoViewDate).order('created_at')
       .then(({ data }) => { if (data) setMemos(data) })
+  }, [memoViewDate])
 
+  // 오늘 날짜 Realtime 구독 (항상 유지)
+  useEffect(() => {
     const ch = supabase.channel('ta-memos-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ta_memos', filter: `date=eq.${today}` },
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ta_memos', filter: `date=eq.${memoToday}` },
         (payload) => {
           const row = payload.new as { id: string; content: string; author_name: string; created_at: string }
-          setMemos(prev => [...prev, row])
+          setMemos(prev => isViewingToday ? [...prev, row] : prev)
         })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'ta_memos' },
         (payload) => {
@@ -107,15 +114,20 @@ export default function DashboardPage() {
         })
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function shiftMemoDate(days: number) {
+    const d = new Date(memoViewDate)
+    d.setDate(d.getDate() + days)
+    const next = d.toISOString().split('T')[0]
+    if (next <= memoToday) setMemoViewDate(next)
+  }
 
   async function submitMemo() {
     const text = memoInput.trim()
     if (!text || memoSubmitting) return
     setMemoSubmitting(true)
-    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
-    const today = kst.toISOString().split('T')[0]
-    await supabase.from('ta_memos').insert({ content: text, author_name: currentUser ?? '익명', date: today })
+    await supabase.from('ta_memos').insert({ content: text, author_name: currentUser ?? '익명', date: memoToday })
     setMemoInput('')
     setMemoSubmitting(false)
     setTimeout(() => memoInputRef.current?.focus(), 50)
@@ -2246,12 +2258,7 @@ export default function DashboardPage() {
       >
         {/* 패널 헤더 */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <div>
-            <div className="text-sm font-black text-gray-900">조교 메모</div>
-            <div className="text-xs text-gray-400">
-              {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} · 오늘만 표시
-            </div>
-          </div>
+          <div className="text-sm font-black text-gray-900">조교 메모</div>
           <button
             onClick={() => setMemoOpen(false)}
             className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-500 text-xs"
@@ -2260,16 +2267,41 @@ export default function DashboardPage() {
           </button>
         </div>
 
+        {/* 날짜 네비게이션 */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-gray-50/60">
+          <button
+            onClick={() => shiftMemoDate(-1)}
+            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-500 text-sm"
+          >
+            ‹
+          </button>
+          <div className="text-center">
+            <div className="text-xs font-semibold text-gray-700">
+              {new Date(memoViewDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
+            </div>
+            {isViewingToday && <div className="text-[10px] text-violet-500 font-semibold">오늘</div>}
+          </div>
+          <button
+            onClick={() => shiftMemoDate(1)}
+            disabled={isViewingToday}
+            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-gray-500 text-sm"
+          >
+            ›
+          </button>
+        </div>
+
         {/* 메모 목록 */}
         <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
           {memos.length === 0 ? (
-            <div className="text-center text-gray-400 text-xs mt-8">아직 메모가 없습니다</div>
+            <div className="text-center text-gray-400 text-xs mt-8">
+              {isViewingToday ? '아직 메모가 없습니다' : '이 날의 메모가 없습니다'}
+            </div>
           ) : (
             memos.map((m) => (
               <div key={m.id} className="group bg-violet-50 rounded-2xl px-4 py-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm text-gray-800 whitespace-pre-wrap flex-1 leading-relaxed">{m.content}</p>
-                  {m.author_name === (currentUser ?? '') && (
+                  {isViewingToday && m.author_name === (currentUser ?? '') && (
                     <button
                       onClick={() => deleteMemo(m.id)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 text-xs mt-0.5 shrink-0"
@@ -2289,27 +2321,29 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* 입력창 */}
-        <div className="px-4 py-4 border-t border-gray-100">
-          <textarea
-            ref={memoInputRef}
-            value={memoInput}
-            onChange={(e) => setMemoInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitMemo() }
-            }}
-            placeholder="메모 입력 (Enter로 전송, Shift+Enter 줄바꿈)"
-            rows={3}
-            className="w-full text-sm text-gray-800 bg-gray-50 rounded-2xl px-4 py-3 resize-none outline-none focus:ring-2 focus:ring-violet-200 placeholder:text-gray-300"
-          />
-          <button
-            onClick={submitMemo}
-            disabled={!memoInput.trim() || memoSubmitting}
-            className="mt-2 w-full py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 disabled:bg-gray-100 disabled:text-gray-300 text-white text-sm font-semibold transition-colors"
-          >
-            {memoSubmitting ? '전송 중…' : '전송'}
-          </button>
-        </div>
+        {/* 입력창 — 오늘만 표시 */}
+        {isViewingToday && (
+          <div className="px-4 py-4 border-t border-gray-100">
+            <textarea
+              ref={memoInputRef}
+              value={memoInput}
+              onChange={(e) => setMemoInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitMemo() }
+              }}
+              placeholder="메모 입력 (Enter로 전송, Shift+Enter 줄바꿈)"
+              rows={3}
+              className="w-full text-sm text-gray-800 bg-gray-50 rounded-2xl px-4 py-3 resize-none outline-none focus:ring-2 focus:ring-violet-200 placeholder:text-gray-300"
+            />
+            <button
+              onClick={submitMemo}
+              disabled={!memoInput.trim() || memoSubmitting}
+              className="mt-2 w-full py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 disabled:bg-gray-100 disabled:text-gray-300 text-white text-sm font-semibold transition-colors"
+            >
+              {memoSubmitting ? '전송 중…' : '전송'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
