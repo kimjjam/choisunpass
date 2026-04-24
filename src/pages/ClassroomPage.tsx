@@ -13,6 +13,24 @@ type SignalPayload =
 export default function ClassroomPage() {
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
+
+  // 비밀번호 재확인
+  const [verified, setVerified] = useState(false)
+  const [pwInput, setPwInput] = useState('')
+  const [pwError, setPwError] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault()
+    if (!currentUser || !pwInput) return
+    setPwLoading(true)
+    setPwError('')
+    const { error } = await supabase.auth.signInWithPassword({ email: currentUser, password: pwInput })
+    setPwLoading(false)
+    if (error) { setPwError('비밀번호가 올바르지 않습니다.'); return }
+    setVerified(true)
+  }
+
   const [roomInput, setRoomInput] = useState('')
   const [roomName, setRoomName] = useState(() => localStorage.getItem('classroom_room') ?? '')
   const [active, setActive] = useState(false)
@@ -116,6 +134,34 @@ export default function ClassroomPage() {
     localStorage.setItem('classroom_room', name)
     setRoomName(name)
     startRoom(name)
+  }
+
+  // 비밀번호 미확인
+  if (!verified) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8">
+        <div className="text-white text-2xl font-black mb-2">교실 카메라</div>
+        <div className="text-gray-400 text-sm mb-8">계속하려면 비밀번호를 입력하세요</div>
+        <form onSubmit={handleVerify} className="w-full max-w-xs flex flex-col gap-3">
+          <input
+            type="password"
+            value={pwInput}
+            onChange={e => setPwInput(e.target.value)}
+            placeholder="비밀번호"
+            className="w-full bg-gray-800 text-white text-center text-lg rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-violet-500 placeholder:text-gray-600"
+            autoFocus
+          />
+          {pwError && <div className="text-red-400 text-sm text-center">{pwError}</div>}
+          <button
+            type="submit"
+            disabled={!pwInput || pwLoading}
+            className="w-full py-4 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-lg font-bold transition-colors"
+          >
+            {pwLoading ? '확인 중…' : '확인'}
+          </button>
+        </form>
+      </div>
+    )
   }
 
   // 방 이름 미설정
