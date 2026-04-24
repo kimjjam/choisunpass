@@ -35,6 +35,7 @@ function weekLabel(weekStart: string, termStart: string): string {
 export default function AdminPage() {
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [tab, setTab] = useState<AdminTab>('students')
   const [students, setStudents] = useState<Student[]>([])
   const [allRecords, setAllRecords] = useState<AttendanceWithStudent[]>([])
@@ -124,6 +125,18 @@ export default function AdminPage() {
   const [newTermDate, setNewTermDate] = useState('')
   const [termFormError, setTermFormError] = useState('')
 
+
+  useEffect(() => {
+    supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
+      .then(({ data }) => { if (data?.value === 'true') setMaintenanceMode(true) })
+
+    const channel = supabase
+      .channel('admin-maintenance')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings', filter: 'key=eq.maintenance_mode' },
+        (payload) => { setMaintenanceMode((payload.new as { value: string }).value === 'true') })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   useEffect(() => {
     fetchStudents()
@@ -602,6 +615,18 @@ export default function AdminPage() {
     acc[key].push(r)
     return acc
   }, {})
+
+  if (maintenanceMode) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-5 px-6 text-center">
+        <div className="text-7xl">🚧</div>
+        <h1 className="text-white font-black text-2xl">점검 중입니다</h1>
+        <p className="text-gray-400 text-sm leading-relaxed">
+          현재 서비스 점검 중이에요.<br />잠시 후 다시 시도해주세요.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
