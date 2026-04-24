@@ -465,6 +465,8 @@ $$;
 -- Realtime 활성화 (조교 대시보드 실시간 갱신)
 -- =============================================
 alter publication supabase_realtime add table public.attendances;
+-- app_settings도 realtime 활성화 (점검모드 즉시 반영)
+alter publication supabase_realtime add table public.app_settings;
 
 -- =============================================
 -- 테스트 데이터 (개발용)

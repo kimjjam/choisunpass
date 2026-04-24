@@ -84,6 +84,13 @@ export default function DashboardPage() {
   useEffect(() => {
     supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
       .then(({ data }) => { if (data?.value === 'true') setMaintenanceMode(true) })
+
+    const channel = supabase
+      .channel('dashboard-maintenance')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings', filter: 'key=eq.maintenance_mode' },
+        (payload) => { setMaintenanceMode((payload.new as { value: string }).value === 'true') })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   useEffect(() => {

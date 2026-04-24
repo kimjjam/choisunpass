@@ -194,6 +194,7 @@ function resetFailCount() {
 export default function ParentsPage() {
   useManifest('/manifest-parents.webmanifest')
 
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [digits, setDigits] = useState(['', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [record, setRecord] = useState<AttendanceWithStudent | null | 'notfound'>(null)
@@ -229,6 +230,18 @@ export default function ParentsPage() {
       window.addEventListener('beforeinstallprompt', handler)
       return () => window.removeEventListener('beforeinstallprompt', handler)
     }
+  }, [])
+
+  useEffect(() => {
+    supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
+      .then(({ data }) => { if (data?.value === 'true') setMaintenanceMode(true) })
+
+    const channel = supabase
+      .channel('parents-maintenance')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_settings', filter: 'key=eq.maintenance_mode' },
+        (payload) => { setMaintenanceMode((payload.new as { value: string }).value === 'true') })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   // 저장된 코드 자동 로드
@@ -392,6 +405,18 @@ export default function ParentsPage() {
   })
 
   const weekGroups = groupByWeek(historyRecords)
+
+  if (maintenanceMode) {
+    return (
+      <div className="min-h-[100svh] bg-gray-900 flex flex-col items-center justify-center gap-5 px-6 text-center">
+        <div className="text-7xl">🚧</div>
+        <h1 className="text-white font-black text-2xl">점검 중입니다</h1>
+        <p className="text-gray-400 text-sm leading-relaxed">
+          현재 서비스 점검 중이에요.<br />잠시 후 다시 시도해주세요.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className={`min-h-[100svh] bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center px-4 ${record && record !== 'notfound' ? 'py-3' : 'py-6'}`} style={{ justifyContent: record && record !== 'notfound' ? 'flex-start' : 'center' }}>
