@@ -81,6 +81,50 @@ export default function DashboardPage() {
   const [moveToClassClinicModal, setMoveToClassClinicModal] = useState<{ id: string; name: string } | null>(null)
   const [moveToClinicModal, setMoveToClinicModal] = useState<{ id: string; name: string } | null>(null)
 
+  // 메모 사이드 패널
+  const [memoOpen, setMemoOpen] = useState(false)
+  const [memos, setMemos] = useState<{ id: string; content: string; author_name: string; created_at: string }[]>([])
+  const [memoInput, setMemoInput] = useState('')
+  const [memoSubmitting, setMemoSubmitting] = useState(false)
+  const memoInputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    const today = kst.toISOString().split('T')[0]
+
+    supabase.from('ta_memos').select('id, content, author_name, created_at').eq('date', today).order('created_at')
+      .then(({ data }) => { if (data) setMemos(data) })
+
+    const ch = supabase.channel('ta-memos-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ta_memos', filter: `date=eq.${today}` },
+        (payload) => {
+          const row = payload.new as { id: string; content: string; author_name: string; created_at: string }
+          setMemos(prev => [...prev, row])
+        })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'ta_memos' },
+        (payload) => {
+          setMemos(prev => prev.filter(m => m.id !== (payload.old as { id: string }).id))
+        })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [])
+
+  async function submitMemo() {
+    const text = memoInput.trim()
+    if (!text || memoSubmitting) return
+    setMemoSubmitting(true)
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    const today = kst.toISOString().split('T')[0]
+    await supabase.from('ta_memos').insert({ content: text, author_name: currentUser ?? '익명', date: today })
+    setMemoInput('')
+    setMemoSubmitting(false)
+    setTimeout(() => memoInputRef.current?.focus(), 50)
+  }
+
+  async function deleteMemo(id: string) {
+    await supabase.from('ta_memos').delete().eq('id', id)
+  }
+
   useEffect(() => {
     supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
       .then(({ data }) => { if (data?.value === 'true') setMaintenanceMode(true) })
@@ -693,6 +737,17 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMemoOpen(true)}
+            className="relative text-xs text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 rounded-xl px-3 py-1.5 font-semibold transition-colors"
+          >
+            메모
+            {memos.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-violet-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                {memos.length > 9 ? '9+' : memos.length}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => navigate('/admin')}
             className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-xl px-3 py-1.5 font-semibold transition-colors"
@@ -2176,6 +2231,86 @@ export default function DashboardPage() {
           onClose={() => setHistoryTarget(null)}
         />
       )}
+
+      {/* 메모 사이드 패널 오버레이 */}
+      {memoOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/20"
+          onClick={() => setMemoOpen(false)}
+        />
+      )}
+
+      {/* 메모 사이드 패널 */}
+      <div
+        className={`fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ${memoOpen ? 'translate-x-0' : 'translate-x-full'}`}
+      >
+        {/* 패널 헤더 */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <div className="text-sm font-black text-gray-900">조교 메모</div>
+            <div className="text-xs text-gray-400">
+              {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} · 오늘만 표시
+            </div>
+          </div>
+          <button
+            onClick={() => setMemoOpen(false)}
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-500 text-xs"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* 메모 목록 */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
+          {memos.length === 0 ? (
+            <div className="text-center text-gray-400 text-xs mt-8">아직 메모가 없습니다</div>
+          ) : (
+            memos.map((m) => (
+              <div key={m.id} className="group bg-violet-50 rounded-2xl px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap flex-1 leading-relaxed">{m.content}</p>
+                  {m.author_name === (currentUser ?? '') && (
+                    <button
+                      onClick={() => deleteMemo(m.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 text-xs mt-0.5 shrink-0"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <span className="text-[10px] font-semibold text-violet-500">{m.author_name}</span>
+                  <span className="text-[10px] text-gray-300">
+                    {new Date(m.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* 입력창 */}
+        <div className="px-4 py-4 border-t border-gray-100">
+          <textarea
+            ref={memoInputRef}
+            value={memoInput}
+            onChange={(e) => setMemoInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitMemo() }
+            }}
+            placeholder="메모 입력 (Enter로 전송, Shift+Enter 줄바꿈)"
+            rows={3}
+            className="w-full text-sm text-gray-800 bg-gray-50 rounded-2xl px-4 py-3 resize-none outline-none focus:ring-2 focus:ring-violet-200 placeholder:text-gray-300"
+          />
+          <button
+            onClick={submitMemo}
+            disabled={!memoInput.trim() || memoSubmitting}
+            className="mt-2 w-full py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 disabled:bg-gray-100 disabled:text-gray-300 text-white text-sm font-semibold transition-colors"
+          >
+            {memoSubmitting ? '전송 중…' : '전송'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

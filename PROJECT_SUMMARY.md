@@ -254,6 +254,11 @@ limit 20;
 
 ## 최근 변경 이력
 
+### [2026-04-24] 조교 공유 메모 사이드 패널 추가
+- `supabase/schema.sql` — `ta_memos` 테이블 추가 (id, content, author_name, date, created_at) + RLS(authenticated) + Realtime 활성화
+- `src/pages/DashboardPage.tsx` — 헤더에 "메모" 버튼 추가, 오른쪽 슬라이드 사이드 패널 구현 (오늘 메모 목록·실시간 구독·삭제·입력창)
+- **⚠ Supabase SQL Editor에서 신규 ta_memos DDL 실행 필요**
+
 ### [2026-04-24] P0·P1 보안 강화 — attendances 익명 쓰기 차단 + admin 전용 정책 + ParentsPage 크래시 수정
 - `supabase/schema.sql` — attendances anonymous UPDATE/DELETE 정책 제거, 대신 RPC 4개 추가 (`checkout_attendance`, `cancel_attendance`, `recheckin_attendance`, `set_next_clinic`); students INSERT/UPDATE/DELETE + terms/clinic_absences ALL → admin 전용(`app_metadata.role='admin'`); `lookup_student_by_code` school 필드 추가
 - `src/pages/AttendPage.tsx` — handleCheckOut/handleCancelPending/handleReCheckIn/handleNextClinic/handleNextClinicCheckOut 모두 RPC 경유로 변경 (attendances 직접 UPDATE/DELETE 제거)

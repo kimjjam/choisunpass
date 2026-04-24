@@ -462,11 +462,36 @@ end;
 $$;
 
 -- =============================================
+-- ta_memos 테이블 (조교 공유 메모)
+-- =============================================
+create table if not exists public.ta_memos (
+  id          uuid primary key default gen_random_uuid(),
+  content     text not null,
+  author_name text not null default '',
+  date        date not null default current_date,
+  created_at  timestamptz not null default now()
+);
+
+-- authenticated 사용자만 읽기/쓰기/삭제
+alter table public.ta_memos enable row level security;
+
+create policy "ta_memos_select" on public.ta_memos
+  for select to authenticated using (true);
+
+create policy "ta_memos_insert" on public.ta_memos
+  for insert to authenticated with check (true);
+
+create policy "ta_memos_delete" on public.ta_memos
+  for delete to authenticated using (author_name = (select email from auth.users where id = auth.uid()));
+
+-- =============================================
 -- Realtime 활성화 (조교 대시보드 실시간 갱신)
 -- =============================================
 alter publication supabase_realtime add table public.attendances;
 -- app_settings도 realtime 활성화 (점검모드 즉시 반영)
 alter publication supabase_realtime add table public.app_settings;
+-- ta_memos realtime 활성화
+alter publication supabase_realtime add table public.ta_memos;
 
 -- =============================================
 -- 테스트 데이터 (개발용)
