@@ -254,6 +254,13 @@ limit 20;
 
 ## 최근 변경 이력
 
+### [2026-04-24] P0·P1 보안 강화 — attendances 익명 쓰기 차단 + admin 전용 정책 + ParentsPage 크래시 수정
+- `supabase/schema.sql` — attendances anonymous UPDATE/DELETE 정책 제거, 대신 RPC 4개 추가 (`checkout_attendance`, `cancel_attendance`, `recheckin_attendance`, `set_next_clinic`); students INSERT/UPDATE/DELETE + terms/clinic_absences ALL → admin 전용(`app_metadata.role='admin'`); `lookup_student_by_code` school 필드 추가
+- `src/pages/AttendPage.tsx` — handleCheckOut/handleCancelPending/handleReCheckIn/handleNextClinic/handleNextClinicCheckOut 모두 RPC 경유로 변경 (attendances 직접 UPDATE/DELETE 제거)
+- `src/pages/ParentsPage.tsx` — `record.students.name/school` 접근(런타임 크래시) → `savedStudentName`/`savedStudentSchool` 상태로 교체; lookup RPC에서 school 저장
+
+**⚠ Supabase SQL Editor에서 신규 schema.sql 실행 필요** (정책 교체 + RPC 4개 추가)
+
 ### [2026-04-24] RPC 마이그레이션 — students 테이블 anonymous 접근 완전 차단
 - `src/pages/AttendPage.tsx` — 학생 조회 `lookup_student_by_code` RPC, 출석 INSERT `insert_attendance_by_code` RPC, 상태 복원 시 `attendance_code` localStorage 활용
 - `src/pages/ParentsPage.tsx` — 학생 조회·출석 이력 조회·push 구독 저장 모두 RPC 경유

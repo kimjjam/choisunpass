@@ -520,28 +520,29 @@ export default function AttendPage() {
   async function handleNextClinic() {
     if (!attendance || !nextClinicDate) return
     setNextClinicLoading(true)
+    const attendanceCode = localStorage.getItem('attendance_code') ?? code
     if (attendance.visit_type === 'class_clinic') {
       // class_clinic: 날짜 저장 후 수업/하원 선택 모달
-      const { data } = await supabase
-        .from('attendances')
-        .update({ next_clinic_date: nextClinicDate, force_next_clinic: false })
-        .eq('id', attendance.id)
-        .select()
-        .single()
-      if (data) setAttendance(data)
+      const { data } = await supabase.rpc('set_next_clinic', {
+        p_attendance_id:      attendance.id,
+        p_code:               attendanceCode,
+        p_next_date:          nextClinicDate,
+        p_force_next_clinic:  false,
+      })
+      if (data && !data.error) setAttendance(data as unknown as Attendance)
       setShowNextClinicModal(false)
       setNextClinicDate('')
       setNextClinicLoading(false)
       setShowNextClinicActionModal(true)
     } else {
       // clinic: next_clinic_date 저장 + checkout_requested 플래그 → 조교 확인 대기
-      const { data } = await supabase
-        .from('attendances')
-        .update({ next_clinic_date: nextClinicDate, checkout_requested: true })
-        .eq('id', attendance.id)
-        .select()
-        .single()
-      if (data) setAttendance(data)
+      const { data } = await supabase.rpc('set_next_clinic', {
+        p_attendance_id:      attendance.id,
+        p_code:               attendanceCode,
+        p_next_date:          nextClinicDate,
+        p_checkout_requested: true,
+      })
+      if (data && !data.error) setAttendance(data as unknown as Attendance)
       setShowNextClinicModal(false)
       setNextClinicDate('')
       setNextClinicLoading(false)
@@ -550,13 +551,12 @@ export default function AttendPage() {
 
   async function handleNextClinicCheckOut() {
     if (!attendance) return
-    const { data } = await supabase
-      .from('attendances')
-      .update({ checked_out_at: new Date().toISOString() })
-      .eq('id', attendance.id)
-      .select()
-      .single()
-    if (data) { setAttendance(data); setPageState('checked_out') }
+    const attendanceCode = localStorage.getItem('attendance_code') ?? code
+    const { data } = await supabase.rpc('checkout_attendance', {
+      p_attendance_id: attendance.id,
+      p_code:          attendanceCode,
+    })
+    if (data && !data.error) { setAttendance(data as unknown as Attendance); setPageState('checked_out') }
     setShowNextClinicActionModal(false)
   }
 
@@ -570,34 +570,36 @@ export default function AttendPage() {
 
   async function handleCheckOut() {
     if (!attendance) return
-    const { data } = await supabase
-      .from('attendances')
-      .update({ checked_out_at: new Date().toISOString() })
-      .eq('id', attendance.id)
-      .select()
-      .single()
-    if (data) {
-      setAttendance(data)
+    const attendanceCode = localStorage.getItem('attendance_code') ?? code
+    const { data } = await supabase.rpc('checkout_attendance', {
+      p_attendance_id: attendance.id,
+      p_code:          attendanceCode,
+    })
+    if (data && !data.error) {
+      setAttendance(data as unknown as Attendance)
       setPageState('checked_out')
     }
   }
 
   async function handleCancelPending() {
     if (!attendance) return
-    await supabase.from('attendances').delete().eq('id', attendance.id)
+    const attendanceCode = localStorage.getItem('attendance_code') ?? code
+    await supabase.rpc('cancel_attendance', {
+      p_attendance_id: attendance.id,
+      p_code:          attendanceCode,
+    })
     handleReset()
   }
 
   async function handleReCheckIn() {
     if (!attendance) return
-    const { data } = await supabase
-      .from('attendances')
-      .update({ checked_out_at: null, rechecked_in_at: new Date().toISOString() })
-      .eq('id', attendance.id)
-      .select()
-      .single()
-    if (data) {
-      setAttendance(data)
+    const attendanceCode = localStorage.getItem('attendance_code') ?? code
+    const { data } = await supabase.rpc('recheckin_attendance', {
+      p_attendance_id: attendance.id,
+      p_code:          attendanceCode,
+    })
+    if (data && !data.error) {
+      setAttendance(data as unknown as Attendance)
       setPageState('approved')
     }
   }
