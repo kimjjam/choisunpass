@@ -137,6 +137,7 @@ export default function AdminPage() {
   const [classroomConnecting, setClassroomConnecting] = useState(false)
   const [classroomConnected, setClassroomConnected] = useState(false)
   const classroomVideoRef = useRef<HTMLVideoElement>(null)
+  const classroomRemoteStreamRef = useRef<MediaStream | null>(null)
   const classroomPcRef = useRef<RTCPeerConnection | null>(null)
   const classroomChRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const classroomViewerId = useRef(crypto.randomUUID())
@@ -187,6 +188,7 @@ export default function AdminPage() {
     }
 
     pc.ontrack = (e) => {
+      classroomRemoteStreamRef.current = e.streams[0]
       if (classroomVideoRef.current) classroomVideoRef.current.srcObject = e.streams[0]
       setClassroomConnected(true)
       setClassroomConnecting(false)
@@ -269,11 +271,18 @@ export default function AdminPage() {
     classroomPcRef.current = null
     if (classroomChRef.current) supabase.removeChannel(classroomChRef.current)
     classroomChRef.current = null
+    classroomRemoteStreamRef.current = null
     if (classroomVideoRef.current) classroomVideoRef.current.srcObject = null
     setClassroomConnected(false)
     setClassroomRoom('')
     setClassroomRoomInput('')
   }
+
+  useEffect(() => {
+    if (classroomVideoRef.current && classroomRemoteStreamRef.current) {
+      classroomVideoRef.current.srcObject = classroomRemoteStreamRef.current
+    }
+  }, [classroomOpen, classroomConnected, classroomRoom])
 
   useEffect(() => {
     return () => {
@@ -2290,7 +2299,7 @@ export default function AdminPage() {
             </div>
             <div className="px-5 py-4 flex gap-2">
               <button
-                onClick={() => connectClassroom(classroomCall.room_name).then(() => { setClassroomOpen(true); acknowledgeCall(classroomCall.id) })}
+                onClick={() => { setClassroomOpen(true); connectClassroom(classroomCall.room_name); acknowledgeCall(classroomCall.id) }}
                 className="flex-1 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors"
               >
                 카메라 확인
