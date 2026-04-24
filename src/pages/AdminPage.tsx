@@ -130,6 +130,102 @@ export default function AdminPage() {
   const [newTermDate, setNewTermDate] = useState('')
   const [termFormError, setTermFormError] = useState('')
 
+  // 교실 실시간 뷰어
+  const [classroomOpen, setClassroomOpen] = useState(false)
+  const [classroomRoomInput, setClassroomRoomInput] = useState('')
+  const [classroomRoom, setClassroomRoom] = useState('')
+  const [classroomConnecting, setClassroomConnecting] = useState(false)
+  const [classroomConnected, setClassroomConnected] = useState(false)
+  const classroomVideoRef = useRef<HTMLVideoElement>(null)
+  const classroomPcRef = useRef<RTCPeerConnection | null>(null)
+  const classroomChRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const classroomViewerId = useRef(crypto.randomUUID())
+
+  // 교실 호출 알림
+  const [classroomCall, setClassroomCall] = useState<{ id: string; room_name: string; called_at: string } | null>(null)
+
+  useEffect(() => {
+    supabase.from('classroom_calls').select('id, room_name, called_at').is('acknowledged_at', null).order('called_at').limit(1)
+      .then(({ data }) => { if (data?.[0]) setClassroomCall(data[0]) })
+
+    const ch = supabase.channel('admin-classroom-calls')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'classroom_calls' },
+        (payload) => { setClassroomCall(payload.new as { id: string; room_name: string; called_at: string }) })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'classroom_calls' },
+        (payload) => { if ((payload.new as { acknowledged_at: string | null }).acknowledged_at) setClassroomCall(null) })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [])
+
+  async function acknowledgeCall(id: string) {
+    await supabase.from('classroom_calls').update({ acknowledged_at: new Date().toISOString(), acknowledged_by: currentUser ?? '' }).eq('id', id)
+    setClassroomCall(null)
+  }
+
+  async function connectClassroom(room: string) {
+    if (classroomPcRef.current) { classroomPcRef.current.close() }
+    if (classroomChRef.current) { supabase.removeChannel(classroomChRef.current) }
+    setClassroomConnecting(true)
+    setClassroomConnected(false)
+
+    const viewerId = classroomViewerId.current
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
+    classroomPcRef.current = pc
+
+    pc.ontrack = (e) => {
+      if (classroomVideoRef.current) classroomVideoRef.current.srcObject = e.streams[0]
+      setClassroomConnected(true)
+      setClassroomConnecting(false)
+    }
+
+    pc.onconnectionstatechange = () => {
+      if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
+        setClassroomConnected(false)
+      }
+    }
+
+    const ch = supabase.channel(`classroom:signal:${room}`, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'signal' }, async ({ payload }: { payload: { type: string; viewerId: string; sdp?: string; candidate?: RTCIceCandidateInit; from?: string } }) => {
+        if (payload.type === 'offer' && payload.viewerId === viewerId) {
+          pc.onicecandidate = (e) => {
+            if (e.candidate) ch.send({ type: 'broadcast', event: 'signal', payload: { type: 'ice', viewerId, from: 'viewer', candidate: e.candidate.toJSON() } })
+          }
+          await pc.setRemoteDescription({ type: 'offer', sdp: payload.sdp! })
+          const answer = await pc.createAnswer()
+          await pc.setLocalDescription(answer)
+          ch.send({ type: 'broadcast', event: 'signal', payload: { type: 'answer', viewerId, sdp: answer.sdp } })
+        } else if (payload.type === 'ice' && payload.from === 'classroom' && payload.viewerId === viewerId) {
+          await pc.addIceCandidate(payload.candidate!).catch(() => {})
+        }
+      })
+      .subscribe(() => {
+        ch.send({ type: 'broadcast', event: 'signal', payload: { type: 'request', viewerId } })
+      })
+
+    classroomChRef.current = ch
+    setClassroomRoom(room)
+    setTimeout(() => {
+      if (!classroomConnected) setClassroomConnecting(false)
+    }, 12000)
+  }
+
+  function disconnectClassroom() {
+    classroomPcRef.current?.close()
+    classroomPcRef.current = null
+    if (classroomChRef.current) supabase.removeChannel(classroomChRef.current)
+    classroomChRef.current = null
+    if (classroomVideoRef.current) classroomVideoRef.current.srcObject = null
+    setClassroomConnected(false)
+    setClassroomRoom('')
+    setClassroomRoomInput('')
+  }
+
+  useEffect(() => {
+    return () => {
+      classroomPcRef.current?.close()
+      if (classroomChRef.current) supabase.removeChannel(classroomChRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     supabase.from('app_settings').select('value').eq('key', 'maintenance_mode').single()
@@ -649,6 +745,12 @@ export default function AdminPage() {
           <div className="text-xs text-gray-400 font-medium">최선어학원 클리닉</div>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setClassroomOpen(true)}
+            className="text-xs text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-xl px-3 py-1.5 font-semibold transition-colors"
+          >
+            교실 실시간
+          </button>
           <button
             onClick={() => navigate('/dashboard')}
             className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-xl px-3 py-1.5 font-semibold transition-colors"
@@ -2112,6 +2214,123 @@ export default function AdminPage() {
           onClose={() => setEditTarget(null)}
           onSaved={fetchStudents}
         />
+      )}
+
+      {/* 교실 호출 알림 모달 */}
+      {classroomCall && (
+        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-8 px-4 pointer-events-none">
+          <div className="pointer-events-auto bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-bounce-once">
+            <div className="bg-red-500 px-5 py-4 flex items-center gap-3">
+              <span className="text-2xl">🚨</span>
+              <div>
+                <div className="text-white font-black text-base">관리자 호출</div>
+                <div className="text-red-100 text-xs">{classroomCall.room_name}</div>
+              </div>
+              <div className="ml-auto text-red-200 text-xs">
+                {new Date(classroomCall.called_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            <div className="px-5 py-4 flex gap-2">
+              <button
+                onClick={() => connectClassroom(classroomCall.room_name).then(() => { setClassroomOpen(true); acknowledgeCall(classroomCall.id) })}
+                className="flex-1 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-colors"
+              >
+                카메라 확인
+              </button>
+              <button
+                onClick={() => acknowledgeCall(classroomCall.id)}
+                className="flex-1 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 교실 실시간 뷰어 모달 */}
+      {classroomOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col">
+          {/* 뷰어 헤더 */}
+          <div className="flex items-center justify-between px-5 py-4 bg-gray-950">
+            <div className="flex items-center gap-3">
+              <div className="text-white font-black text-sm">교실 실시간</div>
+              {classroomRoom && (
+                <span className="text-xs bg-gray-800 text-gray-300 rounded-full px-3 py-1">{classroomRoom}</span>
+              )}
+              {classroomConnecting && <span className="text-xs text-yellow-400 animate-pulse">연결 중…</span>}
+              {classroomConnected && <span className="text-xs text-green-400">● 연결됨</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              {classroomRoom && (
+                <button
+                  onClick={disconnectClassroom}
+                  className="text-xs text-gray-400 hover:text-white bg-gray-800 rounded-xl px-3 py-1.5 transition-colors"
+                >
+                  연결 해제
+                </button>
+              )}
+              <button
+                onClick={() => { setClassroomOpen(false) }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* 방 이름 입력 */}
+          {!classroomRoom && (
+            <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4">
+              <div className="text-white text-lg font-semibold">연결할 교실 이름을 입력하세요</div>
+              <div className="text-gray-400 text-sm">태블릿에 설정된 이름과 동일해야 합니다</div>
+              <input
+                type="text"
+                value={classroomRoomInput}
+                onChange={e => setClassroomRoomInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && classroomRoomInput.trim() && connectClassroom(classroomRoomInput.trim())}
+                placeholder="예: A교실"
+                className="w-full max-w-xs bg-gray-800 text-white text-center text-lg rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-600"
+                autoFocus
+              />
+              <button
+                onClick={() => classroomRoomInput.trim() && connectClassroom(classroomRoomInput.trim())}
+                disabled={!classroomRoomInput.trim()}
+                className="w-full max-w-xs py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold transition-colors"
+              >
+                연결
+              </button>
+            </div>
+          )}
+
+          {/* 비디오 뷰 */}
+          {classroomRoom && (
+            <div className="flex-1 relative flex items-center justify-center bg-black">
+              <video
+                ref={classroomVideoRef}
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+              />
+              {!classroomConnected && !classroomConnecting && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                  <div className="text-gray-400 text-sm">연결이 끊어졌습니다</div>
+                  <button
+                    onClick={() => connectClassroom(classroomRoom)}
+                    className="text-sm text-emerald-400 hover:text-emerald-300 bg-gray-900 rounded-xl px-4 py-2 transition-colors"
+                  >
+                    재연결
+                  </button>
+                </div>
+              )}
+              {classroomConnecting && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-yellow-400 text-sm animate-pulse">교실 태블릿에 연결 요청 중…</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

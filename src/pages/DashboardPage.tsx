@@ -81,6 +81,27 @@ export default function DashboardPage() {
   const [moveToClassClinicModal, setMoveToClassClinicModal] = useState<{ id: string; name: string } | null>(null)
   const [moveToClinicModal, setMoveToClinicModal] = useState<{ id: string; name: string } | null>(null)
 
+  // 교실 호출 알림
+  const [classroomCall, setClassroomCall] = useState<{ id: string; room_name: string; called_at: string } | null>(null)
+
+  useEffect(() => {
+    supabase.from('classroom_calls').select('id, room_name, called_at').is('acknowledged_at', null).order('called_at').limit(1)
+      .then(({ data }) => { if (data?.[0]) setClassroomCall(data[0]) })
+
+    const ch = supabase.channel('dashboard-classroom-calls')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'classroom_calls' },
+        (payload) => { setClassroomCall(payload.new as { id: string; room_name: string; called_at: string }) })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'classroom_calls' },
+        (payload) => { if ((payload.new as { acknowledged_at: string | null }).acknowledged_at) setClassroomCall(null) })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [])
+
+  async function acknowledgeCall(id: string) {
+    await supabase.from('classroom_calls').update({ acknowledged_at: new Date().toISOString(), acknowledged_by: currentUser ?? '' }).eq('id', id)
+    setClassroomCall(null)
+  }
+
   // 메모 사이드 패널
   const [memoOpen, setMemoOpen] = useState(false)
   const [memos, setMemos] = useState<{ id: string; content: string; author_name: string; created_at: string }[]>([])
@@ -2242,6 +2263,32 @@ export default function DashboardPage() {
           records={historyRecords}
           onClose={() => setHistoryTarget(null)}
         />
+      )}
+
+      {/* 교실 호출 알림 */}
+      {classroomCall && (
+        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-8 px-4 pointer-events-none">
+          <div className="pointer-events-auto bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="bg-red-500 px-5 py-4 flex items-center gap-3">
+              <span className="text-2xl">🚨</span>
+              <div>
+                <div className="text-white font-black text-base">관리자 호출</div>
+                <div className="text-red-100 text-xs">{classroomCall.room_name}</div>
+              </div>
+              <div className="ml-auto text-red-200 text-xs">
+                {new Date(classroomCall.called_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            <div className="px-5 py-4">
+              <button
+                onClick={() => acknowledgeCall(classroomCall.id)}
+                className="w-full py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 메모 사이드 패널 오버레이 */}

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AttendPage from './pages/AttendPage'
 import DashboardPage from './pages/DashboardPage'
 import AdminPage from './pages/AdminPage'
+import ClassroomPage from './pages/ClassroomPage'
 import LoginPage from './pages/LoginPage'
 import ParentsPage from './pages/ParentsPage'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/parents" element={<ParentsPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPage /></ProtectedRoute>} />
+        <Route path="/classroom" element={<ProtectedRoute requiredRole="admin"><ClassroomPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

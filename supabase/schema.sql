@@ -462,6 +462,31 @@ end;
 $$;
 
 -- =============================================
+-- classroom_calls 테이블 (교실 관리자 호출)
+-- =============================================
+create table if not exists public.classroom_calls (
+  id               uuid primary key default gen_random_uuid(),
+  room_name        text not null,
+  called_by        text not null default '',
+  called_at        timestamptz not null default now(),
+  acknowledged_at  timestamptz,
+  acknowledged_by  text
+);
+
+alter table public.classroom_calls enable row level security;
+
+create policy "classroom_calls_select" on public.classroom_calls
+  for select to authenticated using (true);
+
+create policy "classroom_calls_insert" on public.classroom_calls
+  for insert to authenticated with check (true);
+
+create policy "classroom_calls_update" on public.classroom_calls
+  for update to authenticated using (true);
+
+alter publication supabase_realtime add table public.classroom_calls;
+
+-- =============================================
 -- ta_memos 테이블 (조교 공유 메모)
 -- =============================================
 create table if not exists public.ta_memos (
@@ -482,7 +507,7 @@ create policy "ta_memos_insert" on public.ta_memos
   for insert to authenticated with check (true);
 
 create policy "ta_memos_delete" on public.ta_memos
-  for delete to authenticated using (author_name = (select email from auth.users where id = auth.uid()));
+  for delete to authenticated using (author_name = (auth.jwt() ->> 'email'));
 
 -- =============================================
 -- Realtime 활성화 (조교 대시보드 실시간 갱신)
