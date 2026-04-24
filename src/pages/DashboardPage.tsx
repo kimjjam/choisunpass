@@ -2275,11 +2275,22 @@ export default function DashboardPage() {
           >
             ‹
           </button>
-          <div className="text-center">
-            <div className="text-xs font-semibold text-gray-700">
+          <div className="text-center relative">
+            <button
+              onClick={() => { const el = document.getElementById('memo-date-input') as HTMLInputElement; el?.showPicker?.() ?? el?.click() }}
+              className="text-xs font-semibold text-gray-700 hover:text-violet-600 transition-colors"
+            >
               {new Date(memoViewDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
-            </div>
+            </button>
             {isViewingToday && <div className="text-[10px] text-violet-500 font-semibold">오늘</div>}
+            <input
+              id="memo-date-input"
+              type="date"
+              value={memoViewDate}
+              max={memoToday}
+              onChange={(e) => { if (e.target.value) setMemoViewDate(e.target.value) }}
+              className="absolute inset-0 opacity-0 w-full cursor-pointer"
+            />
           </div>
           <button
             onClick={() => shiftMemoDate(1)}
