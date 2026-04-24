@@ -38,6 +38,7 @@ export default function ClassroomPage() {
   const [viewerCount, setViewerCount] = useState(0)
   const [calling, setCalling] = useState(false)
   const [callSent, setCallSent] = useState(false)
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -69,11 +70,11 @@ export default function ClassroomPage() {
     return pc
   }, [])
 
-  const startRoom = useCallback(async (name: string) => {
+  const startRoom = useCallback(async (name: string, facing: 'environment' | 'user' = 'environment') => {
     setCamError('')
     let stream: MediaStream
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false })
     } catch {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
@@ -133,7 +134,32 @@ export default function ClassroomPage() {
     if (!name) return
     localStorage.setItem('classroom_room', name)
     setRoomName(name)
-    startRoom(name)
+    startRoom(name, facingMode)
+  }
+
+  async function flipCamera() {
+    const next: 'environment' | 'user' = facingMode === 'environment' ? 'user' : 'environment'
+    setFacingMode(next)
+
+    // 기존 스트림 정지
+    streamRef.current?.getTracks().forEach(t => t.stop())
+
+    // 새 스트림으로 교체
+    let newStream: MediaStream
+    try {
+      newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: next }, audio: false })
+    } catch {
+      newStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    }
+    streamRef.current = newStream
+    if (videoRef.current) videoRef.current.srcObject = newStream
+
+    // 기존 peer connection 트랙 교체
+    const [newTrack] = newStream.getVideoTracks()
+    peersRef.current.forEach(pc => {
+      const sender = pc.getSenders().find(s => s.track?.kind === 'video')
+      if (sender) sender.replaceTrack(newTrack)
+    })
   }
 
   // 비밀번호 미확인
@@ -239,6 +265,14 @@ export default function ClassroomPage() {
         {camError && (
           <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm">{camError}</div>
         )}
+        {/* 카메라 전환 버튼 */}
+        <button
+          onClick={flipCamera}
+          className="absolute bottom-4 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 active:scale-95 transition-all text-white text-xl"
+          title="카메라 전환"
+        >
+          🔄
+        </button>
       </div>
 
       {/* 호출 버튼 */}
