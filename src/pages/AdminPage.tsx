@@ -741,17 +741,12 @@ export default function AdminPage() {
     }
 
     try {
-      const res = await fetch(GOOGLE_SCRIPT_URL, {
+      await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
+        mode: 'no-cors',
         body: JSON.stringify({ weekLabel: label, schools }),
       })
-      try {
-        const json = await res.json()
-        setGsResult(json.success ? 'success' : 'error')
-      } catch {
-        // Google Apps Script 리다이렉트로 CORS 응답을 못 읽는 경우 — 전송은 완료됨
-        setGsResult('success')
-      }
+      setGsResult('success')
     } catch (err) {
       console.error('GS 전송 실패:', err)
       setGsResult('error')
