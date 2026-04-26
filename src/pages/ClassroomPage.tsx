@@ -51,10 +51,21 @@ export default function ClassroomPage() {
   }, [])
 
   const getCameraStream = useCallback(async (facing: 'environment' | 'user') => {
+    const hd = {
+      facingMode: facing,
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      frameRate: { ideal: 30 },
+    }
     try {
-      return await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false })
+      return await navigator.mediaDevices.getUserMedia({ video: hd, audio: false })
     } catch {
-      return await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      // HD 실패 시 facingMode만 지정해서 재시도
+      try {
+        return await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false })
+      } catch {
+        return await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      }
     }
   }, [])
 
