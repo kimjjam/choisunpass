@@ -697,6 +697,8 @@ export default function AdminPage() {
       '클리닉점수': r.clinic_score ?? '',
       '구두': r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : r.oral_status === 'word_pass' ? '단어Pass' : r.oral_status === 'sentence_pass' ? '문장Pass' : r.oral_status === 'exempt' ? '면제' : '',
       '기타': r.notes ?? '',
+      '직보점수': r.jikbo_score ?? '',
+      '부모님알림장': r.parent_memo ?? '',
     }))
 
     const ws = XLSX.utils.json_to_sheet(rows)
@@ -732,6 +734,8 @@ export default function AdminPage() {
         homework: r.homework ?? '',
         oral: r.oral_status === 'pass' ? 'Pass' : r.oral_status === 'fail' ? 'Fail' : r.oral_status === 'delay' ? 'Delay' : r.oral_status === 'word_pass' ? '단어Pass' : r.oral_status === 'sentence_pass' ? '문장Pass' : r.oral_status === 'exempt' ? '면제' : '',
         notes: r.notes ?? '',
+        jikbo_score: r.jikbo_score ?? '',
+        parent_memo: r.parent_memo ?? '',
         next_clinic_date: r.next_clinic_date ?? '',
       })
     }
@@ -1042,7 +1046,7 @@ export default function AdminPage() {
                   {classes.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <div className="flex gap-1">
-                  {['', '월', '화', '수', '목', '금'].map((d) => (
+                  {['', '월', '화', '수', '목', '금', '토', '일'].map((d) => (
                     <button
                       key={d}
                       onClick={() => setWeeklyDayFilter(d)}
@@ -1133,7 +1137,7 @@ export default function AdminPage() {
                 Object.values(grouped).forEach(arr => arr.sort((a, b) => a.student.name.localeCompare(b.student.name, 'ko')))
                 const sortedGroups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b, 'ko'))
 
-                const WEEK_COLS = 10
+                const WEEK_COLS = 12
 
                 return (
                   <div className="bg-white rounded-3xl shadow-md shadow-slate-100 overflow-hidden">
@@ -1163,6 +1167,8 @@ export default function AdminPage() {
                                 <th key={`${ws}-7`} className={`px-2 py-2 text-center font-medium text-blue-400 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>구두메모</th>
                                 <th key={`${ws}-8`} className={`px-2 py-2 text-center font-medium text-purple-400 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>과제메모</th>
                                 <th key={`${ws}-9`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>기타</th>
+                                <th key={`${ws}-11`} className={`px-2 py-2 text-center font-medium text-amber-500 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>직보</th>
+                                <th key={`${ws}-12`} className={`px-2 py-2 text-center font-medium text-green-600 border-r border-gray-100 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>알림장</th>
                                 <th key={`${ws}-10`} className={`px-2 py-2 text-center font-medium text-gray-500 border-r border-gray-200 whitespace-nowrap ${wsIdx % 2 === 0 ? 'bg-indigo-50' : 'bg-gray-50'}`}>다음클리닉</th>
                               </>
                             ))}
@@ -1240,6 +1246,16 @@ export default function AdminPage() {
                                             ? <button onClick={() => setPivotNotesModal({ name: student.name, week: weekLabel(ws, selectedTerm?.start_date ?? ws), oralMemo: r.oral_memo ?? '', homeworkMemo: r.homework_memo ?? '', notes: r.notes ?? '' })} className="text-gray-500 hover:text-gray-700 text-xs truncate max-w-[80px] block text-left transition-colors" title={r.notes}>{r.notes}</button>
                                             : <span className="text-gray-300 text-xs">-</span>
                                           }
+                                        </td>
+                                        <td key={`${ws}-jikbo`} className={`px-2 py-2 text-center border-r border-gray-100 ${oddBg}`}>
+                                          {r.jikbo_score
+                                            ? <span className="text-amber-600 font-semibold text-xs">{r.jikbo_score}</span>
+                                            : <span className="text-gray-300 text-xs">-</span>}
+                                        </td>
+                                        <td key={`${ws}-pmemo`} className={`px-2 py-2 border-r border-gray-100 ${oddBg}`}>
+                                          {r.parent_memo
+                                            ? <span className="text-green-700 text-xs truncate max-w-[80px] block" title={r.parent_memo}>{r.parent_memo}</span>
+                                            : <span className="text-gray-300 text-xs">-</span>}
                                         </td>
                                         <td key={`${ws}-next`} className={`px-2 py-2 text-center text-gray-500 whitespace-nowrap border-r border-gray-200 ${oddBg}`}>{r.next_clinic_date || '-'}</td>
                                       </>
