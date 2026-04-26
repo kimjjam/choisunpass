@@ -786,6 +786,7 @@ export default function AdminPage() {
     .filter((r) => !weeklyDayFilter || r.students.clinic_day === weeklyDayFilter)
     .filter((r) => !weeklySchoolFilter || r.students.school === weeklySchoolFilter)
     .filter((r) => !weeklyClassFilter || r.students.class === weeklyClassFilter)
+    .sort((a, b) => a.students.name.localeCompare(b.students.name, 'ko'))
 
   const schools = [...new Set(students.map(s => s.school))].filter(Boolean).sort()
   const classes = [...new Set(students.map(s => s.class))].filter(Boolean).sort()
@@ -2540,6 +2541,7 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
     <tr className={`hover:bg-gray-50 transition-colors ${saving ? 'opacity-60' : ''}`}>
       <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">
         <span onClick={onNameClick} className={onNameClick ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}>{record.students.name}</span>
+        {record.rechecked_in_at && <span className="ml-1 text-blue-500 text-xs font-semibold">(재)</span>}
       </td>
       <td className="px-3 py-2.5 text-center">
         <button
