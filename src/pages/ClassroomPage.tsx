@@ -29,6 +29,7 @@ export default function ClassroomPage() {
   const [callSent, setCallSent] = useState(false)
   const [callError, setCallError] = useState('')
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
+  const [flipping, setFlipping] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -208,9 +209,11 @@ export default function ClassroomPage() {
   }
 
   async function flipCamera() {
+    if (flipping) return
     const currentStream = streamRef.current
     if (!currentStream) return
 
+    setFlipping(true)
     const currentFacing = facingMode
     const next: 'environment' | 'user' = facingMode === 'environment' ? 'user' : 'environment'
     setCamError('')
@@ -235,6 +238,7 @@ export default function ClassroomPage() {
       const newStream = await getCameraStream(next)
       await attachStream(newStream, next)
       currentStream.getTracks().forEach((t) => t.stop())
+      setFlipping(false)
       return
     } catch (err) {
       console.warn('camera switch retry after active-stream failure', err)
@@ -257,6 +261,8 @@ export default function ClassroomPage() {
         console.error('camera recovery failed:', recoverErr)
         setCamError('카메라 전환에 실패했습니다.')
       }
+    } finally {
+      setFlipping(false)
     }
   }
 
@@ -358,10 +364,11 @@ export default function ClassroomPage() {
         )}
         <button
           onClick={flipCamera}
-          className="absolute bottom-4 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 active:scale-95 transition-all text-white text-xl"
+          disabled={flipping}
+          className="absolute bottom-4 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 active:scale-95 disabled:opacity-40 transition-all text-white text-xl"
           title="카메라 전환"
         >
-          🔄
+          {flipping ? '⏳' : '🔄'}
         </button>
       </div>
 
