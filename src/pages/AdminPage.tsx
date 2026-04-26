@@ -12,7 +12,7 @@ type AdminTab = 'students' | 'weekly' | 'stats' | 'absence' | 'daily'
 
 const ORAL_TYPES = ['빈칸 구두', '별구두', '해석 구두', '별 빈칸 구두', '기타']
 const CLINIC_DAYS = ['월', '화', '수', '목', '금']
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyFWrR4BkCAoX2y6RTopvi1V6jHOhypwSr1Bl9-pv9L_X0fC5O6Y_cy6OWMHai16hTZqw/exec'
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzGc1XSf4VYRXNEMxawN1r9UxXJghNax7ZN2H6AX24MxnxC3KE7WNdsfSLV8WLhjGbBXw/exec'
 
 // 날짜 → 해당 주의 월요일
 function getWeekStart(dateStr: string): string {
@@ -712,9 +712,17 @@ export default function AdminPage() {
     setGsLoading(true)
     setGsResult(null)
 
-    // 학교 → 반(선생님)별로 이중 그룹핑
-    const schools: Record<string, Record<string, object[]>> = {}
+    // 같은 학생이 주에 여러 번 출석한 경우 최신 날짜 레코드만 사용
+    const latestByStudent = new Map<string, AttendanceWithStudent>()
     for (const r of weekRecords) {
+      const existing = latestByStudent.get(r.student_id)
+      if (!existing || r.date > existing.date) latestByStudent.set(r.student_id, r)
+    }
+    // 이름 ㄱㄴㄷ 정렬 후 학교 → 반(선생님)별로 이중 그룹핑
+    const dedupedRecords = Array.from(latestByStudent.values())
+      .sort((a, b) => a.students.name.localeCompare(b.students.name, 'ko'))
+    const schools: Record<string, Record<string, object[]>> = {}
+    for (const r of dedupedRecords) {
       const school = r.students.school
       const cls = r.students.class
       if (!schools[school]) schools[school] = {}
