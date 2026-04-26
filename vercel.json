@@ -11,11 +11,13 @@
     { "source": "/attend/(.*)", "destination": "/attend.html" },
     { "source": "/parents", "destination": "/parents.html" },
     { "source": "/parents/(.*)", "destination": "/parents.html" },
+    { "source": "/classroom", "destination": "/classroom.html" },
+    { "source": "/classroom/(.*)", "destination": "/classroom.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
-      "source": "/(index|attend|parents|bomb).html",
+      "source": "/(index|attend|parents|bomb|classroom).html",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]

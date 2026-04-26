@@ -174,6 +174,30 @@ export default function ClassroomPage() {
     }
   }, [stopRoom])
 
+  // 카메라 활성화 중 화면 꺼짐 방지 (Wake Lock)
+  useEffect(() => {
+    if (!active) return
+    let wakeLock: WakeLockSentinel | null = null
+
+    async function requestWakeLock() {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen')
+      } catch {}
+    }
+
+    requestWakeLock()
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') requestWakeLock()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      wakeLock?.release().catch(() => {})
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [active])
+
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault()
     if (!currentUser || !pwInput) return
