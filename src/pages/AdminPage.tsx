@@ -743,11 +743,14 @@ export default function AdminPage() {
     try {
       const res = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
+        mode: 'no-cors',
         body: JSON.stringify({ weekLabel: label, schools }),
       })
-      const json = await res.json()
-      setGsResult(json.success ? 'success' : 'error')
-    } catch {
+      // no-cors 모드에서는 응답 본문을 읽을 수 없으므로 요청 완료 자체를 성공으로 처리
+      console.log('GS 전송 완료, status type:', res.type)
+      setGsResult('success')
+    } catch (err) {
+      console.error('GS 전송 실패:', err)
       setGsResult('error')
     } finally {
       setGsLoading(false)
