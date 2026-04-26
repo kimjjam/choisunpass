@@ -427,10 +427,10 @@ export default function AdminPage() {
     thisMonday.setDate(today.getDate() + diff)
     const lastMonday = new Date(thisMonday)
     lastMonday.setDate(thisMonday.getDate() - 7)
-    const lastFriday = new Date(lastMonday)
-    lastFriday.setDate(lastMonday.getDate() + 4)
+    const lastSunday = new Date(lastMonday)
+    lastSunday.setDate(lastMonday.getDate() + 6)
     const weekStart = localDateStr(lastMonday)
-    const weekEnd = localDateStr(lastFriday)
+    const weekEnd = localDateStr(lastSunday)
     setAbsenceWeek(weekStart)
 
     // 지난주 출석한 학생 id 목록
@@ -1363,6 +1363,8 @@ export default function AdminPage() {
                                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-blue-400">구두메모</th>
                                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-purple-400">과제메모</th>
                                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">기타</th>
+                                <th className="px-3 py-2.5 text-center text-xs font-semibold text-amber-500">직보</th>
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-green-600">알림장</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -2037,6 +2039,8 @@ export default function AdminPage() {
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">클리닉</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">구두</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">과제</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold text-amber-500">직보</th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-green-600">알림장</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500">재등원 예정</th>
                   </tr>
                 </thead>
@@ -2072,6 +2076,16 @@ export default function AdminPage() {
                         <td className="px-3 py-3 text-center text-xs text-gray-700">{r.clinic_score || <span className="text-gray-300">-</span>}</td>
                         <td className="px-3 py-3 text-center"><MissionBadge value={r.oral_status} /></td>
                         <td className="px-3 py-3 text-center"><MissionBadge value={r.homework} /></td>
+                        <td className="px-3 py-3 text-center text-xs">
+                          {r.jikbo_score
+                            ? <span className="text-amber-600 font-semibold">{r.jikbo_score}</span>
+                            : <span className="text-gray-300">-</span>}
+                        </td>
+                        <td className="px-3 py-3 text-xs">
+                          {r.parent_memo
+                            ? <span className="text-green-700" title={r.parent_memo}>{r.parent_memo}</span>
+                            : <span className="text-gray-300">-</span>}
+                        </td>
                         <td className="px-3 py-3 text-center text-xs">
                           {r.next_clinic_date
                             ? <span className="text-blue-600 font-medium">{r.next_clinic_date}</span>
@@ -2577,6 +2591,18 @@ function WeeklyRow({ record, onUpdate, onNameClick }: { record: AttendanceWithSt
           }
           <span className={`text-xs flex-shrink-0 ${notes ? 'text-gray-400 group-hover:text-gray-600' : 'text-gray-300 group-hover:text-gray-500'}`}>···</span>
         </button>
+      </td>
+      {/* 직보 점수 (읽기 전용) */}
+      <td className="px-3 py-2.5 text-center text-xs">
+        {record.jikbo_score
+          ? <span className="text-amber-600 font-semibold">{record.jikbo_score}</span>
+          : <span className="text-gray-300">-</span>}
+      </td>
+      {/* 부모님 알림장 (읽기 전용) */}
+      <td className="px-3 py-2.5 text-xs">
+        {record.parent_memo
+          ? <span className="text-green-700 truncate max-w-[120px] block" title={record.parent_memo}>{record.parent_memo}</span>
+          : <span className="text-gray-300">-</span>}
         {showNotesModal && createPortal(
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">

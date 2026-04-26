@@ -254,6 +254,10 @@ limit 20;
 
 ## 최근 변경 이력
 
+### [2026-04-26] AdminPage 직보점수·알림장 표시 + 토일 출석 누락 수정
+- `src/pages/AdminPage.tsx` — 주차별 현황·일별 조회 테이블에 `jikbo_score`(직보), `parent_memo`(알림장) 컬럼 읽기 전용 추가
+- `fetchNoShowData` weekEnd를 `lastFriday(+4)` → `lastSunday(+6)`으로 수정해 토·일 출석도 "미실시" 집계에서 제외
+
 ### [2026-04-24] 조교 공유 메모 사이드 패널 추가
 - `supabase/schema.sql` — `ta_memos` 테이블 추가 (id, content, author_name, date, created_at) + RLS(authenticated) + Realtime 활성화
 - `src/pages/DashboardPage.tsx` — 헤더에 "메모" 버튼 추가, 오른쪽 슬라이드 사이드 패널 구현 (오늘 메모 목록·실시간 구독·삭제·입력창)
