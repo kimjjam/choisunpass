@@ -138,10 +138,12 @@ export default function ClassroomPage() {
             }
           }
         })
-        .subscribe()
-
-      channelRef.current = ch
-      setActive(true)
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            channelRef.current = ch
+            setActive(true)
+          }
+        })
     } catch (err) {
       setCamError('카메라 접근 권한이 필요합니다.')
       console.error(err)
