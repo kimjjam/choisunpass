@@ -1,0 +1,19 @@
+{
+  "name": "교실 카메라",
+  "short_name": "교실 카메라",
+  "description": "최선어학원 교실 실시간 모니터링",
+  "theme_color": "#030712",
+  "background_color": "#030712",
+  "display": "standalone",
+  "orientation": "landscape",
+  "start_url": "/classroom",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-attend.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

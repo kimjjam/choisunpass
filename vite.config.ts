@@ -11,6 +11,7 @@ export default defineConfig({
         attend: resolve(__dirname, 'attend.html'),
         parents: resolve(__dirname, 'parents.html'),
         bomb: resolve(__dirname, 'bomb.html'),
+        classroom: resolve(__dirname, 'classroom.html'),
       },
     },
   },
