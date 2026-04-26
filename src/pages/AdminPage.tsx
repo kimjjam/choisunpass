@@ -12,7 +12,7 @@ type AdminTab = 'students' | 'weekly' | 'stats' | 'absence' | 'daily'
 
 const ORAL_TYPES = ['빈칸 구두', '별구두', '해석 구두', '별 빈칸 구두', '기타']
 const CLINIC_DAYS = ['월', '화', '수', '목', '금']
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7j-XGPK-NlVZdOdmDCyVylzNJdAk2B4Uw06HE0kehM4env-uTNKPKYHI_fS8u3w7BIg/exec'
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyFWrR4BkCAoX2y6RTopvi1V6jHOhypwSr1Bl9-pv9L_X0fC5O6Y_cy6OWMHai16hTZqw/exec'
 
 // 날짜 → 해당 주의 월요일
 function getWeekStart(dateStr: string): string {
